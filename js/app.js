@@ -11,7 +11,7 @@
     root.innerHTML = `
       <div class="lock-screen">
         <h1>Thói quen mỗi ngày</h1>
-        <p>Nhập mã bí mật của bạn. Lần đầu tiên, mã này sẽ tạo dữ liệu mới; các lần sau dùng lại đúng mã để lấy đúng dữ liệu cũ.</p>
+        <p>Nhập mã bí mật của bạn. <strong style="color:var(--ink);">Lưu ý:</strong> mã sai dù chỉ 1 ký tự sẽ không báo lỗi — hệ thống sẽ tự tạo 1 vùng dữ liệu trống mới thay vì cảnh báo. Hãy chắc chắn gõ đúng nguyên văn mã bạn đã lưu.</p>
         <input type="password" id="secret-input" class="lock-input" placeholder="Mã bí mật (tối thiểu 8 ký tự)" autocomplete="off" />
         <button class="lock-btn" id="secret-submit">Tiếp tục</button>
         <p class="lock-error" id="lock-error"></p>
@@ -43,9 +43,14 @@
 
   async function bootAfterLogin() {
     root.innerHTML = `
-      <div class="tabs">
-        <button class="tab-btn active" id="nav-today">Hôm nay</button>
-        <button class="tab-btn" id="nav-year">Cả năm</button>
+      <div class="tabs" style="justify-content:space-between;">
+        <div style="display:flex;gap:6px;">
+          <button class="tab-btn active" id="nav-today">Hôm nay</button>
+          <button class="tab-btn" id="nav-year">Cả năm</button>
+        </div>
+        <button id="nav-logout" aria-label="Đăng xuất" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
+          <i class="ti ti-logout" style="font-size:16px;" aria-hidden="true"></i>
+        </button>
       </div>
       <div id="view-today"></div>
       <div id="view-year" style="display:none;"></div>
@@ -58,6 +63,20 @@
     const viewDay = root.querySelector('#view-day');
     const navToday = root.querySelector('#nav-today');
     const navYear = root.querySelector('#nav-year');
+    const navLogout = root.querySelector('#nav-logout');
+
+    navLogout.addEventListener('click', () => {
+      const confirmed = confirm(
+        'Đăng xuất khỏi thiết bị này?\n\n' +
+        'Bạn sẽ cần nhập lại mã bí mật để xem dữ liệu. ' +
+        'Dữ liệu vẫn an toàn trên máy chủ, không bị mất.'
+      );
+      if (!confirmed) return;
+      Auth.logout();
+      LocalStore.clear();
+      LocalStore.clearQueue();
+      location.reload();
+    });
 
     function showTab(tab) {
       viewToday.style.display = tab === 'today' ? 'block' : 'none';
