@@ -85,12 +85,25 @@ const YearView = (() => {
 
       html += `<div class="months-scroll">`;
       for (let m = 0; m <= lastMonth; m++) {
-        const lastDay = (isCurrentYear && m === today.getMonth())
-          ? today.getDate()
-          : new Date(viewYear, m + 1, 0).getDate();
+        const daysInMonth = new Date(viewYear, m + 1, 0).getDate();
+        const isCurrentMonth = isCurrentYear && m === today.getMonth();
+        const todayDate = today.getDate();
+
+        const firstOfMonth = new Date(viewYear, m, 1);
+        const firstWeekday = firstOfMonth.getDay(); // 0 = Chủ nhật ... 6 = Thứ 7
 
         let cells = '';
-        for (let day = 1; day <= lastDay; day++) {
+        // Ô trống cho các ngày trước ngày 1 (căn đúng vị trí thứ)
+        for (let i = 0; i < firstWeekday; i++) {
+          cells += `<div class="day-cell blank"></div>`;
+        }
+        for (let day = 1; day <= daysInMonth; day++) {
+          const isFuture = isCurrentMonth && day > todayDate;
+          if (isFuture) {
+            // Ngày chưa tới: hiện số mờ nhạt, không thể bấm/tick
+            cells += `<div class="day-cell future-day">${day}</div>`;
+            continue;
+          }
           const key = dateKey(viewYear, m, day);
           const count = countForDate(checks, habits, key);
           const isToday = key === todayKey;
@@ -100,7 +113,10 @@ const YearView = (() => {
         html += `
           <div class="month-block ${m < lastMonth ? 'with-border' : ''}">
             <p class="month-label">${MONTHS_SHORT[m]}</p>
-            <div class="day-grid" style="width:${Math.ceil(lastDay / 6) * 25}px;">${cells}</div>
+            <div class="weekday-row">
+              <span>CN</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span>
+            </div>
+            <div class="day-grid month-grid">${cells}</div>
           </div>
         `;
       }
@@ -108,7 +124,7 @@ const YearView = (() => {
 
       content.innerHTML = html;
 
-      content.querySelectorAll('.day-cell').forEach(cell => {
+      content.querySelectorAll('.day-cell[data-date]').forEach(cell => {
         cell.addEventListener('click', () => {
           if (onDayClick) onDayClick(cell.dataset.date);
         });

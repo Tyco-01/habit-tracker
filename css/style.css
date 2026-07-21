@@ -313,8 +313,9 @@ button {
 }
 
 .month-block {
-  margin-right: 14px;
-  padding-right: 14px;
+  margin-right: 18px;
+  padding-right: 18px;
+  flex-shrink: 0;
 }
 
 .month-block.with-border {
@@ -322,16 +323,33 @@ button {
 }
 
 .month-label {
-  font-size: 10px;
-  color: var(--mute);
-  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 8px;
   white-space: nowrap;
+}
+
+.weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 22px);
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.weekday-row span {
+  font-size: 9px;
+  color: var(--mute);
+  text-align: center;
 }
 
 .day-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 22px);
   gap: 3px;
+}
+
+.day-grid.month-grid {
+  grid-template-columns: repeat(7, 22px);
 }
 
 .day-cell {
@@ -350,10 +368,28 @@ button {
   color: var(--mute);
 }
 
+.day-cell.blank {
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.day-cell.future-day {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--line);
+  cursor: default;
+}
+
 .day-cell:hover {
   transform: scale(1.25);
   z-index: 2;
   position: relative;
+}
+
+.day-cell.blank:hover,
+.day-cell.future-day:hover {
+  transform: none;
 }
 
 .day-cell.partial {
