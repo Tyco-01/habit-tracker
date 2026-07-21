@@ -45,7 +45,6 @@ const YearView = (() => {
       const todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
       const total = habits.length;
       const isCurrentYear = viewYear === today.getFullYear();
-      const lastMonth = isCurrentYear ? today.getMonth() : 11;
 
       let fullDays = 0;
       if (total > 0) {
@@ -83,10 +82,13 @@ const YearView = (() => {
         return;
       }
 
-      html += `<div class="months-scroll">`;
-      for (let m = 0; m <= lastMonth; m++) {
+      // Luôn vẽ đủ 12 tháng — tháng chưa tới (của năm hiện tại) sẽ tự
+      // hiện toàn ô mờ nhạt vì mọi ngày trong đó đều là "tương lai".
+      html += `<div class="months-grid">`;
+      for (let m = 0; m <= 11; m++) {
         const daysInMonth = new Date(viewYear, m + 1, 0).getDate();
         const isCurrentMonth = isCurrentYear && m === today.getMonth();
+        const isFutureMonth = isCurrentYear && m > today.getMonth();
         const todayDate = today.getDate();
 
         const firstOfMonth = new Date(viewYear, m, 1);
@@ -98,7 +100,7 @@ const YearView = (() => {
           cells += `<div class="day-cell blank"></div>`;
         }
         for (let day = 1; day <= daysInMonth; day++) {
-          const isFuture = isCurrentMonth && day > todayDate;
+          const isFuture = isFutureMonth || (isCurrentMonth && day > todayDate);
           if (isFuture) {
             // Ngày chưa tới: hiện số mờ nhạt, không thể bấm/tick
             cells += `<div class="day-cell future-day">${day}</div>`;
@@ -111,7 +113,7 @@ const YearView = (() => {
         }
 
         html += `
-          <div class="month-block ${m < lastMonth ? 'with-border' : ''}">
+          <div class="month-block">
             <p class="month-label">${MONTHS_SHORT[m]}</p>
             <div class="weekday-row">
               <span>CN</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span>

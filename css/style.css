@@ -45,6 +45,11 @@ button {
   padding: 1.5rem 1.25rem 3rem;
 }
 
+/* Màn "Cả năm" cần rộng hơn để chứa lưới 4 cột tháng thoải mái */
+#app:has(.months-grid) {
+  max-width: 880px;
+}
+
 /* ---- Màn hình khoá (mã bí mật / PIN) ---- */
 
 .lock-screen {
@@ -244,12 +249,13 @@ button {
   border: none;
   background: transparent;
   color: var(--mute);
-  padding: 2px;
-  opacity: 0;
+  padding: 4px;
+  opacity: 0.55;
   transition: opacity 0.15s ease;
 }
 
-.habit-row:hover .remove-btn {
+.remove-btn:hover,
+.remove-btn:active {
   opacity: 1;
 }
 
@@ -306,20 +312,14 @@ button {
   color: var(--mute);
 }
 
-.months-scroll {
-  display: flex;
-  overflow-x: auto;
-  padding-bottom: 8px;
+.months-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px 16px;
 }
 
 .month-block {
-  margin-right: 18px;
-  padding-right: 18px;
-  flex-shrink: 0;
-}
-
-.month-block.with-border {
-  border-right: 1px solid var(--line);
+  min-width: 0;
 }
 
 .month-label {
@@ -332,7 +332,7 @@ button {
 
 .weekday-row {
   display: grid;
-  grid-template-columns: repeat(7, 22px);
+  grid-template-columns: repeat(7, 1fr);
   gap: 3px;
   margin-bottom: 4px;
 }
@@ -349,14 +349,13 @@ button {
 }
 
 .day-grid.month-grid {
-  grid-template-columns: repeat(7, 22px);
+  grid-template-columns: repeat(7, 1fr);
 }
 
 .day-cell {
-  width: 22px;
-  height: 22px;
+  width: 100%;
+  aspect-ratio: 1;
   border-radius: 5px;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;

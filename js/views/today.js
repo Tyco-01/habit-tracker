@@ -77,6 +77,10 @@ const TodayView = (() => {
 
       listEl.querySelectorAll('[data-remove]').forEach(btn => {
         btn.addEventListener('click', () => {
+          const habit = habits.find(h => h.id === btn.dataset.remove);
+          const name = habit ? habit.name : 'việc này';
+          const confirmed = confirm(`Xoá "${name}"?\n\nLịch sử tick của việc này vẫn được giữ lại, nhưng việc sẽ không còn hiện trong danh sách hàng ngày nữa.`);
+          if (!confirmed) return;
           Sync.removeHabit(btn.dataset.remove);
         });
       });
