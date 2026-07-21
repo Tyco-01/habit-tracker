@@ -6,11 +6,17 @@
 // lên Supabase ở nền. Nếu gửi thất bại (mất mạng, lỗi tạm thời), thao
 // tác được xếp vào hàng đợi và tự động thử lại sau — người dùng không
 // bị chặn hay mất dữ liệu.
+//
+// Cơ chế Thùng rác: xoá habit không xoá cứng ngay mà chuyển vào
+// data.archivedHabits (kèm thời điểm xoá). Sau 30 ngày, hoặc khi
+// người dùng chủ động "Dọn sạch", habit mới bị xoá vĩnh viễn.
 // ============================================================
 
 const Sync = (() => {
 
   let data = LocalStore.load();
+  if (!Array.isArray(data.archivedHabits)) data.archivedHabits = [];
+
   let isSyncing = false;
   let listeners = [];
 
@@ -24,6 +30,14 @@ const Sync = (() => {
     notify();
   }
 
+  function tempId() {
+    return `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function isTemp(id) {
+    return String(id).startsWith('tmp_');
+  }
+
   // ---- Áp dụng thao tác vào state cục bộ (không đợi mạng) ----
 
   function applyAddHabit(habit) {
@@ -31,9 +45,33 @@ const Sync = (() => {
     persistLocal();
   }
 
-  function applyRemoveHabit(habitId) {
+  // Chuyển habit sang danh sách archivedHabits thay vì xoá hẳn
+  function applyArchiveHabit(habitId) {
+    const habit = data.habits.find(h => h.id === habitId);
+    if (!habit) return;
     data.habits = data.habits.filter(h => h.id !== habitId);
+    data.archivedHabits.push({ id: habitId, name: habit.name, archivedAt: Date.now() });
+    persistLocal();
+  }
+
+  function applyRestoreHabit(habitId) {
+    const archived = data.archivedHabits.find(h => h.id === habitId);
+    if (!archived) return;
+    data.archivedHabits = data.archivedHabits.filter(h => h.id !== habitId);
+    data.habits.push({ id: habitId, name: archived.name, sortOrder: data.habits.length });
+    persistLocal();
+  }
+
+  // Xoá vĩnh viễn 1 habit khỏi archivedHabits + toàn bộ checks liên quan
+  function applyPurgeHabit(habitId) {
+    data.archivedHabits = data.archivedHabits.filter(h => h.id !== habitId);
     delete data.checks[habitId];
+    persistLocal();
+  }
+
+  function applyEmptyTrash() {
+    data.archivedHabits.forEach(h => { delete data.checks[h.id]; });
+    data.archivedHabits = [];
     persistLocal();
   }
 
@@ -60,13 +98,27 @@ const Sync = (() => {
     persistLocal();
   }
 
-  // ---- Hành động công khai: gọi từ UI ----
-  // Mỗi hành động: (1) tạo id tạm nếu cần, (2) áp dụng cục bộ ngay,
-  // (3) đẩy vào hàng đợi đồng bộ, (4) thử đồng bộ ngay nếu có mạng.
-
-  function tempId() {
-    return `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  function applyRenameHabit(habitId, newName) {
+    data.habits = data.habits.map(h => h.id === habitId ? { ...h, name: newName } : h);
+    persistLocal();
   }
+
+  function applyReorderHabits(orderedIds) {
+    const byId = {};
+    data.habits.forEach(h => { byId[h.id] = h; });
+    data.habits = orderedIds.map((id, idx) => ({ ...byId[id], sortOrder: idx })).filter(Boolean);
+    persistLocal();
+  }
+
+  function applyUpdateEventNote(dateStr, eventId, note) {
+    if (!data.events[dateStr]) return;
+    data.events[dateStr] = data.events[dateStr].map(e => e.id === eventId ? { ...e, note } : e);
+    persistLocal();
+  }
+
+  // ---- Hành động công khai: gọi từ UI ----
+  // Mỗi hành động: (1) áp dụng cục bộ ngay, (2) đẩy vào hàng đợi đồng
+  // bộ, (3) thử đồng bộ ngay nếu có mạng.
 
   function addHabit(name) {
     const habit = { id: tempId(), name, sortOrder: data.habits.length };
@@ -76,9 +128,23 @@ const Sync = (() => {
     return habit;
   }
 
+  // Xoá = chuyển vào thùng rác (archive), không xoá cứng ngay
   function removeHabit(habitId) {
-    applyRemoveHabit(habitId);
-    LocalStore.enqueue('remove_habit', { habitId });
+    applyArchiveHabit(habitId);
+    LocalStore.enqueue('archive_habit', { habitId });
+    kickSync();
+  }
+
+  function restoreHabit(habitId) {
+    applyRestoreHabit(habitId);
+    LocalStore.enqueue('restore_habit', { habitId });
+    kickSync();
+  }
+
+  // Xoá vĩnh viễn toàn bộ thùng rác — không hoàn tác được
+  function emptyTrash() {
+    applyEmptyTrash();
+    LocalStore.enqueue('empty_trash', {});
     kickSync();
   }
 
@@ -89,7 +155,7 @@ const Sync = (() => {
   }
 
   function addEvent(dateStr, name) {
-    const event = { id: tempId(), name };
+    const event = { id: tempId(), name, note: '' };
     applyAddEvent(dateStr, event);
     LocalStore.enqueue('add_event', { localId: event.id, date: dateStr, name });
     kickSync();
@@ -99,6 +165,24 @@ const Sync = (() => {
   function removeEvent(dateStr, eventId) {
     applyRemoveEvent(dateStr, eventId);
     LocalStore.enqueue('remove_event', { eventId });
+    kickSync();
+  }
+
+  function renameHabit(habitId, newName) {
+    applyRenameHabit(habitId, newName);
+    LocalStore.enqueue('rename_habit', { habitId, name: newName });
+    kickSync();
+  }
+
+  function reorderHabits(orderedIds) {
+    applyReorderHabits(orderedIds);
+    LocalStore.enqueue('reorder_habits', { orderedIds });
+    kickSync();
+  }
+
+  function updateEventNote(dateStr, eventId, note) {
+    applyUpdateEventNote(dateStr, eventId, note);
+    LocalStore.enqueue('update_event_note', { eventId, note });
     kickSync();
   }
 
@@ -130,19 +214,25 @@ const Sync = (() => {
         remapHabitId(entry.payload.localId, newId);
         break;
       }
-      case 'remove_habit': {
-        // Nếu habit chưa kịp có id thật (vẫn là tmp_) thì không có gì để xoá trên server
-        if (String(entry.payload.habitId).startsWith('tmp_')) break;
+      case 'archive_habit': {
+        if (isTemp(entry.payload.habitId)) throw new Error('habit_not_synced_yet');
         await SupabaseClient.rpc('remove_habit', {
           p_session_token: token, p_habit_id: entry.payload.habitId
         });
         break;
       }
+      case 'restore_habit': {
+        await SupabaseClient.rpc('restore_habit', {
+          p_session_token: token, p_habit_id: entry.payload.habitId
+        });
+        break;
+      }
+      case 'empty_trash': {
+        await SupabaseClient.rpc('empty_trash', { p_session_token: token });
+        break;
+      }
       case 'set_check': {
-        if (String(entry.payload.habitId).startsWith('tmp_')) {
-          // Habit gốc chưa đồng bộ xong — đẩy thao tác này lại cuối hàng đợi, thử sau
-          throw new Error('habit_not_synced_yet');
-        }
+        if (isTemp(entry.payload.habitId)) throw new Error('habit_not_synced_yet');
         await SupabaseClient.rpc('set_check', {
           p_session_token: token,
           p_habit_id: entry.payload.habitId,
@@ -159,9 +249,31 @@ const Sync = (() => {
         break;
       }
       case 'remove_event': {
-        if (String(entry.payload.eventId).startsWith('tmp_')) break;
+        if (isTemp(entry.payload.eventId)) break;
         await SupabaseClient.rpc('remove_event', {
           p_session_token: token, p_event_id: entry.payload.eventId
+        });
+        break;
+      }
+      case 'rename_habit': {
+        if (isTemp(entry.payload.habitId)) throw new Error('habit_not_synced_yet');
+        await SupabaseClient.rpc('update_habit_name', {
+          p_session_token: token, p_habit_id: entry.payload.habitId, p_new_name: entry.payload.name
+        });
+        break;
+      }
+      case 'reorder_habits': {
+        // Nếu còn habit nào chưa có id thật, hoãn thao tác sắp xếp lại tới khi tất cả đã đồng bộ
+        if (entry.payload.orderedIds.some(isTemp)) throw new Error('habit_not_synced_yet');
+        await SupabaseClient.rpc('reorder_habits', {
+          p_session_token: token, p_ordered_ids: entry.payload.orderedIds
+        });
+        break;
+      }
+      case 'update_event_note': {
+        if (isTemp(entry.payload.eventId)) throw new Error('habit_not_synced_yet');
+        await SupabaseClient.rpc('update_event_note', {
+          p_session_token: token, p_event_id: entry.payload.eventId, p_note: entry.payload.note
         });
         break;
       }
@@ -176,7 +288,7 @@ const Sync = (() => {
 
     isSyncing = true;
     try {
-      let queue = LocalStore.loadQueue();
+      const queue = LocalStore.loadQueue();
       const stillPending = [];
 
       for (const entry of queue) {
@@ -214,7 +326,17 @@ const Sync = (() => {
     const token = Auth.currentToken();
     if (!token) return;
 
-    const snapshot = await SupabaseClient.rpc('get_snapshot', { p_session_token: token });
+    // Dọn tự động các mục thùng rác đã quá 30 ngày trước khi tải dữ liệu mới
+    try {
+      await SupabaseClient.rpc('purge_expired_trash', { p_session_token: token });
+    } catch (err) {
+      console.warn('Không dọn được thùng rác quá hạn (bỏ qua, không ảnh hưởng dữ liệu chính):', err);
+    }
+
+    const [snapshot, trashRows] = await Promise.all([
+      SupabaseClient.rpc('get_snapshot', { p_session_token: token }),
+      SupabaseClient.rpc('get_trash', { p_session_token: token }).catch(() => [])
+    ]);
 
     const remoteHabits = (snapshot.habits || []).map(h => ({
       id: h.id, name: h.name, sortOrder: h.sort_order
@@ -227,10 +349,13 @@ const Sync = (() => {
     const remoteEvents = {};
     (snapshot.events || []).forEach(e => {
       if (!remoteEvents[e.date]) remoteEvents[e.date] = [];
-      remoteEvents[e.date].push({ id: e.id, name: e.name });
+      remoteEvents[e.date].push({ id: e.id, name: e.name, note: e.note || '' });
     });
+    const remoteArchived = (trashRows || []).map(t => ({
+      id: t.id, name: t.name, archivedAt: new Date(t.archived_at).getTime()
+    }));
 
-    data = { habits: remoteHabits, checks: remoteChecks, events: remoteEvents };
+    data = { habits: remoteHabits, checks: remoteChecks, events: remoteEvents, archivedHabits: remoteArchived };
     persistLocal();
   }
 
@@ -242,7 +367,9 @@ const Sync = (() => {
 
   return {
     getData, onChange,
-    addHabit, removeHabit, setCheck, addEvent, removeEvent,
+    addHabit, removeHabit, restoreHabit, emptyTrash,
+    setCheck, addEvent, removeEvent,
+    renameHabit, reorderHabits, updateEventNote,
     pullFromServer, flushQueue
   };
 })();

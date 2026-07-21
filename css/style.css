@@ -200,8 +200,40 @@ button {
 .habit-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   padding: 10px 8px;
+  border-radius: 8px;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.habit-row.dragging {
+  opacity: 0.4;
+}
+
+.habit-row.drag-over {
+  background: var(--partial-bg);
+}
+
+.drag-handle {
+  color: var(--line);
+  cursor: grab;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.inline-edit-input {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--card);
 }
 
 .check-btn {
@@ -230,6 +262,7 @@ button {
   flex: 1;
   font-size: 15px;
   font-weight: 500;
+  cursor: text;
 }
 
 .habit-name.done {
@@ -535,6 +568,22 @@ button {
   background: transparent;
   color: var(--mute);
   padding: 2px;
+}
+
+.event-note-input {
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  resize: vertical;
+  min-height: 36px;
+}
+
+.event-note-input::placeholder {
+  color: var(--mute);
 }
 
 .history-row {

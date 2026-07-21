@@ -117,18 +117,37 @@ const DayDetailView = (() => {
         eventListEl.innerHTML = evs.length === 0
           ? `<p style="font-size:13px;color:var(--mute);margin:0;">Chưa có sự kiện nào cho ngày này.</p>`
           : evs.map(e => `
-            <div class="event-row">
-              <i class="ti ti-sparkles" style="font-size:15px;color:var(--ink);" aria-hidden="true"></i>
-              <span class="event-name">${escapeHtml(e.name)}</span>
-              <button class="event-remove" data-event="${e.id}" aria-label="Xoá ${escapeHtml(e.name)}">
-                <i class="ti ti-x" style="font-size:14px;" aria-hidden="true"></i>
-              </button>
+            <div class="event-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <i class="ti ti-sparkles" style="font-size:15px;color:var(--ink);flex-shrink:0;" aria-hidden="true"></i>
+                <span class="event-name">${escapeHtml(e.name)}</span>
+                <button class="event-remove" data-event="${e.id}" aria-label="Xoá ${escapeHtml(e.name)}">
+                  <i class="ti ti-x" style="font-size:14px;" aria-hidden="true"></i>
+                </button>
+              </div>
+              <textarea class="event-note-input" data-event-note="${e.id}" placeholder="Ghi chú thêm (tuỳ chọn)..." maxlength="500" rows="1">${escapeHtml(e.note || '')}</textarea>
             </div>
           `).join('');
 
         eventListEl.querySelectorAll('.event-remove').forEach(btn => {
           btn.addEventListener('click', () => {
+            const ev = evs.find(e => e.id === btn.dataset.event);
+            const name = ev ? ev.name : 'sự kiện này';
+            const confirmed = confirm(`Xoá "${name}"?\n\nSự kiện này sẽ bị xoá hẳn, không có thùng rác cho sự kiện 1 lần.`);
+            if (!confirmed) return;
             Sync.removeEvent(dateStr, btn.dataset.event);
+          });
+        });
+
+        // Ghi chú: lưu khi rời khỏi ô nhập (blur), không lưu theo từng phím gõ
+        eventListEl.querySelectorAll('.event-note-input').forEach(area => {
+          area.addEventListener('blur', () => {
+            const eventId = area.dataset.eventNote;
+            const original = evs.find(e => e.id === eventId);
+            const newNote = area.value.trim();
+            if (original && newNote !== (original.note || '')) {
+              Sync.updateEventNote(dateStr, eventId, newNote);
+            }
           });
         });
 
