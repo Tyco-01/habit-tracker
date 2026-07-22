@@ -351,6 +351,20 @@ button {
   gap: 24px 16px;
 }
 
+/* Màn hình hẹp (điện thoại): 4 cột tháng quá chật, ô ngày co nhỏ tới
+   mức số bị ép mất — chuyển dần về ít cột hơn theo độ rộng thực tế. */
+@media (max-width: 900px) {
+  .months-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .months-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
 .month-block {
   min-width: 0;
 }
