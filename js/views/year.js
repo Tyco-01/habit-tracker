@@ -101,15 +101,19 @@ const YearView = (() => {
         }
         for (let day = 1; day <= daysInMonth; day++) {
           const isFuture = isFutureMonth || (isCurrentMonth && day > todayDate);
+          const key = dateKey(viewYear, m, day);
+          const hasEvent = !!(events[key] && events[key].length > 0);
+          const clipHtml = hasEvent ? `<i class="ti ti-paperclip event-clip" aria-hidden="true"></i>` : '';
+
           if (isFuture) {
-            // Ngày chưa tới: hiện số mờ nhạt, không thể bấm/tick
-            cells += `<div class="day-cell future-day">${day}</div>`;
+            // Ngày chưa tới: không có việc lặp lại để hiện số, nhưng vẫn
+            // bấm mở được — để có thể đặt trước sự kiện 1 lần (vd hẹn khám).
+            cells += `<div class="day-cell future-day" data-date="${key}">${clipHtml}${day}</div>`;
             continue;
           }
-          const key = dateKey(viewYear, m, day);
           const count = countForDate(checks, habits, key);
           const isToday = key === todayKey;
-          cells += `<div class="day-cell ${cellClass(count, total)} ${isToday ? 'today' : ''}" data-date="${key}">${count > 0 ? count : ''}</div>`;
+          cells += `<div class="day-cell ${cellClass(count, total)} ${isToday ? 'today' : ''}" data-date="${key}">${clipHtml}${count > 0 ? count : ''}</div>`;
         }
 
         html += `

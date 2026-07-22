@@ -52,6 +52,9 @@ const TodayView = (() => {
         <i class="ti ti-checklist" style="font-size:28px;display:block;margin:0 auto 10px;" aria-hidden="true"></i>
         <p>Chưa có việc nào</p>
       </div>
+
+      <div style="border-top:1px solid var(--line);margin-top:20px;padding-top:16px;" id="event-section-today"></div>
+
       <div id="trash-panel" style="display:none;"></div>
     `;
 
@@ -59,6 +62,10 @@ const TodayView = (() => {
     const emptyEl = container.querySelector('#empty-state');
     const trashPanel = container.querySelector('#trash-panel');
     const trashBtn = container.querySelector('#trash-btn');
+
+    // Sự kiện riêng cho hôm nay — dùng module chung với màn chi tiết ngày,
+    // không hiện phần "Lịch sử" ở đây để giữ màn Hôm nay gọn gàng.
+    EventSection.render(container.querySelector('#event-section-today'), todayKey, { withHistory: false });
 
     function draw() {
       const { habits, checks } = Sync.getData();

@@ -47,6 +47,7 @@
         <div style="display:flex;gap:6px;">
           <button class="tab-btn active" id="nav-today">Hôm nay</button>
           <button class="tab-btn" id="nav-year">Cả năm</button>
+          <button class="tab-btn" id="nav-stats">Thống kê</button>
         </div>
         <button id="nav-logout" aria-label="Đăng xuất" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
           <i class="ti ti-logout" style="font-size:16px;" aria-hidden="true"></i>
@@ -54,15 +55,18 @@
       </div>
       <div id="view-today"></div>
       <div id="view-year" style="display:none;"></div>
+      <div id="view-stats" style="display:none;"></div>
       <div id="view-day" style="display:none;"></div>
       <div class="sync-indicator" id="sync-indicator"></div>
     `;
 
     const viewToday = root.querySelector('#view-today');
     const viewYear = root.querySelector('#view-year');
+    const viewStats = root.querySelector('#view-stats');
     const viewDay = root.querySelector('#view-day');
     const navToday = root.querySelector('#nav-today');
     const navYear = root.querySelector('#nav-year');
+    const navStats = root.querySelector('#nav-stats');
     const navLogout = root.querySelector('#nav-logout');
 
     navLogout.addEventListener('click', () => {
@@ -81,13 +85,16 @@
     function showTab(tab) {
       viewToday.style.display = tab === 'today' ? 'block' : 'none';
       viewYear.style.display = tab === 'year' ? 'block' : 'none';
+      viewStats.style.display = tab === 'stats' ? 'block' : 'none';
       viewDay.style.display = 'none';
       navToday.classList.toggle('active', tab === 'today');
       navYear.classList.toggle('active', tab === 'year');
+      navStats.classList.toggle('active', tab === 'stats');
     }
 
     navToday.addEventListener('click', () => { showTab('today'); TodayView.render(viewToday); });
     navYear.addEventListener('click', () => { showTab('year'); YearView.render(viewYear, openDay); });
+    navStats.addEventListener('click', () => { showTab('stats'); StatsView.render(viewStats); });
 
     function openDay(dateStr) {
       viewToday.style.display = 'none';
