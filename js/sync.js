@@ -190,6 +190,31 @@ const Sync = (() => {
 
   // id thật do server cấp thay cho id tạm — cần ánh xạ lại trong dữ liệu
   // cục bộ để các thao tác tiếp theo (vd xoá) dùng đúng id thật.
+  // id thật do server cấp thay cho id tạm — cần ánh xạ lại trong dữ liệu
+  // cục bộ để các thao tác tiếp theo (vd xoá) dùng đúng id thật. Đồng thời
+  // phải cập nhật NGAY các entry còn lại trong hàng đợi (vd set_check gửi
+  // liền sau add_habit trong cùng 1 lượt offline) — nếu không, chúng vẫn
+  // giữ id tạm cũ và phải chờ thêm 1 lượt flushQueue nữa mới gửi được.
+  function remapHabitIdInQueue(oldId, newId) {
+    const queue = LocalStore.loadQueue();
+    const updated = queue.map(entry => {
+      if (entry.type === 'set_check' && entry.payload.habitId === oldId) {
+        return { ...entry, payload: { ...entry.payload, habitId: newId } };
+      }
+      if (entry.type === 'rename_habit' && entry.payload.habitId === oldId) {
+        return { ...entry, payload: { ...entry.payload, habitId: newId } };
+      }
+      if (entry.type === 'archive_habit' && entry.payload.habitId === oldId) {
+        return { ...entry, payload: { ...entry.payload, habitId: newId } };
+      }
+      if (entry.type === 'reorder_habits') {
+        return { ...entry, payload: { orderedIds: entry.payload.orderedIds.map(id => id === oldId ? newId : id) } };
+      }
+      return entry;
+    });
+    LocalStore.saveQueue(updated);
+  }
+
   function remapHabitId(oldId, newId) {
     data.habits = data.habits.map(h => h.id === oldId ? { ...h, id: newId } : h);
     if (data.checks[oldId]) {
@@ -197,6 +222,7 @@ const Sync = (() => {
       delete data.checks[oldId];
     }
     persistLocal();
+    remapHabitIdInQueue(oldId, newId);
   }
 
   function remapEventId(dateStr, oldId, newId) {
@@ -288,10 +314,18 @@ const Sync = (() => {
 
     isSyncing = true;
     try {
-      const queue = LocalStore.loadQueue();
+      const initialQueue = LocalStore.loadQueue();
       const stillPending = [];
 
-      for (const entry of queue) {
+      for (let i = 0; i < initialQueue.length; i++) {
+        // Đọc lại đúng entry này từ LocalStore (không dùng bản snapshot cứng
+        // từ đầu) — vì processOne() ở bước trước có thể đã gọi remapHabitId
+        // và cập nhật id tạm → id thật ngay trong hàng đợi (xem
+        // remapHabitIdInQueue). Nếu cứ dùng snapshot cũ, set_check gửi ngay
+        // sau add_habit trong cùng lượt sẽ bị gửi nhầm id tạm đã hết hạn.
+        const currentQueue = LocalStore.loadQueue();
+        const entry = currentQueue.find(e => e.id === initialQueue[i].id) || initialQueue[i];
+
         try {
           await processOne(entry, token);
           // thành công → không đưa lại vào hàng đợi
@@ -299,8 +333,14 @@ const Sync = (() => {
           if (err.message === 'habit_not_synced_yet') {
             stillPending.push(entry); // thử lại ở lượt sau
           } else if (err.isNetworkError) {
-            stillPending.push(entry);
-            break; // mất mạng giữa chừng — dừng, giữ nguyên phần còn lại
+            // Mất mạng giữa chừng: KHÔNG chỉ giữ lại entry đang lỗi — mọi
+            // thao tác còn lại (i trở đi, kể cả những cái CHƯA kịp thử)
+            // đều phải giữ nguyên, nếu không sẽ bị rơi mất vĩnh viễn.
+            const remaining = currentQueue.filter(e =>
+              initialQueue.slice(i).some(orig => orig.id === e.id)
+            );
+            stillPending.push(...remaining);
+            break;
           } else {
             // Lỗi nghiệp vụ thật (vd dữ liệu không hợp lệ) — bỏ qua thao tác này,
             // không để nó chặn cả hàng đợi mãi mãi.

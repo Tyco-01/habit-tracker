@@ -49,9 +49,14 @@
           <button class="tab-btn" id="nav-year">Cả năm</button>
           <button class="tab-btn" id="nav-stats">Thống kê</button>
         </div>
-        <button id="nav-logout" aria-label="Đăng xuất" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
-          <i class="ti ti-logout" style="font-size:16px;" aria-hidden="true"></i>
-        </button>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <button id="nav-export" aria-label="Xuất dữ liệu backup" title="Tải file backup dữ liệu" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
+            <i class="ti ti-download" style="font-size:16px;" aria-hidden="true"></i>
+          </button>
+          <button id="nav-logout" aria-label="Đăng xuất" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
+            <i class="ti ti-logout" style="font-size:16px;" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
       <div id="view-today"></div>
       <div id="view-year" style="display:none;"></div>
@@ -68,6 +73,17 @@
     const navYear = root.querySelector('#nav-year');
     const navStats = root.querySelector('#nav-stats');
     const navLogout = root.querySelector('#nav-logout');
+    const navExport = root.querySelector('#nav-export');
+
+    navExport.addEventListener('click', () => {
+      try {
+        const filename = ExportData.exportAll();
+        console.log('Đã xuất file backup:', filename);
+      } catch (err) {
+        alert('Không thể xuất dữ liệu — thử lại sau.');
+        console.error('Lỗi xuất dữ liệu:', err);
+      }
+    });
 
     navLogout.addEventListener('click', () => {
       const confirmed = confirm(

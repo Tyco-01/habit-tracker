@@ -6,6 +6,12 @@
 // vì sự kiện 1 lần thường mang tính "lên lịch trước" (hẹn nha sĩ,
 // sinh nhật...), không giống việc lặp lại vốn chỉ có ý nghĩa khi
 // tick đúng ngày nó xảy ra.
+//
+// Mỗi lần gọi render() cần 1 `idPrefix` riêng biệt (vd 'today',
+// 'day-detail') để các ID phần tử con không trùng nhau — vì màn
+// "Hôm nay" và màn chi tiết ngày có thể cùng tồn tại trong DOM
+// cùng lúc (1 cái đang ẩn qua display:none), và HTML không cho
+// phép 2 phần tử chia sẻ chung 1 ID.
 // ============================================================
 
 const EventSection = (() => {
@@ -28,26 +34,38 @@ const EventSection = (() => {
   }
 
   // Render khối sự kiện vào `container` cho đúng `dateStr`.
+  // `idPrefix`: chuỗi định danh duy nhất cho lần gọi này (bắt buộc).
   // `withHistory`: có hiện phần "Lịch sử" theo tên sự kiện hay không
   // (màn Hôm nay không cần phần này để giữ gọn, màn chi tiết ngày thì có).
-  function render(container, dateStr, { withHistory = true } = {}) {
+  function render(container, dateStr, { idPrefix, withHistory = true } = {}) {
+    if (!idPrefix) {
+      throw new Error('EventSection.render cần idPrefix để tránh trùng ID giữa các khối.');
+    }
+
+    const addBtnId = `${idPrefix}-event-add-btn`;
+    const inputRowId = `${idPrefix}-event-input-row`;
+    const inputId = `${idPrefix}-event-input`;
+    const saveId = `${idPrefix}-event-save`;
+
     container.innerHTML = `
       <div class="section-header-row">
         <p class="section-label" style="margin:0;">SỰ KIỆN RIÊNG NGÀY NÀY</p>
-        <button class="pill-btn" id="event-add-btn">
+        <button class="pill-btn" id="${addBtnId}">
           <i class="ti ti-plus" style="font-size:12px;" aria-hidden="true"></i> Thêm
         </button>
       </div>
-      <div class="input-row" id="event-input-row" style="display:none;">
-        <input type="text" id="event-input" placeholder="ví dụ: cắt tóc" maxlength="60" />
-        <button id="event-save">Lưu</button>
+      <div class="input-row" id="${inputRowId}" style="display:none;">
+        <input type="text" id="${inputId}" placeholder="ví dụ: cắt tóc" maxlength="60" />
+        <button id="${saveId}">Lưu</button>
       </div>
-      <div id="event-list"></div>
-      ${withHistory ? '<div id="event-history"></div>' : ''}
+      <div class="event-list-slot"></div>
+      ${withHistory ? '<div class="event-history-slot"></div>' : ''}
     `;
 
-    const eventListEl = container.querySelector('#event-list');
-    const eventHistoryEl = container.querySelector('#event-history');
+    // Dùng class thay vì ID cho các phần tử vẽ lại nhiều lần (list/history) —
+    // chỉ cần querySelector đúng PHẠM VI container này, không cần ID toàn cục.
+    const eventListEl = container.querySelector('.event-list-slot');
+    const eventHistoryEl = container.querySelector('.event-history-slot');
 
     function drawEvents() {
       const { events } = Sync.getData();
@@ -125,10 +143,10 @@ const EventSection = (() => {
     drawEvents();
     Sync.onChange(drawEvents);
 
-    const addBtn = container.querySelector('#event-add-btn');
-    const addRow = container.querySelector('#event-input-row');
-    const addInput = container.querySelector('#event-input');
-    const addSave = container.querySelector('#event-save');
+    const addBtn = container.querySelector(`#${addBtnId}`);
+    const addRow = container.querySelector(`#${inputRowId}`);
+    const addInput = container.querySelector(`#${inputId}`);
+    const addSave = container.querySelector(`#${saveId}`);
 
     addBtn.addEventListener('click', () => {
       const showing = addRow.style.display !== 'none';

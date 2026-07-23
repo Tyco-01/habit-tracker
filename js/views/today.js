@@ -65,7 +65,7 @@ const TodayView = (() => {
 
     // Sự kiện riêng cho hôm nay — dùng module chung với màn chi tiết ngày,
     // không hiện phần "Lịch sử" ở đây để giữ màn Hôm nay gọn gàng.
-    EventSection.render(container.querySelector('#event-section-today'), todayKey, { withHistory: false });
+    EventSection.render(container.querySelector('#event-section-today'), todayKey, { idPrefix: 'today', withHistory: false });
 
     function draw() {
       const { habits, checks } = Sync.getData();
