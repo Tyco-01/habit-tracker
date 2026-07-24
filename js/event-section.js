@@ -33,6 +33,18 @@ const EventSection = (() => {
     return Math.round((a - b) / 86400000);
   }
 
+  // Tên sự kiện đã từng dùng (không trùng lặp), để gợi ý qua <datalist> —
+  // giúp người dùng gõ lại đúng tên cũ ("Cắt tóc") thay vì lỡ gõ khác đi
+  // ("cắt tóc", "Cắt Tóc"...) làm lịch sử theo tên bị tách rời không đáng có.
+  function allEventNames() {
+    const { events } = Sync.getData();
+    const names = new Set();
+    Object.values(events).forEach(list => {
+      list.forEach(e => names.add(e.name));
+    });
+    return [...names].sort((a, b) => a.localeCompare(b, 'vi'));
+  }
+
   // Render khối sự kiện vào `container` cho đúng `dateStr`.
   // `idPrefix`: chuỗi định danh duy nhất cho lần gọi này (bắt buộc).
   // `withHistory`: có hiện phần "Lịch sử" theo tên sự kiện hay không
@@ -46,6 +58,12 @@ const EventSection = (() => {
     const inputRowId = `${idPrefix}-event-input-row`;
     const inputId = `${idPrefix}-event-input`;
     const saveId = `${idPrefix}-event-save`;
+    const datalistId = `${idPrefix}-event-suggestions`;
+
+    const suggestions = allEventNames();
+    const datalistHtml = suggestions.length > 0
+      ? `<datalist id="${datalistId}">${suggestions.map(n => `<option value="${escapeHtml(n)}"></option>`).join('')}</datalist>`
+      : '';
 
     container.innerHTML = `
       <div class="section-header-row">
@@ -55,7 +73,8 @@ const EventSection = (() => {
         </button>
       </div>
       <div class="input-row" id="${inputRowId}" style="display:none;">
-        <input type="text" id="${inputId}" placeholder="ví dụ: cắt tóc" maxlength="60" />
+        <input type="text" id="${inputId}" list="${datalistId}" placeholder="ví dụ: cắt tóc" maxlength="60" />
+        ${datalistHtml}
         <button id="${saveId}">Lưu</button>
       </div>
       <div class="event-list-slot"></div>

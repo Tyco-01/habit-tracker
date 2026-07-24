@@ -73,12 +73,17 @@ const YearView = (() => {
           </div>
           <span class="year-count">${total > 0 ? fullDays + ' ngày hoàn thành đủ' : ''}</span>
         </div>
+        <div class="date-jump-row">
+          <i class="ti ti-search" style="font-size:14px;color:var(--mute);" aria-hidden="true"></i>
+          <input type="date" id="date-jump-input" class="date-jump-input" aria-label="Tìm đến ngày cụ thể" />
+        </div>
       `;
 
       if (total === 0) {
         html += `<div class="empty-state"><p>Chưa có việc nào để hiển thị.</p></div>`;
         content.innerHTML = html;
         bindNav();
+        bindDateJump();
         return;
       }
 
@@ -137,6 +142,22 @@ const YearView = (() => {
       });
 
       bindNav();
+      bindDateJump();
+    }
+
+    // Cho phép gõ (hoặc chọn từ bộ lịch gốc của trình duyệt/hệ điều hành)
+    // 1 ngày bất kỳ để nhảy thẳng tới đó — kể cả khác năm đang xem.
+    function bindDateJump() {
+      const input = content.querySelector('#date-jump-input');
+      if (!input) return;
+      input.addEventListener('change', () => {
+        const value = input.value; // dạng "YYYY-MM-DD" chuẩn của input[type=date]
+        if (!value) return;
+        const [y] = value.split('-').map(Number);
+        viewYear = y;
+        draw();
+        if (onDayClick) onDayClick(value);
+      });
     }
 
     function bindNav() {
