@@ -224,6 +224,7 @@ button {
   padding: 10px 8px;
   border-radius: 8px;
   cursor: grab;
+  position: relative;
   transition: background 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
 
@@ -239,6 +240,28 @@ button {
   background: var(--partial-bg);
   outline: 1.5px dashed var(--ink);
   outline-offset: -2px;
+}
+
+/* Đổi thứ tự — vạch kẻ ngang đậm ở mép trên/dưới dòng đích, khác hẳn
+   với hiệu ứng "gộp vào" (nền be + viền chấm) để phân biệt rõ 2 ý
+   định khi kéo-thả: chèn trước/sau (vạch kẻ) vs làm con (nền be). */
+.habit-row.drag-over-top::before,
+.habit-row.drag-over-bottom::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--ink);
+  border-radius: 1px;
+}
+
+.habit-row.drag-over-top::before {
+  top: -1px;
+}
+
+.habit-row.drag-over-bottom::after {
+  bottom: -1px;
 }
 
 /* Đang ở vùng "sẽ tách ra" khi thả — đối xứng với drag-over-child
@@ -812,16 +835,18 @@ button {
   left: 0;
   right: 0;
   background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(26, 24, 20, 0.12);
+  border: 0.5px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 20px rgba(26, 24, 20, 0.08);
   max-height: 160px;
   overflow-y: auto;
   z-index: 10;
 }
 
 .event-dropdown-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   text-align: left;
   font-family: 'Manrope', sans-serif;
@@ -829,8 +854,19 @@ button {
   color: var(--ink);
   background: transparent;
   border: none;
-  padding: 9px 12px;
+  border-top: 0.5px solid var(--line);
+  padding: 10px 12px;
   cursor: pointer;
+}
+
+.event-dropdown-item:first-child {
+  border-top: none;
+}
+
+.event-dropdown-item i {
+  font-size: 13px;
+  color: var(--mute);
+  flex-shrink: 0;
 }
 
 .event-dropdown-item:hover,

@@ -53,6 +53,9 @@
           </button>
         </div>
         <div style="display:flex;align-items:center;gap:4px;">
+          <button id="nav-refresh" aria-label="Làm tươi" title="Tải lại app — dùng khi giao diện bị lỗi hoặc hiển thị sai" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
+            <i class="ti ti-refresh" style="font-size:16px;" aria-hidden="true"></i>
+          </button>
           <button id="nav-export" aria-label="Xuất dữ liệu backup" title="Tải file backup dữ liệu" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
             <i class="ti ti-download" style="font-size:16px;" aria-hidden="true"></i>
           </button>
@@ -78,8 +81,17 @@
     const navYear = root.querySelector('#nav-year');
     const navStats = root.querySelector('#nav-stats');
     const navTrash = root.querySelector('#nav-trash');
+    const navRefresh = root.querySelector('#nav-refresh');
     const navLogout = root.querySelector('#nav-logout');
     const navExport = root.querySelector('#nav-export');
+
+    // "Làm tươi" — tải lại toàn bộ trang, giống bấm F5. Đơn giản và an
+    // toàn: chắc chắn dọn sạch mọi trạng thái JS bị kẹt (vd listener
+    // trùng lặp, biến đóng còn giữ giá trị cũ) mà không cần đăng xuất
+    // hay tự viết logic dọn dẹp thủ công (dễ sót, dễ sinh lỗi mới).
+    navRefresh.addEventListener('click', () => {
+      location.reload();
+    });
 
     navExport.addEventListener('click', () => {
       try {

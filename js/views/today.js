@@ -246,22 +246,42 @@ const TodayView = (() => {
         });
         row.addEventListener('dragend', () => {
           row.classList.remove('dragging', 'will-detach');
-          listEl.querySelectorAll('.drag-over-child').forEach(el => el.classList.remove('drag-over-child'));
+          listEl.querySelectorAll('.drag-over-child, .drag-over-top, .drag-over-bottom').forEach(el => {
+            el.classList.remove('drag-over-child', 'drag-over-top', 'drag-over-bottom');
+          });
           draggedId = null;
           draggedRow = null;
         });
+        // Chia chiều cao dòng thành 3 vùng để phân biệt Ý ĐỊNH khi thả:
+        //   - 1/4 trên & 1/4 dưới: "chèn trước/sau dòng này" — CHỈ đổi
+        //     thứ tự, không đổi parentId (bug đã sửa ở đây: bản vá
+        //     trước chỉ còn 1 hành động duy nhất khi thả trúng dòng
+        //     khác — luôn gộp cha-con — nên đổi thứ tự trên/dưới
+        //     không còn hoạt động được nữa).
+        //   - 1/2 giữa: "thả vào trong" — gộp làm cha-con (hành vi cũ).
         row.addEventListener('dragover', (e) => {
           e.preventDefault();
           if (row.dataset.habitId === draggedId) return;
-          row.classList.add('drag-over-child');
+          const rect = row.getBoundingClientRect();
+          const ratio = (e.clientY - rect.top) / rect.height;
+          row.classList.remove('drag-over-child', 'drag-over-top', 'drag-over-bottom');
+          if (ratio < 0.25) {
+            row.classList.add('drag-over-top');
+          } else if (ratio > 0.75) {
+            row.classList.add('drag-over-bottom');
+          } else {
+            row.classList.add('drag-over-child');
+          }
         });
         row.addEventListener('dragleave', () => {
-          row.classList.remove('drag-over-child');
+          row.classList.remove('drag-over-child', 'drag-over-top', 'drag-over-bottom');
         });
         row.addEventListener('drop', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          row.classList.remove('drag-over-child');
+          const wasTop = row.classList.contains('drag-over-top');
+          const wasBottom = row.classList.contains('drag-over-bottom');
+          row.classList.remove('drag-over-child', 'drag-over-top', 'drag-over-bottom');
           const targetId = row.dataset.habitId;
           if (!draggedId || draggedId === targetId) return;
 
@@ -284,9 +304,20 @@ const TodayView = (() => {
             }
             return false;
           }
-          if (isDescendantOf(targetId, draggedId)) return;
 
-          Sync.setHabitParent(draggedId, targetId);
+          if (wasTop || wasBottom) {
+            // Đổi thứ tự — giữ nguyên parentId hiện tại của draggedId,
+            // chỉ chèn nó trước/sau targetId trong danh sách sortedHabits
+            // toàn cục rồi ghi lại sortOrder tuần tự.
+            const ordered = sortedHabits(habits).map(h => h.id).filter(id => id !== draggedId);
+            const targetIdx = ordered.indexOf(targetId);
+            const insertAt = wasTop ? targetIdx : targetIdx + 1;
+            ordered.splice(insertAt, 0, draggedId);
+            Sync.reorderHabits(ordered);
+          } else {
+            if (isDescendantOf(targetId, draggedId)) return;
+            Sync.setHabitParent(draggedId, targetId);
+          }
         });
       });
     }

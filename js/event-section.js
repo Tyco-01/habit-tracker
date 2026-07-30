@@ -102,7 +102,7 @@ const EventSection = (() => {
       </div>
       <div class="input-row event-input-wrap" id="${inputRowId}" style="display:none;">
         <div class="event-input-field">
-          <input type="text" id="${inputId}" placeholder="ví dụ: cắt tóc" maxlength="60" autocomplete="off" />
+          <input type="text" id="${inputId}" placeholder="ví dụ: cắt tóc" maxlength="60" autocomplete="new-event-name" />
           <div class="event-dropdown" id="${dropdownId}" style="display:none;"></div>
         </div>
         <button id="${saveId}">Lưu</button>
@@ -224,7 +224,7 @@ const EventSection = (() => {
       const names = allEventNames().filter(n => !query || n.toLowerCase().includes(query));
       if (names.length === 0) { closeDropdown(); return; }
 
-      dropdown.innerHTML = names.map(n => `<button type="button" class="event-dropdown-item" data-suggest="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+      dropdown.innerHTML = names.map(n => `<button type="button" class="event-dropdown-item" data-suggest="${escapeHtml(n)}"><i class="ti ti-history" aria-hidden="true"></i>${escapeHtml(n)}</button>`).join('');
       dropdown.style.display = 'block';
 
       dropdown.querySelectorAll('[data-suggest]').forEach(item => {
