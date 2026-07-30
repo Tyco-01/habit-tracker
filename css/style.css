@@ -244,8 +244,6 @@ button {
 /* Việc con: thụt lề để thấy rõ đang nhóm dưới 1 việc cha */
 .habit-row-child {
   margin-left: 28px;
-  padding-left: 8px;
-  border-left: 2px solid var(--line);
 }
 
 .habit-children:empty {

@@ -165,7 +165,7 @@ const TodayView = (() => {
       }).join('');
 
       bindRowEvents();
-      bindDragDrop();
+      bindDragDropRows();
     }
 
     function bindRowEvents() {
@@ -279,7 +279,7 @@ const TodayView = (() => {
       draw();
     }
 
-    function bindDragDrop() {
+    function bindDragDropRows() {
       listEl.querySelectorAll('.habit-row').forEach(row => {
         row.addEventListener('dragstart', (e) => {
           draggedId = row.dataset.habitId;
@@ -330,21 +330,29 @@ const TodayView = (() => {
           Sync.setHabitParent(draggedId, targetId);
         });
       });
+    }
 
-      listEl.addEventListener('dragover', (e) => {
-        // Vùng trống = bất kỳ điểm nào KHÔNG nằm trong 1 habit-row khác
-        // (trước đây so sánh === listEl, chỉ đúng khi trúng chính xác
-        // thẻ container — gần như không xảy ra vì bên trong luôn có
-        // phần tử con, khiến kéo ra không bao giờ nhận diện được).
+    // Tách ra: thay vì chỉ nhận "thả đúng khoảng trống trong listEl"
+    // (quá khó canh bằng chuột, khoảng trống giữa 2 dòng chỉ vài px),
+    // nghe drop trên toàn document — bất kỳ điểm thả nào KHÔNG trúng
+    // vào 1 .habit-row khác đều coi là "kéo ra ngoài" và tự tách.
+    // CHỈ GẮN 1 LẦN ở đây (không đặt trong bindDragDropRows/draw, vì
+    // draw() chạy lại mỗi khi dữ liệu đổi — gắn lại trên document mỗi
+    // lần sẽ CỘNG DỒN listener, khiến 1 lượt thả gọi setHabitParent
+    // nhiều lần trùng lặp).
+    function bindDragDropGlobal() {
+      document.addEventListener('dragover', (e) => {
+        if (!draggedId) return;
         if (!e.target.closest('.habit-row')) e.preventDefault();
       });
-      listEl.addEventListener('drop', (e) => {
+      document.addEventListener('drop', (e) => {
+        if (!draggedId) return;
         if (e.target.closest('.habit-row')) return;
         e.preventDefault();
-        if (!draggedId) return;
         Sync.setHabitParent(draggedId, null);
       });
     }
+    bindDragDropGlobal();
 
     Sync.onChange(draw);
     draw();
