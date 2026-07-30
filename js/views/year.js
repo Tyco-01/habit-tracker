@@ -17,6 +17,13 @@ const YearView = (() => {
     return habits.filter(h => checks[h.id] && checks[h.id][key]).length;
   }
 
+  // true nếu có bất kỳ habit nào mang ghi chú RIÊNG cho đúng ngày này
+  // (không tính ghi chú "chung", vì ghi chú chung không gắn với 1
+  // ngày cụ thể nào — hiện y hệt ở mọi ngày nên không cần đánh dấu).
+  function hasNoteForDate(habitNotes, key) {
+    return Object.values(habitNotes || {}).some(entry => !!(entry.byDate || {})[key]);
+  }
+
   function earliestDataYear(checks, events) {
     const years = [];
     Object.values(checks).forEach(datesObj => {
@@ -40,7 +47,7 @@ const YearView = (() => {
     const content = container.querySelector('#year-content');
 
     function draw() {
-      const { habits, checks, events } = Sync.getData();
+      const { habits, checks, events, habitNotes } = Sync.getData();
       const today = new Date();
       const todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
       const total = habits.length;
@@ -108,17 +115,19 @@ const YearView = (() => {
           const isFuture = isFutureMonth || (isCurrentMonth && day > todayDate);
           const key = dateKey(viewYear, m, day);
           const hasEvent = !!(events[key] && events[key].length > 0);
+          const hasNote = hasNoteForDate(habitNotes, key);
           const clipHtml = hasEvent ? `<i class="ti ti-paperclip event-clip" aria-hidden="true"></i>` : '';
+          const noteMarkHtml = hasNote ? `<i class="ti ti-note note-mark" aria-hidden="true"></i>` : '';
 
           if (isFuture) {
             // Ngày chưa tới: không có việc lặp lại để hiện số, nhưng vẫn
             // bấm mở được — để có thể đặt trước sự kiện 1 lần (vd hẹn khám).
-            cells += `<div class="day-cell future-day" data-date="${key}">${clipHtml}${day}</div>`;
+            cells += `<div class="day-cell future-day" data-date="${key}">${clipHtml}${noteMarkHtml}${day}</div>`;
             continue;
           }
           const count = countForDate(checks, habits, key);
           const isToday = key === todayKey;
-          cells += `<div class="day-cell ${cellClass(count, total)} ${isToday ? 'today' : ''}" data-date="${key}">${clipHtml}${count > 0 ? count : ''}</div>`;
+          cells += `<div class="day-cell ${cellClass(count, total)} ${isToday ? 'today' : ''}" data-date="${key}">${clipHtml}${noteMarkHtml}${count > 0 ? count : ''}</div>`;
         }
 
         html += `

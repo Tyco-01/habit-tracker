@@ -73,18 +73,6 @@ const TodayView = (() => {
     return { roots, childrenOf };
   }
 
-  function getNote(habitId, todayKey) {
-    const { habitNotes } = Sync.getData();
-    const entry = habitNotes[habitId];
-    if (!entry) return { general: '', daily: '', hasGeneral: false, hasDaily: false };
-    return {
-      general: entry.general || '',
-      daily: entry.byDate[todayKey] || '',
-      hasGeneral: !!entry.general,
-      hasDaily: !!entry.byDate[todayKey]
-    };
-  }
-
   function render(container) {
     const today = new Date();
     const todayKey = dateKey(today);
@@ -121,8 +109,7 @@ const TodayView = (() => {
       const checked = !!(checks[h.id] && checks[h.id][todayKey]);
       const state = TreeIcons.growthState(checks[h.id], today);
       const treeHtml = TreeIcons.render(state);
-      const note = getNote(h.id, todayKey);
-      const noteActive = note.hasDaily || note.hasGeneral;
+      const noteActive = HabitNotePanel.hasAnyNote(h.id, todayKey);
 
       return `
         <div class="habit-row ${isChild ? 'habit-row-child' : ''}" draggable="true" data-habit-id="${h.id}" title="Kéo để đổi thứ tự, hoặc thả vào 1 việc khác để nhóm lại">
@@ -131,6 +118,7 @@ const TodayView = (() => {
           </button>
           <span class="habit-name ${checked ? 'done' : ''}" data-edit="${h.id}" title="Bấm để sửa tên">${escapeHtml(h.name)}</span>
           <span class="habit-streak">${treeHtml}${state.displayDays > 0 ? state.displayDays : ''}</span>
+          ${HabitNotePanel.noteHintHtml(h.id, todayKey)}
           <button class="note-btn ${noteActive ? 'note-btn-active' : ''}" data-note="${h.id}" aria-label="Ghi chú cho ${escapeHtml(h.name)}" title="Ghi chú">
             <i class="ti ti-note" style="font-size:14px;" aria-hidden="true"></i>
           </button>
@@ -238,48 +226,10 @@ const TodayView = (() => {
           container.querySelectorAll('.habit-note-panel').forEach(p => { p.style.display = 'none'; });
           if (!isOpen) {
             panel.style.display = 'block';
-            renderNotePanel(panel, habitId);
+            HabitNotePanel.render(panel, habitId, todayKey);
           }
         });
       });
-    }
-
-    function renderNotePanel(panel, habitId) {
-      let showingDaily = true;
-
-      function draw() {
-        const note = getNote(habitId, todayKey);
-        const content = showingDaily ? note.daily : note.general;
-
-        panel.innerHTML = `
-          <div class="note-toggle-row">
-            <button class="note-toggle ${showingDaily ? 'note-toggle-daily' : 'note-toggle-general'}" id="note-mode-btn">
-              <i class="ti ${showingDaily ? 'ti-calendar-event' : 'ti-repeat'}" style="font-size:12px;" aria-hidden="true"></i>
-              ${showingDaily ? 'Riêng hôm nay' : 'Chung mọi ngày'}
-            </button>
-            <span class="note-toggle-hint">Bấm để đổi loại ghi chú</span>
-          </div>
-          <textarea class="note-textarea" placeholder="${showingDaily ? 'Ghi chú chỉ áp dụng cho hôm nay...' : 'Ghi chú áp dụng cho mọi ngày...'}" maxlength="1000" rows="2">${escapeHtml(content)}</textarea>
-        `;
-
-        const modeBtn = panel.querySelector('#note-mode-btn');
-        const textarea = panel.querySelector('.note-textarea');
-
-        modeBtn.addEventListener('click', () => {
-          showingDaily = !showingDaily;
-          draw();
-        });
-
-        textarea.addEventListener('blur', () => {
-          const newVal = textarea.value.trim();
-          const dateArg = showingDaily ? todayKey : null;
-          const currentVal = showingDaily ? note.daily : note.general;
-          if (newVal !== currentVal) {
-            Sync.setHabitNote(habitId, dateArg, newVal);
-          }
-        });
-      }
-      draw();
     }
 
     function bindDragDropRows() {

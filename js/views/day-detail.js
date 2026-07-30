@@ -63,15 +63,35 @@ const DayDetailView = (() => {
 
         habitsEl.innerHTML = habits.map(h => {
           const checked = !!(checks[h.id] && checks[h.id][dateStr]);
+          const noteActive = HabitNotePanel.hasAnyNote(h.id, dateStr);
           return `
             <div class="day-toggle-row">
               <button class="toggle-btn ${checked ? 'checked' : ''}" data-habit="${h.id}">
                 ${checked ? '<i class="ti ti-check" style="font-size:12px;color:var(--card);" aria-hidden="true"></i>' : ''}
               </button>
-              <span style="font-size:14px;${checked ? 'color:var(--mute);text-decoration:line-through;' : ''}">${escapeHtml(h.name)}</span>
+              <span style="font-size:14px;flex:1;${checked ? 'color:var(--mute);text-decoration:line-through;' : ''}">${escapeHtml(h.name)}</span>
+              ${HabitNotePanel.noteHintHtml(h.id, dateStr)}
+              <button class="note-btn ${noteActive ? 'note-btn-active' : ''}" data-note="${h.id}" aria-label="Ghi chú cho ${escapeHtml(h.name)}" title="Ghi chú">
+                <i class="ti ti-note" style="font-size:14px;" aria-hidden="true"></i>
+              </button>
             </div>
+            <div class="habit-note-panel" id="day-detail-note-panel-${h.id}" style="display:none;"></div>
           `;
         }).join('');
+
+        habitsEl.querySelectorAll('[data-note]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const habitId = btn.dataset.note;
+            const panel = habitsEl.querySelector(`#day-detail-note-panel-${habitId}`);
+            if (!panel) return;
+            const isOpen = panel.style.display !== 'none';
+            habitsEl.querySelectorAll('.habit-note-panel').forEach(p => { p.style.display = 'none'; });
+            if (!isOpen) {
+              panel.style.display = 'block';
+              HabitNotePanel.render(panel, habitId, dateStr);
+            }
+          });
+        });
 
         habitsEl.querySelectorAll('.toggle-btn').forEach(btn => {
           btn.addEventListener('click', () => {

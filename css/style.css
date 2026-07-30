@@ -348,29 +348,48 @@ button {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: 20px;
-  border: none;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-/* Ghi chú RIÊNG hôm nay = màu nhấn đậm (nổi bật, tạm thời) */
-.note-toggle-daily {
-  background: var(--full-bg);
-  color: var(--card);
-}
-
-/* Ghi chú CHUNG mọi ngày = màu be nhạt (ổn định, lâu dài) */
-.note-toggle-general {
-  background: var(--partial-bg);
-  color: var(--ink);
-}
-
-.note-toggle-hint {
-  font-size: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
   color: var(--mute);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  flex: 1;
+  justify-content: center;
+}
+
+/* Nút đang được chọn (đang xem/sửa loại ghi chú này) — nền đậm nổi
+   bật hẳn so với nút còn lại, không cần đọc chữ mới biết đang ở đâu. */
+.note-toggle-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.note-toggle-caption {
+  font-size: 11px;
+  color: var(--mute);
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+/* Nhãn ngắn cạnh icon note trên dòng habit — cho biết NGAY đang có
+   loại ghi chú nào mà không cần bấm mở panel ra xem (điểm sửa chính:
+   trước đây icon note không nói lên trạng thái gì cả). */
+.note-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--mute);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.note-hint-empty {
+  color: var(--line);
 }
 
 .note-textarea {
@@ -566,6 +585,29 @@ button {
 }
 
 .day-cell.full .event-clip {
+  color: var(--full-bg);
+}
+
+/* Dấu hiệu "ngày này có ghi chú riêng" — đặt góc trên-trái, đối xứng
+   với event-clip (góc trên-phải) để 2 dấu không đè lên nhau khi 1
+   ngày vừa có sự kiện vừa có ghi chú. */
+.note-mark {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  font-size: 9px !important;
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.day-cell.full .note-mark {
   color: var(--full-bg);
 }
 
