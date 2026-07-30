@@ -111,7 +111,7 @@ const TodayView = (() => {
     const listEl = container.querySelector('#habit-list');
     const emptyEl = container.querySelector('#empty-state');
 
-    EventSection.render(container.querySelector('#event-section-today'), todayKey, { idPrefix: 'today', withHistory: true, compactHistory: true });
+    EventSection.render(container.querySelector('#event-section-today'), todayKey, { idPrefix: 'today', withHistory: false, compactHistory: true });
 
     function habitRowHtml(h, isChild) {
       const { checks } = Sync.getData();
@@ -122,10 +122,7 @@ const TodayView = (() => {
       const noteActive = note.hasDaily || note.hasGeneral;
 
       return `
-        <div class="habit-row ${isChild ? 'habit-row-child' : ''}" draggable="true" data-habit-id="${h.id}">
-          <span class="drag-handle" aria-hidden="true" title="Kéo để đổi thứ tự, hoặc thả vào 1 việc khác để nhóm lại">
-            <i class="ti ti-grip-vertical" style="font-size:15px;"></i>
-          </span>
+        <div class="habit-row ${isChild ? 'habit-row-child' : ''}" draggable="true" data-habit-id="${h.id}" title="Kéo để đổi thứ tự, hoặc thả vào 1 việc khác để nhóm lại">
           <button class="check-btn ${checked ? 'checked' : ''}" data-habit="${h.id}" aria-label="Đánh dấu ${escapeHtml(h.name)}">
             ${checked ? '<i class="ti ti-check" style="font-size:13px;color:var(--paper);" aria-hidden="true"></i>' : ''}
           </button>
@@ -318,10 +315,14 @@ const TodayView = (() => {
       });
 
       listEl.addEventListener('dragover', (e) => {
-        if (e.target === listEl) e.preventDefault();
+        // Vùng trống = bất kỳ điểm nào KHÔNG nằm trong 1 habit-row khác
+        // (trước đây so sánh === listEl, chỉ đúng khi trúng chính xác
+        // thẻ container — gần như không xảy ra vì bên trong luôn có
+        // phần tử con, khiến kéo ra không bao giờ nhận diện được).
+        if (!e.target.closest('.habit-row')) e.preventDefault();
       });
       listEl.addEventListener('drop', (e) => {
-        if (e.target !== listEl) return;
+        if (e.target.closest('.habit-row')) return;
         e.preventDefault();
         if (!draggedId) return;
         Sync.setHabitParent(draggedId, null);

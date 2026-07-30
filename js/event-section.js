@@ -134,7 +134,6 @@ const EventSection = (() => {
           return `
             <div class="event-row" style="flex-direction:column;align-items:stretch;gap:8px;">
               <div style="display:flex;align-items:center;gap:10px;">
-                <i class="ti ti-flag-3" style="font-size:15px;color:var(--ink);flex-shrink:0;" aria-hidden="true"></i>
                 <span class="event-name">${escapeHtml(e.name)}</span>
                 <button class="event-remove" data-event="${e.id}" aria-label="Xoá ${escapeHtml(e.name)}">
                   <i class="ti ti-x" style="font-size:14px;" aria-hidden="true"></i>

@@ -223,7 +223,12 @@ button {
   gap: 8px;
   padding: 10px 8px;
   border-radius: 8px;
+  cursor: grab;
   transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.habit-row:active {
+  cursor: grabbing;
 }
 
 .habit-row.dragging {
@@ -245,17 +250,6 @@ button {
 
 .habit-children:empty {
   display: none;
-}
-
-.drag-handle {
-  color: var(--line);
-  cursor: grab;
-  display: flex;
-  flex-shrink: 0;
-}
-
-.drag-handle:active {
-  cursor: grabbing;
 }
 
 .inline-edit-input {
