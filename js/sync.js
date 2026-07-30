@@ -16,6 +16,7 @@ const Sync = (() => {
 
   let data = LocalStore.load();
   if (!Array.isArray(data.archivedHabits)) data.archivedHabits = [];
+  if (!data.habitNotes || typeof data.habitNotes !== 'object') data.habitNotes = {};
 
   let isSyncing = false;
   let listeners = [];
@@ -46,10 +47,17 @@ const Sync = (() => {
   }
 
   // Chuyển habit sang danh sách archivedHabits thay vì xoá hẳn
+  // Chuyển habit sang danh sách archivedHabits thay vì xoá hẳn.
+  // Nếu habit này đang là "cha" của những habit khác, các con đó
+  // được tự động TÁCH RA thành việc độc lập (không bị archive theo)
+  // — tránh trường hợp "con mồ côi" còn parentId trỏ tới 1 habit đã
+  // nằm trong thùng rác, gây hiển thị sai hoặc lỗi khi khôi phục.
   function applyArchiveHabit(habitId) {
     const habit = data.habits.find(h => h.id === habitId);
     if (!habit) return;
-    data.habits = data.habits.filter(h => h.id !== habitId);
+    data.habits = data.habits
+      .filter(h => h.id !== habitId)
+      .map(h => h.parentId === habitId ? { ...h, parentId: null } : h);
     data.archivedHabits.push({ id: habitId, name: habit.name, archivedAt: Date.now() });
     persistLocal();
   }
@@ -116,12 +124,35 @@ const Sync = (() => {
     persistLocal();
   }
 
+  // Ghi chú cho "việc tích" — 2 dạng:
+  //   dateStr = null  → ghi chú CHUNG, áp dụng mọi ngày
+  //   dateStr = '...' → ghi chú RIÊNG cho đúng ngày đó
+  // content rỗng ('') = xoá ghi chú đó.
+  function applySetHabitNote(habitId, dateStr, content) {
+    if (!data.habitNotes[habitId]) data.habitNotes[habitId] = { general: '', byDate: {} };
+    const entry = data.habitNotes[habitId];
+    if (dateStr === null) {
+      entry.general = content;
+    } else if (content) {
+      entry.byDate[dateStr] = content;
+    } else {
+      delete entry.byDate[dateStr];
+    }
+    persistLocal();
+  }
+
+  // parentId = null → tách habit ra thành việc độc lập (kéo ra ngoài)
+  function applySetHabitParent(habitId, parentId) {
+    data.habits = data.habits.map(h => h.id === habitId ? { ...h, parentId } : h);
+    persistLocal();
+  }
+
   // ---- Hành động công khai: gọi từ UI ----
   // Mỗi hành động: (1) áp dụng cục bộ ngay, (2) đẩy vào hàng đợi đồng
   // bộ, (3) thử đồng bộ ngay nếu có mạng.
 
   function addHabit(name) {
-    const habit = { id: tempId(), name, sortOrder: data.habits.length };
+    const habit = { id: tempId(), name, sortOrder: data.habits.length, parentId: null };
     applyAddHabit(habit);
     LocalStore.enqueue('add_habit', { localId: habit.id, name });
     kickSync();
@@ -186,6 +217,20 @@ const Sync = (() => {
     kickSync();
   }
 
+  // dateStr = null → ghi chú chung; dateStr = 'YYYY-MM-DD' → ghi chú riêng ngày đó
+  function setHabitNote(habitId, dateStr, content) {
+    applySetHabitNote(habitId, dateStr, content);
+    LocalStore.enqueue('set_habit_note', { habitId, date: dateStr, content });
+    kickSync();
+  }
+
+  // parentId = null → tách thành việc độc lập
+  function setHabitParent(habitId, parentId) {
+    applySetHabitParent(habitId, parentId);
+    LocalStore.enqueue('set_habit_parent', { habitId, parentId });
+    kickSync();
+  }
+
   // ---- Xử lý hàng đợi đồng bộ ----
 
   // id thật do server cấp thay cho id tạm — cần ánh xạ lại trong dữ liệu
@@ -206,6 +251,15 @@ const Sync = (() => {
       }
       if (entry.type === 'archive_habit' && entry.payload.habitId === oldId) {
         return { ...entry, payload: { ...entry.payload, habitId: newId } };
+      }
+      if (entry.type === 'set_habit_note' && entry.payload.habitId === oldId) {
+        return { ...entry, payload: { ...entry.payload, habitId: newId } };
+      }
+      if (entry.type === 'set_habit_parent') {
+        const p = { ...entry.payload };
+        if (p.habitId === oldId) p.habitId = newId;
+        if (p.parentId === oldId) p.parentId = newId;
+        return { ...entry, payload: p };
       }
       if (entry.type === 'reorder_habits') {
         return { ...entry, payload: { orderedIds: entry.payload.orderedIds.map(id => id === oldId ? newId : id) } };
@@ -303,6 +357,26 @@ const Sync = (() => {
         });
         break;
       }
+      case 'set_habit_note': {
+        if (isTemp(entry.payload.habitId)) throw new Error('habit_not_synced_yet');
+        await SupabaseClient.rpc('set_habit_note', {
+          p_session_token: token,
+          p_habit_id: entry.payload.habitId,
+          p_note_date: entry.payload.date, // null hoặc 'YYYY-MM-DD'
+          p_content: entry.payload.content
+        });
+        break;
+      }
+      case 'set_habit_parent': {
+        if (isTemp(entry.payload.habitId)) throw new Error('habit_not_synced_yet');
+        if (entry.payload.parentId && isTemp(entry.payload.parentId)) throw new Error('habit_not_synced_yet');
+        await SupabaseClient.rpc('set_habit_parent', {
+          p_session_token: token,
+          p_habit_id: entry.payload.habitId,
+          p_parent_id: entry.payload.parentId
+        });
+        break;
+      }
     }
   }
 
@@ -379,7 +453,7 @@ const Sync = (() => {
     ]);
 
     const remoteHabits = (snapshot.habits || []).map(h => ({
-      id: h.id, name: h.name, sortOrder: h.sort_order
+      id: h.id, name: h.name, sortOrder: h.sort_order, parentId: h.parent_habit_id || null
     }));
     const remoteChecks = {};
     (snapshot.checks || []).forEach(c => {
@@ -394,8 +468,20 @@ const Sync = (() => {
     const remoteArchived = (trashRows || []).map(t => ({
       id: t.id, name: t.name, archivedAt: new Date(t.archived_at).getTime()
     }));
+    const remoteHabitNotes = {};
+    (snapshot.habitNotes || []).forEach(n => {
+      if (!remoteHabitNotes[n.habit_id]) remoteHabitNotes[n.habit_id] = { general: '', byDate: {} };
+      if (n.date === null) {
+        remoteHabitNotes[n.habit_id].general = n.content;
+      } else {
+        remoteHabitNotes[n.habit_id].byDate[n.date] = n.content;
+      }
+    });
 
-    data = { habits: remoteHabits, checks: remoteChecks, events: remoteEvents, archivedHabits: remoteArchived };
+    data = {
+      habits: remoteHabits, checks: remoteChecks, events: remoteEvents,
+      archivedHabits: remoteArchived, habitNotes: remoteHabitNotes
+    };
     persistLocal();
   }
 
@@ -410,6 +496,7 @@ const Sync = (() => {
     addHabit, removeHabit, restoreHabit, emptyTrash,
     setCheck, addEvent, removeEvent,
     renameHabit, reorderHabits, updateEventNote,
+    setHabitNote, setHabitParent,
     pullFromServer, flushQueue
   };
 })();
