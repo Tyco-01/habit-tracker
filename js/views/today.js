@@ -22,6 +22,9 @@ const TodayView = (() => {
   // Trạng thái kéo-thả: phân biệt "kéo để đổi thứ tự" (thả giữa 2 hàng)
   // với "kéo để làm con" (thả ngay lên giữa 1 hàng khác).
   let draggedId = null;
+  let draggedRow = null; // tham chiếu DOM node đang kéo — dùng để bật/tắt
+                          // hiệu ứng "sẽ tách ra" ngay trên chính nó khi
+                          // con trỏ đang ở vùng không trúng habit nào khác.
 
   function dateKey(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -283,13 +286,15 @@ const TodayView = (() => {
       listEl.querySelectorAll('.habit-row').forEach(row => {
         row.addEventListener('dragstart', (e) => {
           draggedId = row.dataset.habitId;
+          draggedRow = row;
           row.classList.add('dragging');
           e.stopPropagation();
         });
         row.addEventListener('dragend', () => {
-          row.classList.remove('dragging');
+          row.classList.remove('dragging', 'will-detach');
           listEl.querySelectorAll('.drag-over-child').forEach(el => el.classList.remove('drag-over-child'));
           draggedId = null;
+          draggedRow = null;
         });
         row.addEventListener('dragover', (e) => {
           e.preventDefault();
@@ -343,7 +348,16 @@ const TodayView = (() => {
     function bindDragDropGlobal() {
       document.addEventListener('dragover', (e) => {
         if (!draggedId) return;
-        if (!e.target.closest('.habit-row')) e.preventDefault();
+        const overRow = e.target.closest('.habit-row');
+        if (!overRow) {
+          e.preventDefault();
+          // Đang ở vùng sẽ tách ra — hiện hiệu ứng ngay trên dòng đang
+          // kéo, đối xứng với hiệu ứng "sẽ gộp vào" (drag-over-child)
+          // hiện lên trên dòng đích khi kéo-vào.
+          if (draggedRow) draggedRow.classList.add('will-detach');
+        } else if (draggedRow) {
+          draggedRow.classList.remove('will-detach');
+        }
       });
       document.addEventListener('drop', (e) => {
         if (!draggedId) return;

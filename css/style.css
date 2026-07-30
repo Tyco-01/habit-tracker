@@ -224,7 +224,7 @@ button {
   padding: 10px 8px;
   border-radius: 8px;
   cursor: grab;
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition: background 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
 
 .habit-row:active {
@@ -239,6 +239,16 @@ button {
   background: var(--partial-bg);
   outline: 1.5px dashed var(--ink);
   outline-offset: -2px;
+}
+
+/* Đang ở vùng "sẽ tách ra" khi thả — đối xứng với drag-over-child
+   nhưng khác biệt rõ (không có nền/viền chấm) để không lẫn với hiệu
+   ứng "sẽ gộp vào 1 việc khác". */
+.habit-row.will-detach {
+  opacity: 0.7;
+  outline: 1.5px dashed var(--mute);
+  outline-offset: 2px;
+  transform: scale(0.98);
 }
 
 /* Việc con: thụt lề để thấy rõ đang nhóm dưới 1 việc cha */
