@@ -307,8 +307,25 @@ const TodayView = (() => {
           if (!draggedId || draggedId === targetId) return;
 
           const { habits } = Sync.getData();
-          const targetHabit = habits.find(h => h.id === targetId);
-          if (targetHabit && targetHabit.parentId === draggedId) return;
+          const byId = {};
+          habits.forEach(h => { byId[h.id] = h; });
+
+          // Chặn thả draggedId vào 1 hậu duệ (con/cháu...) của chính nó —
+          // nếu không, cha sẽ trở thành con của con mình, tạo vòng lặp
+          // tham chiếu vô hạn khiến buildTree() không tìm được gốc và
+          // TOÀN BỘ habit liên quan biến mất khỏi màn hình (đã xảy ra
+          // thật, xem lịch sử: kéo "abc" thả vào "thiền" là con của "abc").
+          function isDescendantOf(candidateId, ancestorId) {
+            let cur = byId[candidateId];
+            let guard = 0;
+            while (cur && cur.parentId && guard < 20) {
+              if (cur.parentId === ancestorId) return true;
+              cur = byId[cur.parentId];
+              guard++;
+            }
+            return false;
+          }
+          if (isDescendantOf(targetId, draggedId)) return;
 
           Sync.setHabitParent(draggedId, targetId);
         });
