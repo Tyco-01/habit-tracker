@@ -74,6 +74,9 @@ const DayDetailView = (() => {
               <button class="note-btn ${noteActive ? 'note-btn-active' : ''}" data-note="${h.id}" aria-label="Ghi chú cho ${escapeHtml(h.name)}" title="Ghi chú">
                 <i class="ti ti-note" style="font-size:14px;" aria-hidden="true"></i>
               </button>
+              <button class="remove-btn" data-remove="${h.id}" aria-label="Xoá ${escapeHtml(h.name)}">
+                <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
+              </button>
             </div>
             <div class="habit-note-panel" id="day-detail-note-panel-${h.id}" style="display:none;"></div>
           `;
@@ -98,6 +101,21 @@ const DayDetailView = (() => {
             const { checks } = Sync.getData();
             const isChecked = !!(checks[btn.dataset.habit] && checks[btn.dataset.habit][dateStr]);
             Sync.setCheck(btn.dataset.habit, dateStr, !isChecked);
+          });
+        });
+
+        habitsEl.querySelectorAll('[data-remove]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const { habits } = Sync.getData();
+            const habit = habits.find(h => h.id === btn.dataset.remove);
+            const name = habit ? habit.name : 'việc này';
+            const ok = await ConfirmModal.show({
+              title: `Chuyển "${name}" vào thùng rác?`,
+              body: 'Việc sẽ được giữ 30 ngày trong thùng rác trước khi xoá hẳn. Nếu đây là việc cha, các việc con của nó sẽ được tách ra thành việc độc lập.',
+              confirmLabel: 'Chuyển vào thùng rác'
+            });
+            if (!ok) return;
+            Sync.removeHabit(btn.dataset.remove);
           });
         });
       }

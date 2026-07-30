@@ -86,8 +86,8 @@ const HabitNotePanel = (() => {
       panel.innerHTML = `
         <div class="note-toggle-row">
           <button class="note-toggle ${showingDaily ? 'note-toggle-active' : ''}" id="note-mode-btn-${habitId}">
-            <i class="ti ${showingDaily ? 'ti-calendar-event' : 'ti-repeat'}" style="font-size:12px;" aria-hidden="true"></i>
-            ${showingDaily ? dayLabel : 'Mọi ngày'}
+            <i class="ti ti-calendar-event" style="font-size:12px;" aria-hidden="true"></i>
+            ${dayLabel}
           </button>
           <button class="note-toggle ${!showingDaily ? 'note-toggle-active' : ''}" id="note-mode-btn-general-${habitId}">
             <i class="ti ti-repeat" style="font-size:12px;" aria-hidden="true"></i>

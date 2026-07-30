@@ -155,11 +155,15 @@ const EventSection = (() => {
         }).join('');
 
       eventListEl.querySelectorAll('.event-remove').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const ev = evs.find(e => e.id === btn.dataset.event);
           const name = ev ? ev.name : 'sự kiện này';
-          const confirmed = confirm(`Xoá "${name}"?\n\nSự kiện này sẽ bị xoá hẳn, không có thùng rác cho sự kiện 1 lần.`);
-          if (!confirmed) return;
+          const ok = await ConfirmModal.show({
+            title: `Xoá "${name}"?`,
+            body: 'Sự kiện này sẽ bị xoá hẳn, không có thùng rác cho sự kiện 1 lần.',
+            confirmLabel: 'Xoá'
+          });
+          if (!ok) return;
           Sync.removeEvent(dateStr, btn.dataset.event);
         });
       });

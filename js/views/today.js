@@ -172,11 +172,15 @@ const TodayView = (() => {
       });
 
       listEl.querySelectorAll('[data-remove]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const habit = habits.find(h => h.id === btn.dataset.remove);
           const name = habit ? habit.name : 'việc này';
-          const confirmed = confirm(`Chuyển "${name}" vào thùng rác?\n\nViệc sẽ được giữ 30 ngày trong thùng rác trước khi xoá hẳn. Nếu đây là việc cha, các việc con của nó sẽ được tách ra thành việc độc lập.`);
-          if (!confirmed) return;
+          const ok = await ConfirmModal.show({
+            title: `Chuyển "${name}" vào thùng rác?`,
+            body: 'Việc sẽ được giữ 30 ngày trong thùng rác trước khi xoá hẳn. Nếu đây là việc cha, các việc con của nó sẽ được tách ra thành việc độc lập.',
+            confirmLabel: 'Chuyển vào thùng rác'
+          });
+          if (!ok) return;
           Sync.removeHabit(btn.dataset.remove);
         });
       });

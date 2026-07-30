@@ -70,9 +70,13 @@ const TrashView = (() => {
 
       const clearBtn = container.querySelector('#trash-clear-btn');
       if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-          const confirmed = confirm(`Dọn sạch thùng rác?\n\nToàn bộ ${trashed.length} việc trong thùng rác sẽ bị xoá VĨNH VIỄN, không thể khôi phục. Bạn có chắc chắn không?`);
-          if (!confirmed) return;
+        clearBtn.addEventListener('click', async () => {
+          const ok = await ConfirmModal.show({
+            title: 'Dọn sạch thùng rác?',
+            body: `Toàn bộ ${trashed.length} việc trong thùng rác sẽ bị xoá VĨNH VIỄN, không thể khôi phục.`,
+            confirmLabel: 'Xoá vĩnh viễn'
+          });
+          if (!ok) return;
           Sync.emptyTrash();
         });
       }

@@ -91,13 +91,13 @@
       }
     });
 
-    navLogout.addEventListener('click', () => {
-      const confirmed = confirm(
-        'Đăng xuất khỏi thiết bị này?\n\n' +
-        'Bạn sẽ cần nhập lại mã bí mật để xem dữ liệu. ' +
-        'Dữ liệu vẫn an toàn trên máy chủ, không bị mất.'
-      );
-      if (!confirmed) return;
+    navLogout.addEventListener('click', async () => {
+      const ok = await ConfirmModal.show({
+        title: 'Đăng xuất khỏi thiết bị này?',
+        body: 'Bạn sẽ cần nhập lại mã bí mật để xem dữ liệu. Dữ liệu vẫn an toàn trên máy chủ, không bị mất.',
+        confirmLabel: 'Đăng xuất'
+      });
+      if (!ok) return;
       Auth.logout();
       LocalStore.clear();
       LocalStore.clearQueue();
