@@ -142,7 +142,29 @@ const Sync = (() => {
   }
 
   // parentId = null → tách habit ra thành việc độc lập (kéo ra ngoài)
+  //
+  // CHẶN TẬN GỐC vòng lặp cha-con ngay ở đây (tầng dữ liệu) — trước
+  // đây chỉ chặn ở tầng UI (views/today.js), nghĩa là nếu có đường
+  // gọi khác tới setHabitParent (bug UI tương lai, hoặc gọi trực tiếp
+  // từ console) vẫn có thể ghi được dữ liệu vòng lặp. Vòng lặp khiến
+  // buildTree() không tìm được gốc hợp lệ, làm TOÀN BỘ habit liên
+  // quan biến mất khỏi màn hình dù dữ liệu chưa hề bị xoá (đã xảy ra
+  // thật: kéo "abc" thả vào "thiền" — con của "abc").
   function applySetHabitParent(habitId, parentId) {
+    if (parentId) {
+      const byId = {};
+      data.habits.forEach(h => { byId[h.id] = h; });
+      let cur = byId[parentId];
+      let guard = 0;
+      while (cur && cur.parentId && guard < 20) {
+        if (cur.parentId === habitId) {
+          console.warn(`setHabitParent bị chặn: sẽ tạo vòng lặp cha-con (${habitId} <-> ${parentId})`);
+          return;
+        }
+        cur = byId[cur.parentId];
+        guard++;
+      }
+    }
     data.habits = data.habits.map(h => h.id === habitId ? { ...h, parentId } : h);
     persistLocal();
   }

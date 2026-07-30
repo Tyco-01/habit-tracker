@@ -834,44 +834,55 @@ button {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: var(--card);
-  border: 0.5px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 20px rgba(26, 24, 20, 0.08);
-  max-height: 160px;
-  overflow-y: auto;
   z-index: 10;
 }
 
-.event-dropdown-item {
+/* Dãy thẻ gợi ý cuộn ngang — nếu nhiều thẻ hơn chỗ hiển thị, vuốt
+   trái/phải để xem hết thay vì xếp thành danh sách dọc dài. */
+.event-dropdown-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.event-dropdown-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.event-dropdown-scroll::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+
+.event-dropdown-chip {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  text-align: left;
+  gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
   font-family: 'Manrope', sans-serif;
   font-size: 13px;
   color: var(--ink);
-  background: transparent;
-  border: none;
-  border-top: 0.5px solid var(--line);
-  padding: 10px 12px;
+  background: var(--card);
+  border: 0.5px solid var(--line);
+  border-radius: 20px;
+  padding: 8px 14px;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(26, 24, 20, 0.06);
 }
 
-.event-dropdown-item:first-child {
-  border-top: none;
-}
-
-.event-dropdown-item i {
-  font-size: 13px;
+.event-dropdown-chip i {
+  font-size: 12px;
   color: var(--mute);
-  flex-shrink: 0;
 }
 
-.event-dropdown-item:hover,
-.event-dropdown-item:active {
+.event-dropdown-chip:hover,
+.event-dropdown-chip:active {
   background: var(--partial-bg);
+  border-color: var(--mute);
 }
 
 /* ---- Lịch sử sự kiện: giờ là <button> để bấm nhảy tới ngày đó ---- */

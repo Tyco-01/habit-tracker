@@ -85,11 +85,32 @@
     const navLogout = root.querySelector('#nav-logout');
     const navExport = root.querySelector('#nav-export');
 
-    // "Làm tươi" — tải lại toàn bộ trang, giống bấm F5. Đơn giản và an
-    // toàn: chắc chắn dọn sạch mọi trạng thái JS bị kẹt (vd listener
-    // trùng lặp, biến đóng còn giữ giá trị cũ) mà không cần đăng xuất
-    // hay tự viết logic dọn dẹp thủ công (dễ sót, dễ sinh lỗi mới).
-    navRefresh.addEventListener('click', () => {
+    // "Làm tươi" — vừa dọn trạng thái JS tạm thời (reload trang) VỪA
+    // tự dò-sửa lỗi CẤU TRÚC DỮ LIỆU thật đã biết (vd vòng lặp cha-con
+    // khiến habit biến mất khỏi màn hình dù dữ liệu chưa hề bị xoá).
+    // Reload đơn thuần KHÔNG sửa được lỗi dữ liệu — dữ liệu lỗi vẫn
+    // y nguyên sau khi tải lại. Đây là lý do thêm bước dò-sửa trước.
+    navRefresh.addEventListener('click', async () => {
+      navRefresh.disabled = true;
+      try {
+        const result = DataRepair.diagnose();
+        if (result.changed) {
+          // Áp dụng từng thao tác tách qua Sync.setHabitParent có sẵn,
+          // đi đúng luồng đồng bộ hàng đợi hiện có (không viết API
+          // ghi đè mảng riêng).
+          for (const id of result.idsToDetach) {
+            Sync.setHabitParent(id, null);
+          }
+          await ConfirmModal.show({
+            title: 'Đã tìm và sửa xong lỗi dữ liệu',
+            body: result.details.join('. ') + '.',
+            confirmLabel: 'Tải lại',
+            hideCancel: true
+          });
+        }
+      } catch (err) {
+        console.error('Lỗi khi dò-sửa dữ liệu:', err);
+      }
       location.reload();
     });
 

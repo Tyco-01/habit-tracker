@@ -14,6 +14,16 @@
 //   });
 //   if (!ok) return;
 //
+// Chế độ CHỈ THÔNG BÁO (1 nút duy nhất, dùng khi không có gì để huỷ —
+// ví dụ báo kết quả sau khi 1 hành động đã thực hiện xong):
+//
+//   await ConfirmModal.show({
+//     title: 'Đã sửa xong',
+//     body: '...',
+//     confirmLabel: 'Đã hiểu',
+//     hideCancel: true
+//   });
+//
 // Trả về Promise<boolean> — true nếu bấm nút xác nhận, false nếu
 // Huỷ hoặc bấm ra ngoài / phím Escape.
 // ============================================================
@@ -31,7 +41,7 @@ const ConfirmModal = (() => {
     return overlayEl;
   }
 
-  function show({ title, body = '', confirmLabel = 'OK', cancelLabel = 'Huỷ' }) {
+  function show({ title, body = '', confirmLabel = 'OK', cancelLabel = 'Huỷ', hideCancel = false }) {
     const overlay = ensureOverlay();
 
     return new Promise((resolve) => {
@@ -50,7 +60,7 @@ const ConfirmModal = (() => {
           <p class="confirm-modal-title" id="confirm-modal-title">${title}</p>
           ${body ? `<p class="confirm-modal-body">${body}</p>` : ''}
           <div class="confirm-modal-actions">
-            <button class="confirm-modal-btn confirm-modal-btn-cancel" id="confirm-modal-cancel">${cancelLabel}</button>
+            ${hideCancel ? '' : `<button class="confirm-modal-btn confirm-modal-btn-cancel" id="confirm-modal-cancel">${cancelLabel}</button>`}
             <button class="confirm-modal-btn confirm-modal-btn-ok" id="confirm-modal-ok">${confirmLabel}</button>
           </div>
         </div>
@@ -58,7 +68,8 @@ const ConfirmModal = (() => {
       overlay.style.display = 'flex';
 
       overlay.querySelector('#confirm-modal-ok').addEventListener('click', () => close(true));
-      overlay.querySelector('#confirm-modal-cancel').addEventListener('click', () => close(false));
+      const cancelBtn = overlay.querySelector('#confirm-modal-cancel');
+      if (cancelBtn) cancelBtn.addEventListener('click', () => close(false));
       // Bấm ra vùng tối xung quanh card = huỷ (giống hành vi quen thuộc
       // của modal, không có trong confirm() gốc nhưng tiện hơn).
       overlay.addEventListener('click', (e) => {
