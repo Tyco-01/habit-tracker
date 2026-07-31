@@ -866,7 +866,6 @@ button {
 .event-dropdown-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
   flex-shrink: 0;
   white-space: nowrap;
   font-family: 'Manrope', sans-serif;
@@ -875,22 +874,18 @@ button {
   background: var(--card);
   border: 0.5px solid var(--line);
   border-radius: 20px;
-  padding: 7px 13px;
+  padding: 8px 14px;
   cursor: pointer;
 }
 
-.event-dropdown-chip i {
-  font-size: 11px;
-  color: var(--mute);
-}
-
-/* Hover: nền be đậm hơn + chữ đậm hẳn (font-weight, không chỉ đổi
-   màu nền) — tránh lặp lại tình trạng chữ mờ khó đọc lúc hover. */
+/* Đảo màu hẳn khi hover — cùng pattern với nút "Lưu" và nút toggle
+   đang chọn trong panel ghi chú (nền đen than, chữ kem), thay vì đổi
+   nền be nhạt như trước (quá gần tông nền trang, mất tương phản). */
 .event-dropdown-chip:hover,
 .event-dropdown-chip:active {
-  background: var(--partial-bg);
-  border-color: var(--mute);
-  font-weight: 700;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
 }
 
 /* Mini lịch sử rút gọn hiện ngay dưới mỗi sự kiện — dùng ở cả màn
