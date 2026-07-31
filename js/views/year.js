@@ -121,7 +121,7 @@ const YearView = (() => {
 
           if (isFuture) {
             // Ngày chưa tới: không có việc lặp lại để hiện số, nhưng vẫn
-            // bấm mở được — để có thể đặt trước sự kiện 1 lần (vd hẹn khám).
+            // bấm mở được — để có thể đặt trước dấu ấn 1 lần (vd hẹn khám).
             cells += `<div class="day-cell future-day" data-date="${key}">${clipHtml}${noteMarkHtml}${day}</div>`;
             continue;
           }

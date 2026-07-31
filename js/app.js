@@ -183,7 +183,7 @@
       });
     }
 
-    // Cho phép các view khác (vd lịch sử sự kiện ở màn Hôm nay) điều
+    // Cho phép các view khác (vd lịch sử dấu ấn ở màn Hôm nay) điều
     // hướng thẳng tới 1 ngày cụ thể trong "Cả năm" mà không cần người
     // dùng tự bấm qua từng bước.
     window.__jumpToDate = (dateStr) => openDay(dateStr);

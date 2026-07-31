@@ -1,6 +1,6 @@
 // ============================================================
-// views/day-detail.js — Màn chi tiết 1 ngày: việc lặp lại + sự kiện 1 lần.
-// Phần "Sự kiện" dùng chung với màn Hôm nay qua module EventSection.
+// views/day-detail.js — Màn chi tiết 1 ngày: việc lặp lại + dấu ấn 1 lần.
+// Phần "Dấu ấn" dùng chung với màn Hôm nay qua module EventSection.
 // ============================================================
 
 const DayDetailView = (() => {
@@ -130,7 +130,7 @@ const DayDetailView = (() => {
       }
     }
 
-    EventSection.render(container.querySelector('#event-section'), dateStr, { idPrefix: 'day-detail', withHistory: true });
+    EventSection.render(container.querySelector('#event-section'), dateStr, { idPrefix: 'day-detail', withHistory: false, compactHistory: true });
   }
 
   return { render };

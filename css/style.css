@@ -825,16 +825,23 @@ button {
 }
 
 .event-input-field {
-  position: relative;
   flex: 1;
 }
 
+.event-input-field input {
+  width: 100%;
+  border-radius: 10px 10px 0 0 !important;
+}
+
+/* Dropdown dính liền ngay dưới ô nhập, bo góc nối liền thành 1 khối —
+   nằm trong luồng bình thường (không absolute) nên KHÔNG BAO GIỜ đè
+   lên nội dung phía dưới; chỉ đẩy nó xuống khi mở, thu lại khi đóng. */
 .event-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  z-index: 10;
+  background: var(--paper);
+  border: 0.5px solid var(--line);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  padding: 8px;
 }
 
 /* Dãy thẻ gợi ý cuộn ngang — nếu nhiều thẻ hơn chỗ hiển thị, vuốt
@@ -843,7 +850,6 @@ button {
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding: 2px 2px 6px;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
@@ -869,60 +875,27 @@ button {
   background: var(--card);
   border: 0.5px solid var(--line);
   border-radius: 20px;
-  padding: 8px 14px;
+  padding: 7px 13px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(26, 24, 20, 0.06);
 }
 
 .event-dropdown-chip i {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--mute);
 }
 
+/* Hover: nền be đậm hơn + chữ đậm hẳn (font-weight, không chỉ đổi
+   màu nền) — tránh lặp lại tình trạng chữ mờ khó đọc lúc hover. */
 .event-dropdown-chip:hover,
 .event-dropdown-chip:active {
   background: var(--partial-bg);
   border-color: var(--mute);
+  font-weight: 700;
 }
 
-/* ---- Lịch sử sự kiện: giờ là <button> để bấm nhảy tới ngày đó ---- */
-
-.history-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-family: 'Manrope', sans-serif;
-  color: var(--ink);
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.history-row:hover:not(:disabled) {
-  background: var(--partial-bg);
-}
-
-.history-row:disabled {
-  cursor: default;
-}
-
-.history-row.current {
-  background: var(--partial-bg);
-  font-weight: 600;
-}
-
-.history-gap {
-  font-size: 12px;
-  color: var(--mute);
-}
-
-/* Mini lịch sử rút gọn hiện ngay dưới mỗi sự kiện ở màn "Hôm nay" */
+/* Mini lịch sử rút gọn hiện ngay dưới mỗi sự kiện — dùng ở cả màn
+   "Hôm nay" và màn chi tiết 1 ngày, thay cho khối "Lịch sử" đầy đủ
+   riêng biệt (đã bỏ vì trùng lặp thông tin). */
 .event-compact-history {
   display: flex;
   flex-direction: column;

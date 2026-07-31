@@ -1,22 +1,24 @@
 // ============================================================
-// event-section.js — Khối UI "Sự kiện riêng ngày này", dùng chung
-// giữa màn "Hôm nay" và màn chi tiết 1 ngày, tránh lặp code.
+// event-section.js — Khối UI "Dấu ấn ngày này", dùng chung giữa màn
+// "Hôm nay" và màn chi tiết 1 ngày, tránh lặp code. (Tên biến/hàm
+// trong file này vẫn giữ "event" — chỉ tên hiển thị trên UI đổi
+// thành "dấu ấn", đổi tên biến/hàm nội bộ không cần thiết và tăng
+// rủi ro gõ nhầm khi sửa.)
 //
-// Sự kiện có thể đặt vào NGÀY TƯƠNG LAI (khác với việc lặp lại) —
-// vì sự kiện 1 lần thường mang tính "lên lịch trước" (hẹn nha sĩ,
-// sinh nhật...), không giống việc lặp lại vốn chỉ có ý nghĩa khi
-// tick đúng ngày nó xảy ra.
+// Dấu ấn có thể đặt vào NGÀY TƯƠNG LAI (khác với việc lặp lại) — vì
+// dấu ấn 1 lần thường mang tính "lên lịch trước" (hẹn nha sĩ, sinh
+// nhật...), không giống việc lặp lại vốn chỉ có ý nghĩa khi tick
+// đúng ngày nó xảy ra.
 //
 // Mỗi lần gọi render() cần 1 `idPrefix` riêng biệt để các ID phần
 // tử con không trùng nhau — vì màn "Hôm nay" và màn chi tiết ngày
 // có thể cùng tồn tại trong DOM cùng lúc (1 cái đang ẩn qua
 // display:none).
 //
-// Gợi ý tên sự kiện: KHÔNG dùng datalist (native browser element) —
+// Gợi ý tên dấu ấn: KHÔNG dùng datalist (native browser element) —
 // trên nhiều trình duyệt di động, phần tử này không mở được bằng
-// chạm (chỉ hoạt động tốt trên desktop). Thay bằng dropdown tự vẽ
-// dưới đây, đảm bảo chạm được trên mọi thiết bị.
-// desktop). Thay bằng dropdown tự vẽ, chạm được trên mọi thiết bị.
+// chạm (chỉ hoạt động tốt trên desktop). Thay bằng dropdown tự vẽ,
+// đảm bảo chạm được trên mọi thiết bị.
 //
 // Nhảy nhanh tới ngày khác: gọi window.__jumpToDate(dateStr) — hàm
 // này được app.js gán sẵn lúc khởi động, mở thẳng màn chi tiết ngày
@@ -24,8 +26,6 @@
 // ============================================================
 
 const EventSection = (() => {
-
-  const MONTH_NAMES = ['tháng 1','tháng 2','tháng 3','tháng 4','tháng 5','tháng 6','tháng 7','tháng 8','tháng 9','tháng 10','tháng 11','tháng 12'];
 
   function escapeHtml(str) {
     const div = document.createElement('div');
@@ -77,12 +77,14 @@ const EventSection = (() => {
     });
   }
 
-  // options: { idPrefix (bắt buộc), withHistory, compactHistory }
-  //   withHistory: có hiện lịch sử theo tên sự kiện hay không.
-  //   compactHistory: nếu true, chỉ hiện lịch sử RÚT GỌN (3 lần gần
-  //     nhất, bấm để nhảy tới) ngay dưới mỗi sự kiện — dùng cho màn
-  //     "Hôm nay" để không chiếm quá nhiều chỗ.
-  function render(container, dateStr, { idPrefix, withHistory = true, compactHistory = false } = {}) {
+  // options: { idPrefix (bắt buộc), compactHistory }
+  //   compactHistory: nếu true, hiện lịch sử RÚT GỌN (3 lần gần nhất,
+  //     bấm để nhảy tới) ngay dưới mỗi sự kiện. Trước đây còn có 1
+  //     chế độ "lịch sử đầy đủ" riêng (withHistory) hiện thành khối
+  //     lớn phía dưới — đã bỏ hẳn vì trùng lặp thông tin với compact
+  //     history (cả 2 nơi hiển thị cùng dữ liệu, chỉ khác cách trình
+  //     bày), gây rối mắt và không cần thiết.
+  function render(container, dateStr, { idPrefix, compactHistory = false } = {}) {
     if (!idPrefix) {
       throw new Error('EventSection.render cần idPrefix để tránh trùng ID giữa các khối.');
     }
@@ -95,7 +97,7 @@ const EventSection = (() => {
 
     container.innerHTML = `
       <div class="section-header-row">
-        <p class="section-label" style="margin:0;">SỰ KIỆN RIÊNG NGÀY NÀY</p>
+        <p class="section-label" style="margin:0;">DẤU ẤN NGÀY NÀY</p>
         <button class="pill-btn" id="${addBtnId}">
           <i class="ti ti-plus" style="font-size:12px;" aria-hidden="true"></i> Thêm
         </button>
@@ -108,19 +110,13 @@ const EventSection = (() => {
         <button id="${saveId}">Lưu</button>
       </div>
       <div class="event-list-slot"></div>
-      ${withHistory ? '<div class="event-history-slot"></div>' : ''}
     `;
 
     const eventListEl = container.querySelector('.event-list-slot');
-    const eventHistoryEl = container.querySelector('.event-history-slot');
 
     function formatShortDate(dateStr) {
       const d = parseDateStr(dateStr);
       return `${d.getDate()}/${d.getMonth() + 1}`;
-    }
-    function formatFullDate(dateStr) {
-      const d = parseDateStr(dateStr);
-      return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
     }
 
     function drawEvents() {
@@ -128,7 +124,7 @@ const EventSection = (() => {
       const evs = events[dateStr] || [];
 
       eventListEl.innerHTML = evs.length === 0
-        ? `<p style="font-size:13px;color:var(--mute);margin:0;">Chưa có sự kiện nào cho ngày này.</p>`
+        ? `<p style="font-size:13px;color:var(--mute);margin:0;">Chưa có dấu ấn nào cho ngày này.</p>`
         : evs.map(e => {
           const compactRows = compactHistory ? historyFor(e.name, dateStr).slice(-3).reverse() : [];
           return `
@@ -157,10 +153,10 @@ const EventSection = (() => {
       eventListEl.querySelectorAll('.event-remove').forEach(btn => {
         btn.addEventListener('click', async () => {
           const ev = evs.find(e => e.id === btn.dataset.event);
-          const name = ev ? ev.name : 'sự kiện này';
+          const name = ev ? ev.name : 'dấu ấn này';
           const ok = await ConfirmModal.show({
             title: `Xoá "${name}"?`,
-            body: 'Sự kiện này sẽ bị xoá hẳn, không có thùng rác cho sự kiện 1 lần.',
+            body: 'Dấu ấn này sẽ bị xoá hẳn, không có thùng rác cho dấu ấn 1 lần.',
             confirmLabel: 'Xoá'
           });
           if (!ok) return;
@@ -182,26 +178,6 @@ const EventSection = (() => {
       eventListEl.querySelectorAll('[data-jump]').forEach(btn => {
         btn.addEventListener('click', () => jumpToDate(btn.dataset.jump));
       });
-
-      if (withHistory && eventHistoryEl) {
-        eventHistoryEl.innerHTML = '';
-        evs.forEach(ev => {
-          const rows = historyFor(ev.name, dateStr);
-          if (rows.length < 1) return;
-
-          const rowsHtml = rows.map(r => `
-            <button class="history-row ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
-              <span>${formatFullDate(r.dateStr)}${r.isCurrent ? ' (đang xem)' : ''}</span>
-              <span class="history-gap">${r.gapText}</span>
-            </button>
-          `).join('');
-          eventHistoryEl.innerHTML += `<p class="section-label" style="margin-top:20px;">LỊCH SỬ "${escapeHtml(ev.name.toUpperCase())}"</p>${rowsHtml}`;
-        });
-
-        eventHistoryEl.querySelectorAll('[data-jump]').forEach(btn => {
-          btn.addEventListener('click', () => jumpToDate(btn.dataset.jump));
-        });
-      }
     }
 
     drawEvents();

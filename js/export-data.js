@@ -5,7 +5,7 @@
 //
 // Bao gồm: habits (kèm parentId — quan hệ cha-con), checks (lịch sử
 // tick từng ngày), habitNotes (ghi chú chung + riêng ngày), events
-// (sự kiện 1 lần), trash (habit trong thùng rác kèm checks/notes còn
+// (dấu ấn 1 lần), trash (habit trong thùng rác kèm checks/notes còn
 // sót lại trước khi bị purge hẳn).
 //
 // File xuất ra là JSON thuần, có thể đọc bằng mắt hoặc dùng lại
