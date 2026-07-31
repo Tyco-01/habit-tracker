@@ -61,6 +61,13 @@ const DateUtils = (() => {
     return `${d.getDate()}/${d.getMonth() + 1}`;
   }
 
+  // Nhãn dạng "1 tháng 8" (không kèm thứ, khác formatFullLabel) — dùng
+  // cho timeline lịch sử dấu ấn, nơi thứ trong tuần không cần thiết và
+  // chiếm chỗ không đáng.
+  function formatDayMonthLabel(d) {
+    return `${d.getDate()} ${MONTH_NAMES_FULL[d.getMonth()]}`;
+  }
+
   // true nếu dateStr trùng đúng ngày hôm nay (giờ địa phương).
   function isToday(dateStr) {
     return dateStr === dateKey(new Date());
@@ -69,6 +76,6 @@ const DateUtils = (() => {
   return {
     DAYS_VN, MONTH_NAMES_FULL, MONTHS_SHORT_BAR, MONTHS_SHORT_GRID,
     dateKey, dateKeyFromParts, parseDateStr,
-    formatFullLabel, formatShortLabel, isToday
+    formatFullLabel, formatShortLabel, formatDayMonthLabel, isToday
   };
 })();

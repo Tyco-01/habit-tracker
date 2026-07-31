@@ -126,7 +126,7 @@ const DayDetailView = (() => {
       }
     }
 
-    EventSection.render(container.querySelector('#event-section'), dateStr, { idPrefix: 'day-detail', withHistory: false, compactHistory: true });
+    EventSection.render(container.querySelector('#event-section'), dateStr, { idPrefix: 'day-detail', showHistory: true });
   }
 
   return { render };

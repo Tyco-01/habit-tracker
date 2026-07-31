@@ -49,23 +49,11 @@
             <i class="ti ti-home" style="font-size:16px;" aria-hidden="true"></i>
           </button>
           <button class="tab-btn tab-btn-icon" id="nav-year" aria-label="Cả năm" title="Cả năm">
-            <svg width="17" height="17" viewBox="0 0 220 220" aria-hidden="true">
-              <g stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round">
-                <path d="M148 42 Q152 37 156 42 Q152 47 148 42Z"/><path d="M148 42 Q143 38 148 34 Q153 38 148 42Z"/>
-                <path d="M148 42 Q144 46 148 50 Q152 46 148 42Z"/><path d="M168 58 Q172 53 176 58 Q172 63 168 58Z"/>
-              </g>
-              <g stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round">
-                <path d="M145 150 Q150 143 155 150 Q160 144 165 151"/><path d="M155 165 Q160 158 165 165"/>
-              </g>
-              <g stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round">
-                <path d="M48 175 Q54 160 46 148 Q52 140 44 130"/><ellipse cx="63" cy="168" rx="4.5" ry="6.5" transform="rotate(-30 63 168)"/>
-              </g>
-              <g stroke="currentColor" stroke-width="1.1" fill="none">
-                <path d="M55 50 L55 58 M51 54 L59 54 M52 51 L58 57 M58 51 L52 57"/>
-              </g>
-              <path d="M110 155 V70" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-              <path d="M110 108 L88 84" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none"/>
-              <path d="M110 128 L132 98" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="3"/>
+              <path d="M3 9.5h18"/>
+              <path d="M8 3v3M16 3v3"/>
+              <text x="12" y="16.8" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none" font-family="Manrope, sans-serif">${new Date().getDate()}</text>
             </svg>
           </button>
           <button class="tab-btn tab-btn-icon" id="nav-stats" aria-label="Thống kê" title="Thống kê">

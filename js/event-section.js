@@ -88,14 +88,19 @@ const EventSection = (() => {
     });
   }
 
-  // options: { idPrefix (bắt buộc), compactHistory }
-  //   compactHistory: nếu true, hiện lịch sử RÚT GỌN (3 lần gần nhất,
-  //     bấm để nhảy tới) ngay dưới mỗi sự kiện. Trước đây còn có 1
-  //     chế độ "lịch sử đầy đủ" riêng (withHistory) hiện thành khối
-  //     lớn phía dưới — đã bỏ hẳn vì trùng lặp thông tin với compact
-  //     history (cả 2 nơi hiển thị cùng dữ liệu, chỉ khác cách trình
-  //     bày), gây rối mắt và không cần thiết.
-  function render(container, dateStr, { idPrefix, compactHistory = false } = {}) {
+  // options: { idPrefix (bắt buộc), showHistory }
+  //   showHistory: nếu true, hiện TOÀN BỘ lịch sử ghi nhận (dạng timeline
+  //     dọc, đốt chấm nối liền — chấm đặc + viền ngoài cho lần gần nhất,
+  //     chấm rỗng mờ dần cho các lần cũ hơn) ngay dưới mỗi dấu ấn, bấm để
+  //     nhảy tới ngày đó. Trước đây từng giới hạn CHỈ 3 lần gần nhất
+  //     (đặt tên "compactHistory") cùng lúc với 1 chế độ "lịch sử đầy đủ"
+  //     riêng (withHistory) hiện thành khối lớn riêng phía dưới — 2 chế
+  //     độ đó đã bỏ hẳn vì trùng lặp thông tin với nhau (cùng dữ liệu,
+  //     chỉ khác cách trình bày), gây rối mắt. Giờ chỉ còn 1 khối duy
+  //     nhất (không giới hạn số lượng), nên không còn nguy cơ trùng lặp
+  //     như trước — đổi tên "compactHistory" → "showHistory" cho đúng
+  //     bản chất mới (không còn "rút gọn" nữa).
+  function render(container, dateStr, { idPrefix, showHistory = false } = {}) {
     if (!idPrefix) {
       throw new Error('EventSection.render cần idPrefix để tránh trùng ID giữa các khối.');
     }
@@ -104,6 +109,13 @@ const EventSection = (() => {
     const inputRowId = `${idPrefix}-event-input-row`;
     const inputId = `${idPrefix}-event-input`;
     const saveId = `${idPrefix}-event-save`;
+    // Tên "dropdownId"/class "event-dropdown" là tàn dư lịch sử — khối
+    // này giờ không còn ẩn/hiện theo việc gõ chữ nữa (xem comment ở
+    // dưới, đoạn "Ô nhập tên mới + chip gợi ý"), chỉ còn là nơi chứa
+    // chip gợi ý hiện cùng lúc với ô nhập. Không đổi tên vì phải sửa
+    // đồng thời nhiều chỗ trong cả JS lẫn CSS chỉ để đúng nghĩa hơn,
+    // trong khi hành vi chạy thật không phụ thuộc gì vào cái tên —
+    // rủi ro gõ sai khi đổi lớn hơn giá trị nhận lại.
     const dropdownId = `${idPrefix}-event-dropdown`;
 
     container.innerHTML = `
@@ -135,7 +147,7 @@ const EventSection = (() => {
       eventListEl.innerHTML = evs.length === 0
         ? `<p style="font-size:13px;color:var(--mute);margin:0;">Chưa có dấu ấn nào cho ngày này.</p>`
         : evs.map(e => {
-          const compactRows = compactHistory ? historyFor(e.name, dateStr).slice(-3).reverse() : [];
+          const historyRows = showHistory ? historyFor(e.name, dateStr).reverse() : [];
           return `
             <div class="event-row" style="flex-direction:column;align-items:stretch;gap:8px;">
               <div style="display:flex;align-items:center;gap:10px;">
@@ -145,12 +157,13 @@ const EventSection = (() => {
                 </button>
               </div>
               <textarea class="event-note-input" data-event-note="${e.id}" placeholder="Ghi chú thêm (tuỳ chọn)..." maxlength="500" rows="1">${DomUtils.escapeHtml(e.note || '')}</textarea>
-              ${compactRows.length > 0 ? `
-                <div class="event-compact-history">
-                  ${compactRows.map(r => `
-                    <button class="event-compact-history-item ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
-                      <span>${DateUtils.formatShortLabel(DateUtils.parseDateStr(r.dateStr))}</span>
-                      <span class="event-compact-history-gap">${r.gapText}</span>
+              ${historyRows.length > 0 ? `
+                <div class="event-timeline">
+                  ${historyRows.map((r, i) => `
+                    <button class="event-timeline-item ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
+                      <span class="event-timeline-dot ${i === 0 ? 'latest' : ''}"></span>
+                      <span class="event-timeline-date">${DateUtils.formatDayMonthLabel(DateUtils.parseDateStr(r.dateStr))}${r.isCurrent ? ' <span class="event-timeline-today-tag">hôm nay</span>' : ''}</span>
+                      <span class="event-timeline-gap">${r.gapText}</span>
                     </button>
                   `).join('')}
                 </div>
@@ -199,57 +212,68 @@ const EventSection = (() => {
     changeListenersByPrefix[idPrefix] = drawEvents;
     Sync.onChange(drawEvents);
 
-    // ---- Ô nhập + dropdown gợi ý tự vẽ (thay cho phần tử datalist gốc, để chạm được trên di động) ----
+    // ---- Ô nhập tên mới + chip gợi ý tên đã dùng trước đây ----
+    // Trước đây chip gợi ý nằm trong 1 dropdown ẩn, chỉ hiện khi input
+    // được focus/gõ (mô phỏng datalist, vì <datalist> gốc không chạm
+    // được trên nhiều trình duyệt di động). Đã bỏ hẳn cơ chế ẩn/hiện
+    // phụ đó: giờ chip gợi ý hiện NGAY khi mở khối thêm (bấm "+ Thêm"),
+    // đi cùng nhịp với ô nhập, không cần người dùng gõ trước mới thấy —
+    // và bấm 1 chip là GHI NHẬN LUÔN (gọi addEvent trực tiếp), không
+    // còn hành vi cũ "điền tên vào ô rồi tự đi bấm Lưu". Việc này biến
+    // thao tác phổ biến nhất (dùng lại 1 dấu ấn đã có từ trước, ví dụ
+    // 1 sự kiện lặp lại không đều đặn) từ 4 bước (gõ, chờ dropdown,
+    // chọn, bấm Lưu) xuống còn 1 bước (bấm chip).
+    //
+    // Chip lọc bỏ tên ĐÃ CÓ trong danh sách dấu ấn của NGÀY HÔM NAY —
+    // vì cơ chế cũ có 1 lớp bảo vệ tự nhiên chống trùng lặp (người dùng
+    // thấy tên trong ô input trước khi bấm Lưu, dễ nhận ra "cái này có
+    // rồi"), còn bấm-chip-là-ghi-ngay thì mất hẳn bước xem lại đó — nếu
+    // không lọc, bấm nhầm 1 chip cho tên đã tồn tại hôm nay sẽ tạo
+    // dấu ấn trùng tên mà addEvent (sync.js) không hề chặn.
     const addBtn = container.querySelector(`#${addBtnId}`);
     const addRow = container.querySelector(`#${inputRowId}`);
     const addInput = container.querySelector(`#${inputId}`);
     const addSave = container.querySelector(`#${saveId}`);
-    const dropdown = container.querySelector(`#${dropdownId}`);
+    const suggestSlot = container.querySelector(`#${dropdownId}`);
 
-    function closeDropdown() {
-      dropdown.style.display = 'none';
-      dropdown.innerHTML = '';
-    }
+    function drawSuggestions() {
+      const { events } = Sync.getData();
+      const todayNames = new Set((events[dateStr] || []).map(e => e.name));
+      const names = allEventNames().filter(n => !todayNames.has(n));
+      if (names.length === 0) { suggestSlot.style.display = 'none'; suggestSlot.innerHTML = ''; return; }
 
-    function openDropdown() {
-      const query = addInput.value.trim().toLowerCase();
-      const names = allEventNames().filter(n => !query || n.toLowerCase().includes(query));
-      if (names.length === 0) { closeDropdown(); return; }
-
-      dropdown.innerHTML = `
+      suggestSlot.innerHTML = `
         <p class="event-dropdown-label">đã dùng trước đây</p>
         <div class="event-dropdown-scroll">${names.map(n => `<button type="button" class="event-dropdown-chip" data-suggest="${DomUtils.escapeHtml(n)}">${DomUtils.escapeHtml(n)}</button>`).join('')}</div>
       `;
-      dropdown.style.display = 'block';
+      suggestSlot.style.display = 'block';
 
-      dropdown.querySelectorAll('[data-suggest]').forEach(item => {
-        // mousedown thay vì click: chạy TRƯỚC sự kiện blur của input,
-        // nếu không input sẽ mất focus và đóng dropdown trước khi kịp chọn.
-        item.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          addInput.value = item.dataset.suggest;
-          closeDropdown();
+      suggestSlot.querySelectorAll('[data-suggest]').forEach(item => {
+        item.addEventListener('click', () => {
+          Sync.addEvent(dateStr, item.dataset.suggest);
+          closeAddRow();
         });
       });
     }
 
+    function closeAddRow() {
+      addRow.style.display = 'none';
+      addInput.value = '';
+    }
+
     addBtn.addEventListener('click', () => {
       const showing = addRow.style.display !== 'none';
-      addRow.style.display = showing ? 'none' : 'flex';
-      if (!showing) addInput.focus();
+      if (showing) { closeAddRow(); return; }
+      addRow.style.display = 'flex';
+      drawSuggestions();
+      addInput.focus();
     });
-
-    addInput.addEventListener('focus', openDropdown);
-    addInput.addEventListener('input', openDropdown);
-    addInput.addEventListener('blur', () => setTimeout(closeDropdown, 150));
 
     function submitEvent() {
       const name = addInput.value.trim();
       if (!name) return;
       Sync.addEvent(dateStr, name);
-      addInput.value = '';
-      closeDropdown();
-      addRow.style.display = 'none';
+      closeAddRow();
     }
     addSave.addEventListener('click', submitEvent);
     addInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitEvent(); });

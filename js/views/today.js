@@ -97,7 +97,7 @@ const TodayView = (() => {
     const listEl = container.querySelector('#habit-list');
     const emptyEl = container.querySelector('#empty-state');
 
-    EventSection.render(container.querySelector('#event-section-today'), todayKey, { idPrefix: 'today', withHistory: false, compactHistory: true });
+    EventSection.render(container.querySelector('#event-section-today'), todayKey, { idPrefix: 'today', showHistory: true });
 
     function habitRowHtml(h, isChild) {
       const { checks } = Sync.getData();
