@@ -231,9 +231,17 @@ button {
 
 .input-row button {
   font-size: 13px;
-  padding: 9px 14px;
+  font-weight: 500;
+  padding: 8px 14px;
   border-radius: 8px;
-  border: none;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.input-row button:hover,
+.input-row button:active {
   background: var(--ink);
   color: var(--paper);
 }
@@ -894,6 +902,12 @@ button {
   border-top: none;
   border-radius: 0 0 10px 10px;
   padding: 8px;
+}
+
+.event-dropdown-label {
+  font-size: 10.5px;
+  color: var(--mute);
+  margin: 0 0 6px;
 }
 
 /* Dãy thẻ gợi ý cuộn ngang — nếu nhiều thẻ hơn chỗ hiển thị, vuốt

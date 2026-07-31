@@ -216,7 +216,10 @@ const EventSection = (() => {
       const names = allEventNames().filter(n => !query || n.toLowerCase().includes(query));
       if (names.length === 0) { closeDropdown(); return; }
 
-      dropdown.innerHTML = `<div class="event-dropdown-scroll">${names.map(n => `<button type="button" class="event-dropdown-chip" data-suggest="${DomUtils.escapeHtml(n)}">${DomUtils.escapeHtml(n)}</button>`).join('')}</div>`;
+      dropdown.innerHTML = `
+        <p class="event-dropdown-label">đã dùng trước đây</p>
+        <div class="event-dropdown-scroll">${names.map(n => `<button type="button" class="event-dropdown-chip" data-suggest="${DomUtils.escapeHtml(n)}">${DomUtils.escapeHtml(n)}</button>`).join('')}</div>
+      `;
       dropdown.style.display = 'block';
 
       dropdown.querySelectorAll('[data-suggest]').forEach(item => {
