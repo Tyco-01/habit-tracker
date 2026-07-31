@@ -35,14 +35,14 @@ const DayDetailView = (() => {
           <button class="back-btn" id="day-back" aria-label="Quay lại">
             <i class="ti ti-arrow-left" style="font-size:20px;" aria-hidden="true"></i>
           </button>
-          <div>
-            <p class="day-detail-date">${label}</p>
+          <div class="day-detail-heading-row">
             <h3 class="day-detail-title" id="day-title"></h3>
+            <p class="day-detail-date">${label}</p>
           </div>
         </div>
 
         ${total > 0 ? `
-        <p class="section-label">VIỆC LẶP LẠI</p>
+        <p class="section-label">VIỆC LẶP LẠI<span class="section-label-count">${habits.length}</span></p>
         <div id="day-habits" style="margin-bottom:20px;"></div>
         ` : ''}
 

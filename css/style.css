@@ -158,17 +158,24 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 18px;
+}
+
+.today-heading-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
 
 .today-date {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--mute);
   margin: 0;
 }
 
 .today-title {
-  margin: 0 0 18px;
+  margin: 0;
   font-weight: 600;
   font-size: 18px;
 }
@@ -701,9 +708,16 @@ button {
   display: flex;
 }
 
+.day-detail-heading-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
 .day-detail-date {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--mute);
 }
 
@@ -714,10 +728,24 @@ button {
 }
 
 .section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
-  color: var(--mute);
-  letter-spacing: 0.05em;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: 6px;
+  padding: 4px 8px 4px 10px;
   margin: 0 0 8px;
+}
+
+.section-label-count {
+  background: rgba(245, 241, 232, 0.2);
+  border-radius: 20px;
+  padding: 1px 6px;
+  font-size: 10.5px;
 }
 
 .section-header-row {

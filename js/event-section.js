@@ -97,7 +97,7 @@ const EventSection = (() => {
 
     container.innerHTML = `
       <div class="section-header-row">
-        <p class="section-label" style="margin:0;">DẤU ẤN NGÀY NÀY</p>
+        <p class="section-label" style="margin:0;">DẤU ẤN NGÀY NÀY<span class="section-label-count" id="${idPrefix}-event-count">0</span></p>
         <button class="pill-btn" id="${addBtnId}">
           <i class="ti ti-plus" style="font-size:12px;" aria-hidden="true"></i> Thêm
         </button>
@@ -122,6 +122,9 @@ const EventSection = (() => {
     function drawEvents() {
       const { events } = Sync.getData();
       const evs = events[dateStr] || [];
+
+      const countEl = container.querySelector(`#${idPrefix}-event-count`);
+      if (countEl) countEl.textContent = evs.length;
 
       eventListEl.innerHTML = evs.length === 0
         ? `<p style="font-size:13px;color:var(--mute);margin:0;">Chưa có dấu ấn nào cho ngày này.</p>`

@@ -80,12 +80,14 @@ const TodayView = (() => {
 
     container.innerHTML = `
       <div class="today-header">
-        <p class="today-date">${label}</p>
+        <div class="today-heading-row">
+          <h3 class="today-title">Hôm nay</h3>
+          <p class="today-date">${label}</p>
+        </div>
         <button class="icon-btn-round" id="add-habit-btn" aria-label="Thêm việc mới">
           <i class="ti ti-plus" style="font-size:15px;" aria-hidden="true"></i>
         </button>
       </div>
-      <h3 class="today-title">Hôm nay</h3>
       <div class="input-row" id="add-habit-row" style="display:none;">
         <input type="text" id="add-habit-input" placeholder="ví dụ: tập thể dục" maxlength="60" />
         <button id="add-habit-save">Lưu</button>
