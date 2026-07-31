@@ -19,8 +19,13 @@
 
   <div id="app"></div>
 
-  <!-- Thứ tự nạp quan trọng: config trước, rồi tầng dữ liệu, rồi view, rồi app.js -->
+  <!-- Thứ tự nạp quan trọng: config trước, rồi tiện ích dùng chung
+       (date-utils/dom-utils không phụ thuộc gì, nhưng nhiều module
+       phía sau dùng tới nên phải nạp sớm), rồi tầng dữ liệu, rồi
+       view, rồi app.js -->
   <script src="js/config.js"></script>
+  <script src="js/date-utils.js"></script>
+  <script src="js/dom-utils.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/storage-local.js"></script>

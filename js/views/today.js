@@ -17,24 +17,17 @@
 
 const TodayView = (() => {
 
-  const DAYS_VN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-
   // Trạng thái kéo-thả: phân biệt "kéo để đổi thứ tự" (thả giữa 2 hàng)
   // với "kéo để làm con" (thả ngay lên giữa 1 hàng khác).
   let draggedId = null;
   let draggedRow = null; // tham chiếu DOM node đang kéo — dùng để bật/tắt
                           // hiệu ứng "sẽ tách ra" ngay trên chính nó khi
                           // con trỏ đang ở vùng không trúng habit nào khác.
-
-  function dateKey(d) {
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
+  let globalDragBound = false; // đảm bảo listener kéo-thả cấp document
+                                // (xem bindDragDropGlobal trong render())
+                                // chỉ gắn đúng 1 lần cho toàn bộ vòng đời
+                                // app, dù render() được gọi lại bao nhiêu
+                                // lần (mỗi lần chuyển tab).
 
   function sortedHabits(habits) {
     return [...habits].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
@@ -75,8 +68,8 @@ const TodayView = (() => {
 
   function render(container) {
     const today = new Date();
-    const todayKey = dateKey(today);
-    const label = `${DAYS_VN[today.getDay()]}, ${today.getDate()} tháng ${today.getMonth() + 1}`;
+    const todayKey = DateUtils.dateKey(today);
+    const label = `${DateUtils.DAYS_VN[today.getDay()]}, ${today.getDate()} tháng ${today.getMonth() + 1}`;
 
     container.innerHTML = `
       <div class="today-header">
@@ -115,16 +108,16 @@ const TodayView = (() => {
 
       return `
         <div class="habit-row ${isChild ? 'habit-row-child' : ''}" draggable="true" data-habit-id="${h.id}" title="Kéo để đổi thứ tự, hoặc thả vào 1 việc khác để nhóm lại">
-          <button class="check-btn ${checked ? 'checked' : ''}" data-habit="${h.id}" aria-label="Đánh dấu ${escapeHtml(h.name)}">
+          <button class="check-btn ${checked ? 'checked' : ''}" data-habit="${h.id}" aria-label="Đánh dấu ${DomUtils.escapeHtml(h.name)}">
             ${checked ? '<i class="ti ti-check" style="font-size:13px;color:var(--paper);" aria-hidden="true"></i>' : ''}
           </button>
-          <span class="habit-name ${checked ? 'done' : ''}" data-edit="${h.id}" title="Bấm để sửa tên">${escapeHtml(h.name)}</span>
+          <span class="habit-name ${checked ? 'done' : ''}" data-edit="${h.id}" title="Bấm để sửa tên">${DomUtils.escapeHtml(h.name)}</span>
           <span class="habit-streak">${treeHtml}${state.displayDays > 0 ? state.displayDays : ''}</span>
           ${HabitNotePanel.noteHintHtml(h.id, todayKey)}
-          <button class="note-btn ${noteActive ? 'note-btn-active' : ''}" data-note="${h.id}" aria-label="Ghi chú cho ${escapeHtml(h.name)}" title="Ghi chú">
+          <button class="note-btn ${noteActive ? 'note-btn-active' : ''}" data-note="${h.id}" aria-label="Ghi chú cho ${DomUtils.escapeHtml(h.name)}" title="Ghi chú">
             <i class="ti ti-note" style="font-size:14px;" aria-hidden="true"></i>
           </button>
-          <button class="remove-btn" data-remove="${h.id}" aria-label="Xoá ${escapeHtml(h.name)}">
+          <button class="remove-btn" data-remove="${h.id}" aria-label="Xoá ${DomUtils.escapeHtml(h.name)}">
             <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
           </button>
         </div>
@@ -328,11 +321,17 @@ const TodayView = (() => {
     // (quá khó canh bằng chuột, khoảng trống giữa 2 dòng chỉ vài px),
     // nghe drop trên toàn document — bất kỳ điểm thả nào KHÔNG trúng
     // vào 1 .habit-row khác đều coi là "kéo ra ngoài" và tự tách.
-    // CHỈ GẮN 1 LẦN ở đây (không đặt trong bindDragDropRows/draw, vì
-    // draw() chạy lại mỗi khi dữ liệu đổi — gắn lại trên document mỗi
-    // lần sẽ CỘNG DỒN listener, khiến 1 lượt thả gọi setHabitParent
-    // nhiều lần trùng lặp).
-    function bindDragDropGlobal() {
+    //
+    // PHẢI CHỈ GẮN ĐÚNG 1 LẦN TRONG TOÀN BỘ VÒNG ĐỜI APP — không phải
+    // 1 lần mỗi khi render() chạy. render() chạy lại mỗi khi người
+    // dùng chuyển sang tab khác rồi quay lại tab "Hôm nay" (xem
+    // app.js), nên nếu gắn ở đây, listener trên `document` sẽ CỘNG
+    // DỒN vĩnh viễn — bug thật đã có: sau N lần vào lại tab "Hôm nay",
+    // 1 lượt kéo-thả sẽ gọi setHabitParent N lần trùng lặp. Dùng cờ
+    // module-level (globalDragBound) để đảm bảo chỉ chạy phần gắn
+    // listener đúng 1 lần, dù render() được gọi bao nhiêu lần.
+    if (!globalDragBound) {
+      globalDragBound = true;
       document.addEventListener('dragover', (e) => {
         if (!draggedId) return;
         const overRow = e.target.closest('.habit-row');
@@ -353,8 +352,14 @@ const TodayView = (() => {
         Sync.setHabitParent(draggedId, null);
       });
     }
-    bindDragDropGlobal();
 
+    // Mỗi lần render() được gọi lại (vd chuyển tab rồi quay lại), phải gỡ
+    // listener của LẦN RENDER TRƯỚC trước khi đăng ký cái mới — nếu không,
+    // listener cũ vẫn trỏ vào DOM đã bị thay thế nhưng vẫn chạy mỗi khi có
+    // thay đổi dữ liệu, tích luỹ dần theo số lần chuyển tab (memory leak +
+    // chạy draw() nhiều lần dư thừa).
+    if (container.__todayOnChange) Sync.offChange(container.__todayOnChange);
+    container.__todayOnChange = draw;
     Sync.onChange(draw);
     draw();
 

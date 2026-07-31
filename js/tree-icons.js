@@ -115,15 +115,11 @@ const TreeIcons = (() => {
 
   // ---- Tính toán streak / trạng thái héo từ dữ liệu checks ----
 
-  function dateKey(d) {
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  }
-
   // Số ngày liên tiếp đã tick, tính lùi từ 1 ngày mốc (mặc định hôm nay)
   function currentStreak(checksForHabit, fromDate) {
     let count = 0;
     let d = new Date(fromDate);
-    while (checksForHabit && checksForHabit[dateKey(d)]) {
+    while (checksForHabit && checksForHabit[DateUtils.dateKey(d)]) {
       count++;
       d.setDate(d.getDate() - 1);
     }
@@ -132,12 +128,12 @@ const TreeIcons = (() => {
 
   // Số ngày liên tiếp KHÔNG tick, tính đến hôm nay (0 nếu hôm nay đã tick)
   function missedStreak(checksForHabit, today) {
-    const todayKey = dateKey(today);
+    const todayKey = DateUtils.dateKey(today);
     if (checksForHabit && checksForHabit[todayKey]) return 0;
     let count = 0;
     let d = new Date(today);
     for (let i = 0; i < 400; i++) {
-      const key = dateKey(d);
+      const key = DateUtils.dateKey(d);
       if (!checksForHabit || !checksForHabit[key]) {
         count++;
         d.setDate(d.getDate() - 1);

@@ -22,6 +22,7 @@ const Sync = (() => {
   let listeners = [];
 
   function onChange(fn) { listeners.push(fn); }
+  function offChange(fn) { listeners = listeners.filter(l => l !== fn); }
   function notify() { listeners.forEach(fn => fn(data)); }
 
   function getData() { return data; }
@@ -46,7 +47,6 @@ const Sync = (() => {
     persistLocal();
   }
 
-  // Chuyển habit sang danh sách archivedHabits thay vì xoá hẳn
   // Chuyển habit sang danh sách archivedHabits thay vì xoá hẳn.
   // Nếu habit này đang là "cha" của những habit khác, các con đó
   // được tự động TÁCH RA thành việc độc lập (không bị archive theo)
@@ -514,11 +514,16 @@ const Sync = (() => {
   setInterval(() => { flushQueue(); }, 30000);
 
   return {
-    getData, onChange,
+    getData, onChange, offChange,
     addHabit, removeHabit, restoreHabit, emptyTrash,
     setCheck, addEvent, removeEvent,
     renameHabit, reorderHabits, updateEventNote,
     setHabitNote, setHabitParent,
-    pullFromServer, flushQueue
+    pullFromServer, flushQueue,
+    // Chỉ dùng cho TEST (smoke-test-full-app.js) để xác nhận trực tiếp
+    // không có listener bị cộng dồn qua nhiều lần render() — không gọi
+    // trong luồng chính của app. Đặt tên có gạch dưới đầu để đánh dấu
+    // rõ đây là API nội bộ/debug, không phải 1 tính năng công khai.
+    _listenerCount: () => listeners.length
   };
 })();

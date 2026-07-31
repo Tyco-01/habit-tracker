@@ -4,14 +4,8 @@
 
 const YearView = (() => {
 
-  const MONTHS_SHORT = ['Th1','Th2','Th3','Th4','Th5','Th6','Th7','Th8','Th9','Th10','Th11','Th12'];
-
   let viewYear = new Date().getFullYear();
   let onDayClick = null;
-
-  function dateKey(y, m, d) {
-    return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-  }
 
   function countForDate(checks, habits, key) {
     return habits.filter(h => checks[h.id] && checks[h.id][key]).length;
@@ -49,7 +43,7 @@ const YearView = (() => {
     function draw() {
       const { habits, checks, events, habitNotes } = Sync.getData();
       const today = new Date();
-      const todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayKey = DateUtils.dateKeyFromParts(today.getFullYear(), today.getMonth(), today.getDate());
       const total = habits.length;
       const isCurrentYear = viewYear === today.getFullYear();
 
@@ -58,7 +52,7 @@ const YearView = (() => {
         const startOfView = new Date(viewYear, 0, 1);
         const endOfView = isCurrentYear ? today : new Date(viewYear, 11, 31);
         for (let d = new Date(startOfView); d <= endOfView; d.setDate(d.getDate() + 1)) {
-          const key = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
+          const key = DateUtils.dateKeyFromParts(d.getFullYear(), d.getMonth(), d.getDate());
           if (countForDate(checks, habits, key) === total) fullDays++;
         }
       }
@@ -113,7 +107,7 @@ const YearView = (() => {
         }
         for (let day = 1; day <= daysInMonth; day++) {
           const isFuture = isFutureMonth || (isCurrentMonth && day > todayDate);
-          const key = dateKey(viewYear, m, day);
+          const key = DateUtils.dateKeyFromParts(viewYear, m, day);
           const hasEvent = !!(events[key] && events[key].length > 0);
           const hasNote = hasNoteForDate(habitNotes, key);
           const clipHtml = hasEvent ? `<i class="ti ti-paperclip event-clip" aria-hidden="true"></i>` : '';
@@ -132,7 +126,7 @@ const YearView = (() => {
 
         html += `
           <div class="month-block">
-            <p class="month-label">${MONTHS_SHORT[m]}</p>
+            <p class="month-label">${DateUtils.MONTHS_SHORT_GRID[m]}</p>
             <div class="weekday-row">
               <span>CN</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span>
             </div>
@@ -184,6 +178,12 @@ const YearView = (() => {
       });
     }
 
+    // Gỡ listener của lần render() trước (nếu có) trước khi đăng ký cái
+    // mới — render() được gọi lại mỗi khi người dùng chuyển sang tab
+    // "Cả năm", nếu không gỡ thì listener cũ (trỏ DOM đã bị thay thế)
+    // sẽ cộng dồn mãi, chạy draw() thừa nhiều lần mỗi khi data đổi.
+    if (container.__yearOnChange) Sync.offChange(container.__yearOnChange);
+    container.__yearOnChange = draw;
     Sync.onChange(draw);
     draw();
   }

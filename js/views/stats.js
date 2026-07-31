@@ -8,12 +8,6 @@
 
 const StatsView = (() => {
 
-  const MONTHS_SHORT = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
-
-  function dateKey(y, m, d) {
-    return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-  }
-
   // Streak dài nhất từng đạt được (không chỉ streak hiện tại) — quét
   // toàn bộ lịch sử tick, tìm chuỗi ngày liên tiếp dài nhất.
   function longestStreak(checksForHabit) {
@@ -43,7 +37,7 @@ const StatsView = (() => {
     let done = 0;
     const d = new Date(today);
     for (let i = 0; i < days; i++) {
-      const key = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
+      const key = DateUtils.dateKeyFromParts(d.getFullYear(), d.getMonth(), d.getDate());
       if (checksForHabit[key]) done++;
       d.setDate(d.getDate() - 1);
     }
@@ -59,7 +53,7 @@ const StatsView = (() => {
       const lastDay = (m === today.getMonth()) ? today.getDate() : daysInMonth;
       let done = 0;
       for (let day = 1; day <= lastDay; day++) {
-        const key = dateKey(today.getFullYear(), m, day);
+        const key = DateUtils.dateKeyFromParts(today.getFullYear(), m, day);
         if (checksForHabit && checksForHabit[key]) done++;
       }
       rates.push(lastDay > 0 ? Math.round((done / lastDay) * 100) : 0);
@@ -110,7 +104,7 @@ const StatsView = (() => {
           ${rates.map((r, i) => `
             <div class="stats-bar-col">
               <div class="stats-bar" style="height:${Math.max(4, (r / maxRate) * 60)}px;"></div>
-              <span class="stats-bar-label">${MONTHS_SHORT[i]}</span>
+              <span class="stats-bar-label">${DateUtils.MONTHS_SHORT_BAR[i]}</span>
             </div>
           `).join('')}
         </div>
@@ -118,7 +112,7 @@ const StatsView = (() => {
 
       const picker = container.querySelector('#stats-picker');
       picker.innerHTML = habits.map(h => `
-        <button class="stats-pill ${h.id === selected.id ? 'active' : ''}" data-habit="${h.id}">${escapeHtml(h.name)}</button>
+        <button class="stats-pill ${h.id === selected.id ? 'active' : ''}" data-habit="${h.id}">${DomUtils.escapeHtml(h.name)}</button>
       `).join('');
       picker.querySelectorAll('[data-habit]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -128,12 +122,10 @@ const StatsView = (() => {
       });
     }
 
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
+    // Gỡ listener của lần render() trước (nếu có) — render() gọi lại mỗi
+    // khi chuyển sang tab "Thống kê", nếu không gỡ sẽ cộng dồn listener.
+    if (container.__statsOnChange) Sync.offChange(container.__statsOnChange);
+    container.__statsOnChange = draw;
     Sync.onChange(draw);
     draw();
   }

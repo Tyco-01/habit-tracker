@@ -43,13 +43,24 @@ css/style.css           Toàn bộ style. Màu khai báo CỨNG (không dùng bi
 js/config.js            Hằng số cấu hình: URL Supabase, key public, mốc streak cây...
                         SỬA Ở ĐÂY khi cần đổi project Supabase hoặc chỉnh mốc tăng trưởng.
 
+js/date-utils.js        Tiện ích ngày tháng DÙNG CHUNG (dateKey, parseDateStr, tên
+                        thứ/tháng tiếng Việt...). Trước đây các hàm này bị copy-paste
+                        lặp lại ở nhiều file view — đã gộp về đây, SỬA Ở ĐÂY khi cần
+                        đổi định dạng ngày tháng, không sửa lẻ tẻ từng view.
+
+js/dom-utils.js         Tiện ích DOM DÙNG CHUNG (hiện chỉ có escapeHtml). Cùng lý do
+                        gộp như date-utils.js — 6 file từng tự định nghĩa escapeHtml
+                        giống hệt nhau.
+
 js/auth.js              Đăng nhập bằng "mã bí mật" — hash SHA-256 ở trình duyệt trước khi
                         gửi lên, server không bao giờ thấy mã gốc.
 
 js/supabase-client.js   Gọi Supabase REST API bằng fetch thuần (không dùng thư viện
                         @supabase/supabase-js đầy đủ — không cần, chỉ gọi RPC).
 
-js/storage-local.js     Lưu dữ liệu + hàng đợi đồng bộ vào localStorage.
+js/storage-local.js     Lưu dữ liệu + hàng đợi đồng bộ vào localStorage. load() PHẢI
+                        khôi phục ĐỦ mọi field mà save() có thể đã ghi (xem docblock
+                        trong file — từng có bug đánh rơi archivedHabits/habitNotes).
 
 js/sync.js              QUAN TRỌNG NHẤT. Cầu nối local ↔ Supabase. Mọi thao tác người
                         dùng áp dụng LOCAL NGAY, rồi mới thử gửi server. Xem mục 5.
@@ -149,6 +160,91 @@ mục 7) trước khi coi là xong — đừng chỉ đọc code bằng mắt v�
 đúng, vì bug loại này rất khó thấy nếu không mô phỏng đúng kịch bản
 mất mạng.
 
+## 5b. Listener của Sync.onChange() — PHẢI tự gỡ khi render() gọi lại
+
+**Bug đã sửa, đọc kỹ trước khi thêm view mới hoặc sửa view hiện có:**
+Mọi view (`today.js`, `year.js`, `day-detail.js`, `stats.js`,
+`trash.js`, `event-section.js`) gọi `Sync.onChange(draw)` trong hàm
+`render()` để tự vẽ lại mỗi khi dữ liệu đổi. Nhưng `render()` được
+gọi LẠI mỗi khi người dùng chuyển tab qua rồi quay lại (xem
+`app.js`, `navToday`/`navYear`/... đều gọi `View.render()` mỗi lần
+bấm) — nếu không tự gỡ listener của lần render() TRƯỚC, mảng
+listener của `Sync` sẽ cộng dồn vô hạn theo số lần chuyển tab: vừa
+rò rỉ bộ nhớ, vừa khiến các closure cũ (trỏ vào DOM đã bị thay thế)
+vẫn chạy `draw()` thừa mỗi khi có thay đổi dữ liệu, càng dùng app
+lâu càng chậm dần.
+
+**Cách sửa đã áp dụng — PHẢI theo đúng pattern này khi thêm view
+mới:** gắn hàm `draw` (hoặc tương đương) lên chính `container` bằng
+1 property riêng, kiểm tra và gỡ nó trước khi đăng ký cái mới:
+
+```js
+if (container.__xyzOnChange) Sync.offChange(container.__xyzOnChange);
+container.__xyzOnChange = draw;
+Sync.onChange(draw);
+draw();
+```
+
+**Cảnh báo quan trọng — bug thật đã xảy ra ngay với cách sửa ở
+trên:** gắn cờ lên `container` CHỈ đáng tin nếu `container` đó ổn
+định qua các lần gọi. `EventSection.render()` là trường hợp VI PHẠM
+điều này: nó được gọi từ BÊN TRONG `today.js`/`day-detail.js`, và 2
+view cha đó tự `container.innerHTML = ...` lại TOÀN BỘ cây con mỗi
+lần chúng render() — nghĩa là node `#event-section-today` (hay
+`#event-section`) được EventSection nhận vào là 1 **node HOÀN TOÀN
+MỚI** mỗi lần view cha render() lại, dù `idPrefix` truyền vào vẫn
+luôn cố định. Gắn cờ lên node đó thì cờ luôn "chưa từng thấy" (vì
+node mới), nên listener cũ (đóng gói node ĐÃ BỊ VĂNG khỏi DOM)
+KHÔNG BAO GIỜ được gỡ — cộng dồn mãi mỗi lần vào lại tab "Hôm nay"
+hoặc mở 1 ngày trong "Cả năm". Bug này chỉ lộ ra khi kiểm tra
+**tích hợp thật** (gọi `TodayView.render()` với `EventSection` lồng
+bên trong nhiều lần, đếm số listener qua `Sync._listenerCount()`) —
+kiểm tra `EventSection` độc lập với 1 container cố định (không đại
+diện đúng cách nó thực sự được dùng trong app) sẽ KHÔNG bắt được.
+
+**Cách sửa đúng đã áp dụng:** với bất kỳ module nào có thể bị 1 view
+khác gọi lồng vào (không tự kiểm soát được vòng đời container của
+chính nó), lưu cờ gỡ-listener ở **cấp module** (theo 1 key ổn định
+như `idPrefix`, KHÔNG phụ thuộc DOM node), thay vì lưu trên
+`container`:
+
+```js
+// Ở cấp module, KHÔNG lưu trên DOM container
+const changeListenersByPrefix = {};
+
+function render(container, ..., { idPrefix }) {
+  // ...
+  if (changeListenersByPrefix[idPrefix]) Sync.offChange(changeListenersByPrefix[idPrefix]);
+  changeListenersByPrefix[idPrefix] = draw;
+  Sync.onChange(draw);
+}
+```
+
+**Bài học tổng quát:** gắn cờ lên `container` (như pattern ở đầu
+mục này) chỉ an toàn cho các view TOP-LEVEL do `app.js` gọi trực
+tiếp lên 1 node cố định (`today.js`, `year.js`, `stats.js`,
+`trash.js`, `day-detail.js` khi tự nó là view cha) — không an toàn
+cho bất kỳ module nào được gọi LỒNG bên trong 1 view khác, vì
+container của module con phụ thuộc vào view cha có tái tạo DOM hay
+không. Khi thêm module con mới kiểu này, luôn dùng cách lưu theo
+key cấp module như trên.
+
+**Bug liên quan, cùng gốc, riêng trong `today.js`:** listener
+kéo-thả gắn trên `document` (`bindDragDropGlobal`) từng nằm ngay
+trong `render()` — bị gọi lại và cộng dồn trên `document` mỗi lần
+vào lại tab "Hôm nay" (nghiêm trọng hơn cả bug trên vì gắn trên
+`document` thì KHÔNG có DOM nào bị thay thế để tự "vô hiệu hoá", cứ
+thế cộng dồn vĩnh viễn — sau N lần vào tab, 1 lượt kéo-thả gọi
+`setHabitParent` N lần trùng lặp). Đã sửa bằng cờ module-level
+`globalDragBound`, đảm bảo phần gắn listener chỉ chạy đúng 1 lần
+cho toàn bộ vòng đời app dù `render()` gọi lại bao nhiêu lần.
+
+**`Sync._listenerCount()`** — hàm debug-only thêm riêng để
+`smoke-test-full-app.js` đếm trực tiếp số listener, không cần suy
+luận gián tiếp qua DOM hay thời gian thực thi (cả 2 cách đó đều đã
+thử và không đáng tin — xem comment trong file test). Không gọi
+trong luồng chính của app.
+
 ## 6. Service Worker — vì sao cần tăng version mỗi lần sửa code
 
 `service-worker.js` cache các file JS/CSS để app chạy được offline.
@@ -182,6 +278,35 @@ test tương tự** trước khi tin code đã đúng:
   thay vì ID nội bộ.
 - **Gợi ý sự kiện** (`event-section.js`): danh sách tên không
   trùng lặp, đúng thứ tự alphabet tiếng Việt.
+- **Listener không cộng dồn** (mọi view + `sync.js`): mô phỏng
+  `render()` gọi lại nhiều lần (giả lập chuyển tab qua lại), xác
+  nhận `Sync.listeners` không tăng vô hạn — xem mục 5b.
+- **Listener kéo-thả cấp document không cộng dồn** (`today.js`):
+  mô phỏng `render()` gọi lại nhiều lần, xác nhận
+  `document.addEventListener('dragover'/'drop')` chỉ gọi đúng 1
+  lần — xem mục 5b.
+- **Khôi phục dữ liệu từ localStorage** (`storage-local.js`): lưu
+  dữ liệu đầy đủ (gồm `archivedHabits`, `habitNotes`) rồi mô phỏng
+  "tải lại trang" (gọi lại `load()`), xác nhận không field nào bị
+  đánh rơi; đồng thời xác nhận dữ liệu CŨ (trước khi 2 field này
+  tồn tại) vẫn `load()` an toàn, không lỗi.
+- **Smoke test tích hợp toàn app** (`smoke-test-full-app.js`): nạp
+  TOÀN BỘ app thật (đúng thứ tự script trong `index.html`) vào
+  JSDOM, gọi `render()` thật của mọi view, thao tác DOM thật (bấm
+  nút thêm/xoá, gõ ghi chú) để kích hoạt code bên trong event
+  handler — đây là bài test đã BẮT ĐƯỢC 2 bug thật mà các test đơn
+  lẻ ở trên không bắt được: (1) `event-section.js` từng gọi thẳng
+  `escapeHtml()`/`parseDateStr()` sau khi các hàm cục bộ đó đã bị
+  xoá khi gộp về `DateUtils`/`DomUtils` — chỉ lộ ra khi thực sự
+  CHẠY code (không phải chỉ `node -c` kiểm tra cú pháp); (2)
+  `EventSection` lồng bên trong `today.js`/`day-detail.js` vẫn bị
+  cộng dồn listener dù đã "sửa" theo pattern chuẩn — vì cờ gỡ
+  listener lưu trên DOM container, nhưng container đó bị view CHA
+  tái tạo mới mỗi lần render() (xem mục 5b, phần "Cảnh báo quan
+  trọng"). Bài học: **luôn chạy smoke test này sau khi sửa bất kỳ
+  view hay module dùng chung nào** — kiểm tra module độc lập
+  (container cố định tự tay tạo trong test) không đại diện đúng
+  cách module đó thực sự được dùng khi lồng trong 1 view khác.
 
 **Cách viết lại test nhanh:** dùng Node `vm` module để chạy code
 JS trong sandbox giả lập (`localStorage`, `document`, `Sync`...) mà

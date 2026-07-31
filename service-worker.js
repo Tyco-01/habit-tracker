@@ -8,7 +8,7 @@
 // có thể bị "kẹt" lại rất lâu dù đã tải code mới lên server.
 // ============================================================
 
-const CACHE_NAME = 'habit-tracker-v17';
+const CACHE_NAME = 'habit-tracker-v18';
 
 const CORE_ASSETS = [
   './',
@@ -16,6 +16,8 @@ const CORE_ASSETS = [
   './manifest.json',
   './css/style.css',
   './js/config.js',
+  './js/date-utils.js',
+  './js/dom-utils.js',
   './js/supabase-client.js',
   './js/auth.js',
   './js/storage-local.js',

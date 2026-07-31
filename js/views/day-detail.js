@@ -5,23 +5,9 @@
 
 const DayDetailView = (() => {
 
-  const DAYS_VN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-  const MONTH_NAMES = ['tháng 1','tháng 2','tháng 3','tháng 4','tháng 5','tháng 6','tháng 7','tháng 8','tháng 9','tháng 10','tháng 11','tháng 12'];
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  function parseDateStr(dateStr) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-
   function render(container, dateStr, onBack) {
-    const dObj = parseDateStr(dateStr);
-    const label = `${DAYS_VN[dObj.getDay()]}, ${dObj.getDate()} ${MONTH_NAMES[dObj.getMonth()]}`;
+    const dObj = DateUtils.parseDateStr(dateStr);
+    const label = DateUtils.formatFullLabel(dObj);
     const { habits } = Sync.getData();
 
     const today = new Date();
@@ -52,6 +38,15 @@ const DayDetailView = (() => {
 
     container.querySelector('#day-back').addEventListener('click', onBack);
 
+    // Gỡ listener của lần render() trước (nếu có) — render() gọi lại mỗi
+    // khi mở 1 ngày khác từ "Cả năm". Đặt ở ĐẦU hàm (không chỉ trong
+    // nhánh total > 0) vì ngày xem trước có thể có habit (đã đăng ký
+    // listener) còn ngày xem sau thì không — vẫn phải gỡ listener cũ.
+    if (container.__dayDetailOnChange) {
+      Sync.offChange(container.__dayDetailOnChange);
+      container.__dayDetailOnChange = null;
+    }
+
     if (total > 0) {
       const titleEl = container.querySelector('#day-title');
       const habitsEl = container.querySelector('#day-habits');
@@ -69,12 +64,12 @@ const DayDetailView = (() => {
               <button class="toggle-btn ${checked ? 'checked' : ''}" data-habit="${h.id}">
                 ${checked ? '<i class="ti ti-check" style="font-size:12px;color:var(--card);" aria-hidden="true"></i>' : ''}
               </button>
-              <span style="font-size:14px;flex:1;${checked ? 'color:var(--mute);text-decoration:line-through;' : ''}">${escapeHtml(h.name)}</span>
+              <span style="font-size:14px;flex:1;${checked ? 'color:var(--mute);text-decoration:line-through;' : ''}">${DomUtils.escapeHtml(h.name)}</span>
               ${HabitNotePanel.noteHintHtml(h.id, dateStr)}
-              <button class="note-btn ${noteActive ? 'note-btn-active' : ''}" data-note="${h.id}" aria-label="Ghi chú cho ${escapeHtml(h.name)}" title="Ghi chú">
+              <button class="note-btn ${noteActive ? 'note-btn-active' : ''}" data-note="${h.id}" aria-label="Ghi chú cho ${DomUtils.escapeHtml(h.name)}" title="Ghi chú">
                 <i class="ti ti-note" style="font-size:14px;" aria-hidden="true"></i>
               </button>
-              <button class="remove-btn" data-remove="${h.id}" aria-label="Xoá ${escapeHtml(h.name)}">
+              <button class="remove-btn" data-remove="${h.id}" aria-label="Xoá ${DomUtils.escapeHtml(h.name)}">
                 <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
               </button>
             </div>
@@ -120,6 +115,7 @@ const DayDetailView = (() => {
         });
       }
       drawHabits();
+      container.__dayDetailOnChange = drawHabits;
       Sync.onChange(drawHabits);
     } else {
       const titleEl = container.querySelector('#day-title');

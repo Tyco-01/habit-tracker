@@ -27,16 +27,25 @@
 
 const EventSection = (() => {
 
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  function parseDateStr(dateStr) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
+  // Map idPrefix -> listener hiện tại, đặt Ở CẤP MODULE (không lưu
+  // trên DOM container) — đây là điểm mấu chốt: TRƯỚC ĐÂY listener cũ
+  // được lưu trên chính `container` truyền vào, với giả định container
+  // đó ổn định qua các lần gọi. Giả định này ĐÚNG khi EventSection
+  // được gọi trực tiếp với 1 container cố định, nhưng SAI khi gọi từ
+  // bên trong 1 view khác (today.js, day-detail.js) — các view đó tự
+  // `container.innerHTML = ...` lại TOÀN BỘ cây con mỗi lần render(),
+  // tạo ra 1 node `#event-section-today` HOÀN TOÀN MỚI mỗi lần, nên
+  // property gắn trên node cũ không bao giờ được node mới thấy lại —
+  // hậu quả: listener cũ (đóng gói node đã bị văng khỏi DOM) không
+  // bao giờ bị gỡ, cộng dồn mãi mỗi lần view cha render() lại (bug đã
+  // xác nhận qua smoke-test-full-app.js: TodayView/DayDetailView làm
+  // listener của EventSection tăng N lần sau N lần render() view cha,
+  // dù bản thân EventSection.render() nhận đúng idPrefix cố định).
+  //
+  // Lưu theo idPrefix ở object cấp module thay vì trên DOM node giải
+  // quyết đúng gốc: idPrefix luôn cố định dù DOM node có bị thay mới
+  // bao nhiêu lần, nên luôn tìm đúng listener cũ để gỡ.
+  const changeListenersByPrefix = {};
 
   function daysBetween(a, b) {
     return Math.round((a - b) / 86400000);
@@ -69,8 +78,8 @@ const EventSection = (() => {
     return uniqueDates.map((k, i) => {
       let gapText = 'lần đầu ghi nhận';
       if (i > 0) {
-        const kd = parseDateStr(k);
-        const prevD = parseDateStr(uniqueDates[i - 1]);
+        const kd = DateUtils.parseDateStr(k);
+        const prevD = DateUtils.parseDateStr(uniqueDates[i - 1]);
         gapText = `cách lần trước ${daysBetween(kd, prevD)} ngày`;
       }
       return { dateStr: k, gapText, isCurrent: k === currentDateStr };
@@ -114,11 +123,6 @@ const EventSection = (() => {
 
     const eventListEl = container.querySelector('.event-list-slot');
 
-    function formatShortDate(dateStr) {
-      const d = parseDateStr(dateStr);
-      return `${d.getDate()}/${d.getMonth() + 1}`;
-    }
-
     function drawEvents() {
       const { events } = Sync.getData();
       const evs = events[dateStr] || [];
@@ -133,17 +137,17 @@ const EventSection = (() => {
           return `
             <div class="event-row" style="flex-direction:column;align-items:stretch;gap:8px;">
               <div style="display:flex;align-items:center;gap:10px;">
-                <span class="event-name">${escapeHtml(e.name)}</span>
-                <button class="event-remove" data-event="${e.id}" aria-label="Xoá ${escapeHtml(e.name)}">
+                <span class="event-name">${DomUtils.escapeHtml(e.name)}</span>
+                <button class="event-remove" data-event="${e.id}" aria-label="Xoá ${DomUtils.escapeHtml(e.name)}">
                   <i class="ti ti-x" style="font-size:14px;" aria-hidden="true"></i>
                 </button>
               </div>
-              <textarea class="event-note-input" data-event-note="${e.id}" placeholder="Ghi chú thêm (tuỳ chọn)..." maxlength="500" rows="1">${escapeHtml(e.note || '')}</textarea>
+              <textarea class="event-note-input" data-event-note="${e.id}" placeholder="Ghi chú thêm (tuỳ chọn)..." maxlength="500" rows="1">${DomUtils.escapeHtml(e.note || '')}</textarea>
               ${compactRows.length > 0 ? `
                 <div class="event-compact-history">
                   ${compactRows.map(r => `
                     <button class="event-compact-history-item ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
-                      <span>${formatShortDate(r.dateStr)}</span>
+                      <span>${DateUtils.formatShortLabel(DateUtils.parseDateStr(r.dateStr))}</span>
                       <span class="event-compact-history-gap">${r.gapText}</span>
                     </button>
                   `).join('')}
@@ -184,6 +188,13 @@ const EventSection = (() => {
     }
 
     drawEvents();
+    // Gỡ listener của lần render() TRƯỚC ĐÓ CHO ĐÚNG idPrefix NÀY (nếu
+    // có) trước khi đăng ký cái mới — tra trong changeListenersByPrefix
+    // (cấp module, xem giải thích ở đầu file) chứ KHÔNG lưu trên chính
+    // `container`, vì container này thường bị view cha (today.js,
+    // day-detail.js) tái tạo mới mỗi lần nó tự render() lại.
+    if (changeListenersByPrefix[idPrefix]) Sync.offChange(changeListenersByPrefix[idPrefix]);
+    changeListenersByPrefix[idPrefix] = drawEvents;
     Sync.onChange(drawEvents);
 
     // ---- Ô nhập + dropdown gợi ý tự vẽ (thay cho phần tử datalist gốc, để chạm được trên di động) ----
@@ -203,7 +214,7 @@ const EventSection = (() => {
       const names = allEventNames().filter(n => !query || n.toLowerCase().includes(query));
       if (names.length === 0) { closeDropdown(); return; }
 
-      dropdown.innerHTML = `<div class="event-dropdown-scroll">${names.map(n => `<button type="button" class="event-dropdown-chip" data-suggest="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('')}</div>`;
+      dropdown.innerHTML = `<div class="event-dropdown-scroll">${names.map(n => `<button type="button" class="event-dropdown-chip" data-suggest="${DomUtils.escapeHtml(n)}">${DomUtils.escapeHtml(n)}</button>`).join('')}</div>`;
       dropdown.style.display = 'block';
 
       dropdown.querySelectorAll('[data-suggest]').forEach(item => {

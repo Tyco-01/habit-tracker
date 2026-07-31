@@ -22,18 +22,6 @@
 
 const HabitNotePanel = (() => {
 
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  function isRealToday(dateStr) {
-    const today = new Date();
-    const key = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
-    return dateStr === key;
-  }
-
   // Đọc dữ liệu ghi chú của 1 habit ứng với dateStr đang xem.
   function getNote(habitId, dateStr) {
     const { habitNotes } = Sync.getData();
@@ -59,7 +47,7 @@ const HabitNotePanel = (() => {
   // bản cũ, nơi icon không nói lên trạng thái gì cả.
   function noteHintHtml(habitId, dateStr) {
     const note = getNote(habitId, dateStr);
-    const dayLabel = isRealToday(dateStr) ? 'hôm nay' : 'ngày này';
+    const dayLabel = DateUtils.isToday(dateStr) ? 'hôm nay' : 'ngày này';
     if (note.hasGeneral && note.hasDaily) {
       return `<span class="note-hint"><i class="ti ti-notes" style="font-size:12px;" aria-hidden="true"></i>2 ghi chú</span>`;
     }
@@ -77,7 +65,7 @@ const HabitNotePanel = (() => {
   // hoặc 1 ngày cụ thể trong quá khứ (day-detail.js).
   function render(panel, habitId, dateStr) {
     let showingDaily = true;
-    const dayLabel = isRealToday(dateStr) ? 'Hôm nay' : 'Ngày này';
+    const dayLabel = DateUtils.isToday(dateStr) ? 'Hôm nay' : 'Ngày này';
 
     function draw() {
       const note = getNote(habitId, dateStr);
@@ -99,7 +87,7 @@ const HabitNotePanel = (() => {
             ? `Chỉ hiện lại đúng ngày này — ngày khác sẽ trống, không ảnh hưởng ghi chú "Mọi ngày".`
             : `Hiện giống nhau ở mọi ngày cho việc này — dùng cho lưu ý lâu dài.`}
         </p>
-        <textarea class="note-textarea" placeholder="${showingDaily ? `Ghi chú chỉ áp dụng cho ${dayLabel.toLowerCase()}...` : 'Ghi chú áp dụng cho mọi ngày...'}" maxlength="1000" rows="2">${escapeHtml(content)}</textarea>
+        <textarea class="note-textarea" placeholder="${showingDaily ? `Ghi chú chỉ áp dụng cho ${dayLabel.toLowerCase()}...` : 'Ghi chú áp dụng cho mọi ngày...'}" maxlength="1000" rows="2">${DomUtils.escapeHtml(content)}</textarea>
       `;
 
       const dailyBtn = panel.querySelector(`#note-mode-btn-${habitId}`);

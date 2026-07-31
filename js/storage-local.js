@@ -6,16 +6,27 @@
 // cần một cơ sở dữ liệu phức tạp hơn. localStorage đơn giản, đồng bộ,
 // và đủ tin cậy cho quy mô này — tránh over-engineering.
 //
-// Cấu trúc dữ liệu lưu cục bộ:
-//   habits: [{ id, name, sortOrder }]
+// Cấu trúc dữ liệu lưu cục bộ (PHẢI khớp với những gì sync.js đọc/ghi
+// qua Sync.getData() — xem sync.js nếu thêm field mới ở đây):
+//   habits: [{ id, name, sortOrder, parentId }]  — parentId: quan hệ cha-con
 //   checks: { [habitId]: { [dateStr]: true } }   — chỉ lưu ngày ĐÃ tick
-//   events: { [dateStr]: [{ id, name }] }
+//   events: { [dateStr]: [{ id, name, note }] }
+//   archivedHabits: [{ id, name, archivedAt }]   — habit trong thùng rác
+//   habitNotes: { [habitId]: { general, byDate: { [dateStr]: content } } }
+//
+// LƯU Ý — bug đã sửa: save() luôn lưu NGUYÊN object data (mọi field),
+// nhưng load() bản cũ chỉ đọc lại 3 field đầu (habits/checks/events),
+// âm thầm đánh rơi archivedHabits/habitNotes dù chúng vẫn nằm nguyên
+// trong chuỗi JSON đã lưu. Hậu quả: nếu offline rồi tải lại trang
+// trước khi kịp Sync.pullFromServer(), thùng rác và ghi chú hiện
+// TRỐNG dù dữ liệu chưa hề mất — chỉ là load() không đọc ra. Đã sửa:
+// load() giờ khôi phục đủ mọi field mà save() có thể đã ghi.
 // ============================================================
 
 const LocalStore = (() => {
 
   function emptyData() {
-    return { habits: [], checks: {}, events: {} };
+    return { habits: [], checks: {}, events: {}, archivedHabits: [], habitNotes: {} };
   }
 
   function load() {
@@ -26,7 +37,9 @@ const LocalStore = (() => {
       return {
         habits: Array.isArray(parsed.habits) ? parsed.habits : [],
         checks: parsed.checks && typeof parsed.checks === 'object' ? parsed.checks : {},
-        events: parsed.events && typeof parsed.events === 'object' ? parsed.events : {}
+        events: parsed.events && typeof parsed.events === 'object' ? parsed.events : {},
+        archivedHabits: Array.isArray(parsed.archivedHabits) ? parsed.archivedHabits : [],
+        habitNotes: parsed.habitNotes && typeof parsed.habitNotes === 'object' ? parsed.habitNotes : {}
       };
     } catch {
       return emptyData();

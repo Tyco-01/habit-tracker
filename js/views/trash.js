@@ -9,12 +9,6 @@ const TrashView = (() => {
 
   const RETENTION_DAYS = 30;
 
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
   function trashList() {
     const { archivedHabits } = Sync.getData();
     const now = Date.now();
@@ -56,7 +50,7 @@ const TrashView = (() => {
 
       listEl.innerHTML = trashed.map(t => `
         <div class="event-row">
-          <span class="event-name" style="text-decoration:line-through;color:var(--mute);">${escapeHtml(t.name)}</span>
+          <span class="event-name" style="text-decoration:line-through;color:var(--mute);">${DomUtils.escapeHtml(t.name)}</span>
           <span style="font-size:11px;color:var(--mute);margin-right:8px;white-space:nowrap;">còn ${t.daysLeft} ngày</span>
           <button class="pill-btn" data-restore="${t.id}" style="border-radius:8px;flex-shrink:0;">Khôi phục</button>
         </div>
@@ -82,6 +76,10 @@ const TrashView = (() => {
       }
     }
 
+    // Gỡ listener của lần render() trước (nếu có) — render() gọi lại mỗi
+    // khi chuyển sang tab "Thùng rác", nếu không gỡ sẽ cộng dồn listener.
+    if (container.__trashOnChange) Sync.offChange(container.__trashOnChange);
+    container.__trashOnChange = draw;
     Sync.onChange(draw);
     draw();
   }
