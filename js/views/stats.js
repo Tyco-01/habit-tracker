@@ -99,7 +99,7 @@ const StatsView = (() => {
           </div>
         </div>
 
-        <p class="section-label" style="margin-top:20px;">TỶ LỆ HOÀN THÀNH THEO THÁNG</p>
+        <p class="section-label" style="margin-top:20px;">HOÀN THÀNH THEO THÁNG</p>
         <div class="stats-bars">
           ${rates.map((r, i) => `
             <div class="stats-bar-col">

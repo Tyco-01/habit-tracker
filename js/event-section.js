@@ -1,9 +1,11 @@
 // ============================================================
-// event-section.js — Khối UI "Dấu ấn ngày này", dùng chung giữa màn
-// "Hôm nay" và màn chi tiết 1 ngày, tránh lặp code. (Tên biến/hàm
-// trong file này vẫn giữ "event" — chỉ tên hiển thị trên UI đổi
-// thành "dấu ấn", đổi tên biến/hàm nội bộ không cần thiết và tăng
-// rủi ro gõ nhầm khi sửa.)
+// event-section.js — Khối UI "Dấu ấn", dùng chung giữa màn "Hôm
+// nay" và màn chi tiết 1 ngày, tránh lặp code. (Tên biến/hàm trong
+// file này vẫn giữ "event" — chỉ tên hiển thị trên UI đổi thành
+// "dấu ấn", đổi tên biến/hàm nội bộ không cần thiết và tăng rủi ro
+// gõ nhầm khi sửa. Nhãn từng là "DẤU ẤN NGÀY NÀY", rút gọn còn
+// "DẤU ẤN" vì chữ "ngày này" dư — ngữ cảnh trang đã luôn là 1 ngày
+// cụ thể, không cần nhắc lại.)
 //
 // Dấu ấn có thể đặt vào NGÀY TƯƠNG LAI (khác với việc lặp lại) — vì
 // dấu ấn 1 lần thường mang tính "lên lịch trước" (hẹn nha sĩ, sinh
@@ -106,7 +108,7 @@ const EventSection = (() => {
 
     container.innerHTML = `
       <div class="section-header-row">
-        <p class="section-label" style="margin:0;">DẤU ẤN NGÀY NÀY<span class="section-label-count" id="${idPrefix}-event-count">0</span></p>
+        <p class="section-label" style="margin:0;">DẤU ẤN<span class="section-label-count" id="${idPrefix}-event-count">0</span></p>
         <button class="pill-btn" id="${addBtnId}">
           <i class="ti ti-plus" style="font-size:12px;" aria-hidden="true"></i> Thêm
         </button>

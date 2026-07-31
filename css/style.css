@@ -89,6 +89,11 @@ button {
   margin-bottom: 12px;
 }
 
+.lock-input:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
 .lock-btn {
   width: 100%;
   max-width: 280px;
@@ -213,6 +218,15 @@ button {
   border: 1px solid var(--line);
   color: var(--ink);
   background: var(--card);
+}
+
+/* Trình duyệt tự thêm outline xanh dương mặc định khi input được
+   focus — chọi hẳn với tông kem/đen than của app. Thay bằng viền
+   đậm hơn cùng tông --ink đã dùng xuyên suốt, không cần outline
+   riêng vì border đổi màu là đủ báo hiệu đang focus. */
+.input-row input:focus {
+  outline: none;
+  border-color: var(--ink);
 }
 
 .input-row button {
@@ -432,6 +446,11 @@ button {
   border-radius: 8px;
   padding: 8px 10px;
   resize: vertical;
+}
+
+.note-textarea:focus {
+  outline: none;
+  border-color: var(--ink);
 }
 
 .remove-btn {
@@ -844,6 +863,11 @@ button {
 
 .event-note-input::placeholder {
   color: var(--mute);
+}
+
+.event-note-input:focus {
+  outline: none;
+  border-color: var(--ink);
 }
 
 /* ---- Ô nhập sự kiện + dropdown gợi ý tự vẽ ---- */
