@@ -145,6 +145,19 @@ const Sync = (() => {
     persistLocal();
   }
 
+  // Đổi tên MỌI event cùng oldName, ở MỌI ngày trong data.events —
+  // KHÔNG chỉ 1 event_id — để timeline (nhóm theo tên, xem
+  // historyFor() trong event-section.js) vẫn liền mạch sau khi đổi
+  // tên thay vì bị tách thành 2 chuỗi rời nhau.
+  function applyRenameEvent(oldName, newName) {
+    Object.keys(data.events).forEach(dateStr => {
+      data.events[dateStr] = data.events[dateStr].map(e =>
+        e.name === oldName ? { ...e, name: newName } : e
+      );
+    });
+    persistLocal();
+  }
+
   function applyReorderHabits(orderedIds) {
     const byId = {};
     data.habits.forEach(h => { byId[h.id] = h; });
@@ -261,6 +274,20 @@ const Sync = (() => {
     newName = truncate(newName, CONFIG.MAX_LENGTH.NAME);
     applyRenameHabit(habitId, newName);
     LocalStore.enqueue('rename_habit', { habitId, name: newName });
+    kickSync();
+  }
+
+  // Đổi tên 1 dấu ấn ÁP DỤNG CẢ CHUỖI lịch sử — mọi event cùng tên
+  // cũ (ở mọi ngày) đều đổi sang tên mới, timeline vẫn liền mạch.
+  // Không dùng eventId làm khoá vì lý do đã giải thích ở
+  // applyRenameEvent — dùng oldName để khớp đúng "cả nhóm" cùng lúc.
+  // Không đổi gì nếu tên mới trùng hệt tên cũ (kể cả sau khi trim) —
+  // tránh action rỗng vô nghĩa vào hàng đợi đồng bộ.
+  function renameEvent(oldName, newName) {
+    newName = truncate(newName.trim(), CONFIG.MAX_LENGTH.NAME);
+    if (!newName || newName === oldName) return;
+    applyRenameEvent(oldName, newName);
+    LocalStore.enqueue('rename_event', { oldName, newName });
     kickSync();
   }
 
@@ -393,6 +420,15 @@ const Sync = (() => {
         if (isTemp(entry.payload.eventId)) break;
         await SupabaseClient.rpc('remove_event', {
           p_session_token: token, p_event_id: entry.payload.eventId
+        });
+        break;
+      }
+      case 'rename_event': {
+        // Không cần check isTemp: RPC update_event_name khớp theo
+        // TÊN (p_old_name), không theo event_id — nên vẫn đúng dù
+        // event đang mang id tạm hay id thật (xem migration_v4.sql).
+        await SupabaseClient.rpc('update_event_name', {
+          p_session_token: token, p_old_name: entry.payload.oldName, p_new_name: entry.payload.newName
         });
         break;
       }
@@ -567,7 +603,7 @@ const Sync = (() => {
     getData, onChange, offChange, onSaveError,
     addHabit, removeHabit, restoreHabit, emptyTrash,
     setCheck, addEvent, removeEvent,
-    renameHabit, reorderHabits, updateEventNote,
+    renameHabit, renameEvent, reorderHabits, updateEventNote,
     setHabitNote, setHabitParent,
     pullFromServer, flushQueue,
     // Chỉ dùng cho TEST (smoke-test-full-app.js) để xác nhận trực tiếp

@@ -179,8 +179,12 @@ const EventSection = (() => {
           const remaining = fullHistory.length - historyRows.length;
           return `
             <div class="event-row" style="flex-direction:column;align-items:stretch;gap:8px;">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <span class="event-name">${DomUtils.escapeHtml(e.name)}</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="event-name" data-event-name="${e.id}">${DomUtils.escapeHtml(e.name)}</span>
+                <input type="text" class="event-name-edit" data-event-name-edit="${e.id}" value="${DomUtils.escapeHtml(e.name)}" maxlength="60" style="display:none;" />
+                <button class="event-edit-name" data-event-edit="${e.id}" aria-label="Sửa tên ${DomUtils.escapeHtml(e.name)}">
+                  <i class="ti ti-pencil" style="font-size:13px;" aria-hidden="true"></i>
+                </button>
                 <button class="event-remove" data-event="${e.id}" aria-label="Xoá ${DomUtils.escapeHtml(e.name)}">
                   <i class="ti ti-x" style="font-size:14px;" aria-hidden="true"></i>
                 </button>
@@ -189,6 +193,7 @@ const EventSection = (() => {
               ${historyRows.length > 0 ? `
                 <div class="event-timeline">
                   <div class="event-timeline-track">
+                    <div class="event-timeline-line"></div>
                     ${historyRows.map((r, i) => `
                       <button class="event-timeline-item ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
                         <span class="event-timeline-dot ${i === 0 ? 'latest' : ''}"></span>
@@ -208,6 +213,54 @@ const EventSection = (() => {
             </div>
           `;
         }).join('');
+
+      eventListEl.querySelectorAll('.event-edit-name').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const eventId = btn.dataset.eventEdit;
+          const nameSpan = eventListEl.querySelector(`[data-event-name="${eventId}"]`);
+          const nameInput = eventListEl.querySelector(`[data-event-name-edit="${eventId}"]`);
+          if (!nameSpan || !nameInput) return;
+          nameSpan.style.display = 'none';
+          nameInput.style.display = 'inline-block';
+          nameInput.focus();
+          nameInput.select();
+        });
+      });
+
+      eventListEl.querySelectorAll('.event-name-edit').forEach(input => {
+        const eventId = input.dataset.eventNameEdit;
+        const nameSpan = eventListEl.querySelector(`[data-event-name="${eventId}"]`);
+
+        function finishEdit(commit) {
+          input.style.display = 'none';
+          nameSpan.style.display = '';
+          if (!commit) { input.value = nameSpan.textContent; return; }
+
+          const original = evs.find(e => e.id === eventId);
+          if (!original) return;
+          const newName = input.value.trim();
+          if (!newName || sameEventName(newName, original.name)) {
+            input.value = original.name; // rỗng hoặc không đổi gì thật sự — bỏ qua
+            return;
+          }
+          // Chặn trùng với 1 dấu ấn KHÁC đã có SẴN cùng ngày hôm nay —
+          // nếu không chặn, sau khi đổi tên sẽ có 2 event object cùng
+          // ngày cùng tên, đúng lỗi trùng đã sửa ở submitEvent (xem
+          // sameEventName), chỉ khác đường đi tạo ra.
+          const dupInToday = evs.some(e => e.id !== eventId && sameEventName(e.name, newName));
+          if (dupInToday) {
+            input.value = original.name;
+            return;
+          }
+          Sync.renameEvent(original.name, newName);
+        }
+
+        input.addEventListener('blur', () => finishEdit(true));
+        input.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+          if (ev.key === 'Escape') { finishEdit(false); }
+        });
+      });
 
       eventListEl.querySelectorAll('.event-remove').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -246,6 +299,33 @@ const EventSection = (() => {
           timelineExpanded.set(eventId, current + TIMELINE_PAGE_SIZE);
           drawEvents();
         });
+      });
+
+      positionTimelineLines();
+    }
+
+    // Đặt top/height thật cho .event-timeline-line dựa vào vị trí ĐO
+    // ĐƯỢC của dot đầu tiên và dot cuối cùng trong mỗi track — không
+    // dùng số CSS cố định (top/bottom đoán trước) vì mốc "hôm nay"
+    // (.current) có font to/đậm hơn các mốc khác, làm item đó cao hơn
+    // — 1 con số cố định không thể khớp đúng tâm dot cho mọi trường
+    // hợp chiều cao item khác nhau (đã xác nhận qua ảnh chụp thật:
+    // line luôn lệch tâm khi có ít nhất 1 item cao khác các item còn
+    // lại). offsetTop đo trực tiếp trên DOM thật nên luôn đúng bất kể
+    // font-size/nội dung là gì.
+    function positionTimelineLines() {
+      eventListEl.querySelectorAll('.event-timeline-track').forEach(track => {
+        const line = track.querySelector('.event-timeline-line');
+        const dots = track.querySelectorAll('.event-timeline-dot');
+        if (!line || dots.length < 2) { if (line) line.style.display = 'none'; return; }
+        line.style.display = 'block';
+        const trackTop = track.getBoundingClientRect().top;
+        const firstRect = dots[0].getBoundingClientRect();
+        const lastRect = dots[dots.length - 1].getBoundingClientRect();
+        const firstCenter = firstRect.top - trackTop + firstRect.height / 2;
+        const lastCenter = lastRect.top - trackTop + lastRect.height / 2;
+        line.style.top = `${firstCenter}px`;
+        line.style.height = `${lastCenter - firstCenter}px`;
       });
     }
 

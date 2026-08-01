@@ -68,10 +68,8 @@ for (let i = 6; i >= 1; i--) {
 }
 const allDates = [...pastDates, todayKey];
 const eventsSeed = {};
-let firstId = null;
 allDates.forEach((d, idx) => {
   const id = 'seed_' + idx;
-  if (d === todayKey) firstId = id;
   eventsSeed[d] = [{ id, name: 'habit tracker', note: '' }];
 });
 // Thêm 1 dấu ấn tên KHÁC ở 1 ngày trong quá khứ (không phải hôm nay) —
@@ -105,7 +103,7 @@ check('Sau khi bấm "Xem thêm", hiện đủ cả 7/7 mốc', timelineItems.le
 check('Hết mốc thì KHÔNG còn nút "Xem thêm"', !container.querySelector('[data-expand]'));
 
 // ---- Test 4: chấm mới nhất có class "latest", đúng thứ tự mới->cũ ----
-const firstDot = container.querySelector('.event-timeline-item:first-child .event-timeline-dot');
+const firstDot = container.querySelector('.event-timeline-item:first-of-type .event-timeline-dot');
 check('Chấm đầu tiên (mới nhất) có class "latest"', firstDot && firstDot.classList.contains('latest'));
 
 // ---- Test 5: nút "+ Thêm" mở khối, đổi thành "Đóng", có class active ----
@@ -224,6 +222,50 @@ saveBtn3.click();
 const countAfterCaseDup = Sync.getData().events[todayKey].length;
 check('Gõ trùng tên khác HOA/THƯỜNG + thừa khoảng trắng vẫn bị chặn (không tạo bản sao)',
   countAfterCaseDup === countBeforeDup);
+
+// ---- Test 12: nút SỬA TÊN đổi tên CẢ CHUỖI lịch sử (mọi ngày) ----
+// Dữ liệu seed ban đầu có 7 event "habit tracker" ở 7 ngày khác nhau
+// (pastDates + hôm nay) — bấm sửa tên ở khối hôm nay phải đổi cả 7,
+// không chỉ đúng event của hôm nay, để timeline không bị tách chuỗi.
+// Lấy id hiện tại của event "habit tracker" hôm nay TRỰC TIẾP từ data
+// thật tại thời điểm này (không dùng id seed ban đầu) — vì test 8 đã
+// xoá rồi thêm LẠI event này qua chip, nên nó mang id MỚI (tempId())
+// khác hẳn id lúc seed.
+const todayEventId = Sync.getData().events[todayKey].find(e => e.name === 'habit tracker').id;
+const editBtn = container.querySelector(`[data-event-edit="${todayEventId}"]`);
+check('Nút sửa tên (bút chì) tồn tại trên UI', !!editBtn);
+editBtn.click();
+const nameInput = container.querySelector(`[data-event-name-edit="${todayEventId}"]`);
+check('Bấm nút sửa tên → ô input inline hiện ra', nameInput.style.display !== 'none');
+nameInput.value = 'thói quen theo dõi';
+nameInput.dispatchEvent(new dom.window.Event('blur'));
+
+const countRenamedTotal = Object.values(Sync.getData().events)
+  .flat()
+  .filter(e => e.name === 'thói quen theo dõi').length;
+const countOldNameLeft = Object.values(Sync.getData().events)
+  .flat()
+  .filter(e => e.name === 'habit tracker').length;
+check('Đổi tên áp dụng CẢ 7 event trong chuỗi (mọi ngày), không chỉ hôm nay',
+  countRenamedTotal === 7);
+check('Không còn event nào giữ tên cũ "habit tracker" sau khi đổi',
+  countOldNameLeft === 0);
+
+// ---- Test 13: sửa tên KHÔNG được trùng với dấu ấn KHÁC đã có CÙNG NGÀY ----
+// Nếu không chặn, sẽ tạo ra 2 event object cùng ngày cùng tên — đúng
+// lỗi trùng tên đã sửa ở submitEvent (test 11), chỉ khác đường đi.
+// Thêm 1 dấu ấn khác tên vào hôm nay để có cái mà đổi tên trùng vào.
+Sync.addEvent(todayKey, 'zzz-other-today');
+EventSection.render(container, todayKey, { idPrefix: 'today', showHistory: true });
+const renamedEventId = Sync.getData().events[todayKey].find(e => e.name === 'thói quen theo dõi').id;
+const editBtn2 = container.querySelector(`[data-event-edit="${renamedEventId}"]`);
+editBtn2.click();
+const nameInput2 = container.querySelector(`[data-event-name-edit="${renamedEventId}"]`);
+nameInput2.value = 'zzz-other-today'; // trùng với dấu ấn KHÁC đã có hôm nay
+nameInput2.dispatchEvent(new dom.window.Event('blur'));
+const stillOldName = Sync.getData().events[todayKey].find(e => e.id === renamedEventId).name;
+check('Sửa tên trùng với dấu ấn KHÁC cùng ngày bị CHẶN (tên giữ nguyên, không đổi)',
+  stillOldName === 'thói quen theo dõi');
 
 console.log('');
 console.log(`========== KẾT QUẢ: ${pass} PASS, ${fail} FAIL ==========`);

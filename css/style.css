@@ -865,6 +865,40 @@ button {
   padding: 2px;
 }
 
+/* Nút bút chì (sửa tên) và ô input inline hiện ra khi bấm — cùng
+   hàng với tên, thay chỗ tên hiển thị (.event-name ẩn đi lúc này).
+   Đồng bộ style với .event-remove / .event-note-input đã có, để
+   không tạo thêm 1 "ngôn ngữ hình ảnh" mới trong cùng 1 khối. */
+.event-edit-name {
+  border: none;
+  background: transparent;
+  color: var(--mute);
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.event-edit-name:hover,
+.event-remove:hover {
+  color: var(--ink);
+}
+
+.event-name-edit {
+  flex: 1;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 8px;
+  min-width: 0;
+}
+
+.event-name-edit:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
 .event-note-input {
   font-family: 'Manrope', sans-serif;
   font-size: 13px;
@@ -972,12 +1006,15 @@ button {
   position: relative;
 }
 
-.event-timeline-track::before {
-  content: '';
+/* Đường nối dọc: vị trí top/height chính xác do JS tính sau khi
+   render (xem positionTimelineLine() trong event-section.js), KHÔNG
+   dùng số cố định — vì mốc "hôm nay" có font to/đậm hơn (.current)
+   nên item đầu tiên cao hơn các item còn lại, khiến 1 con số top/
+   bottom cố định không bao giờ khớp đúng tâm dot ở MỌI trường hợp
+   (đã thử và xác nhận lệch qua ảnh chụp thật, xem lịch sử sửa). */
+.event-timeline-line {
   position: absolute;
   left: 4px;
-  top: 10px;
-  bottom: 10px;
   width: 1.5px;
   background: var(--line);
 }
