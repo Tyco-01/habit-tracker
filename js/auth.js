@@ -14,6 +14,14 @@
 const Auth = (() => {
 
   async function sha256Hex(text) {
+    // crypto.subtle chỉ tồn tại trong "secure context" (HTTPS hoặc
+    // localhost) — nếu app lỡ bị host qua HTTP thường (ví dụ mở thẳng
+    // file, hoặc server nội bộ chưa bật HTTPS), gọi thẳng
+    // crypto.subtle.digest sẽ ném TypeError khó hiểu ("Cannot read
+    // properties of undefined"). Chặn sớm, báo lỗi rõ nguyên nhân.
+    if (!window.crypto || !window.crypto.subtle) {
+      throw new Error('Trình duyệt chặn tính năng mã hoá vì trang không chạy qua HTTPS. Hãy mở app qua địa chỉ https:// hoặc localhost.');
+    }
     const data = new TextEncoder().encode(text);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const bytes = Array.from(new Uint8Array(hashBuffer));

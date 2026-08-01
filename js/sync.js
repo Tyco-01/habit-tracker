@@ -20,20 +20,54 @@ const Sync = (() => {
 
   let isSyncing = false;
   let listeners = [];
+  let saveErrorListeners = [];
+  let lastSaveFailed = false;
 
   function onChange(fn) { listeners.push(fn); }
   function offChange(fn) { listeners = listeners.filter(l => l !== fn); }
   function notify() { listeners.forEach(fn => fn(data)); }
 
+  // Riêng cho lỗi LƯU CỤC BỘ thất bại (ví dụ localStorage đầy) — tách
+  // khỏi onChange/notify ở trên vì đó vốn dùng để báo "dữ liệu đã đổi,
+  // vẽ lại UI", còn đây là báo "vừa đổi dữ liệu nhưng KHÔNG lưu được",
+  // 2 việc khác hẳn nhau, không nên gộp cùng 1 kênh kẻo listener cũ
+  // (chỉ mong nhận `data` để vẽ lại) phải tự đoán thêm ý nghĩa mới.
+  function onSaveError(fn) { saveErrorListeners.push(fn); }
+  function notifySaveError(reason) { saveErrorListeners.forEach(fn => fn(reason)); }
+
   function getData() { return data; }
 
   function persistLocal() {
-    LocalStore.save(data);
+    // TRƯỚC ĐÂY: gọi LocalStore.save(data) rồi bỏ qua hoàn toàn giá trị
+    // trả về. Khi localStorage đầy, save() trả false nhưng notify() vẫn
+    // chạy như bình thường — UI cập nhật đúng, người dùng thấy thay đổi
+    // đã "lưu", nhưng thực ra KHÔNG nằm trong localStorage. Tải lại
+    // trang trước khi kịp đồng bộ lên server là mất trắng, không có
+    // cảnh báo gì. Giờ kiểm tra kết quả, báo lỗi qua onSaveError nếu
+    // thất bại — xem setupSyncIndicator() trong app.js để biết UI hiện
+    // cảnh báo này thế nào.
+    const ok = LocalStore.save(data);
+    if (!ok && !lastSaveFailed) {
+      lastSaveFailed = true;
+      notifySaveError('local_storage_full');
+    } else if (ok && lastSaveFailed) {
+      lastSaveFailed = false;
+      notifySaveError('recovered');
+    }
     notify();
   }
 
   function tempId() {
     return `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  // Cắt bớt text về đúng giới hạn CONFIG.MAX_LENGTH — phòng trường hợp
+  // giá trị lọt qua mà không qua ô input HTML (vốn đã có maxlength),
+  // ví dụ gọi thẳng Sync.addHabit(...) từ console với chuỗi rất dài.
+  // String(x || '') để không crash nếu lỡ truyền vào giá trị không
+  // phải chuỗi (undefined, null, number...).
+  function truncate(str, max) {
+    return String(str || '').slice(0, max);
   }
 
   function isTemp(id) {
@@ -174,6 +208,7 @@ const Sync = (() => {
   // bộ, (3) thử đồng bộ ngay nếu có mạng.
 
   function addHabit(name) {
+    name = truncate(name, CONFIG.MAX_LENGTH.NAME);
     const habit = { id: tempId(), name, sortOrder: data.habits.length, parentId: null };
     applyAddHabit(habit);
     LocalStore.enqueue('add_habit', { localId: habit.id, name });
@@ -208,6 +243,7 @@ const Sync = (() => {
   }
 
   function addEvent(dateStr, name) {
+    name = truncate(name, CONFIG.MAX_LENGTH.NAME);
     const event = { id: tempId(), name, note: '' };
     applyAddEvent(dateStr, event);
     LocalStore.enqueue('add_event', { localId: event.id, date: dateStr, name });
@@ -222,6 +258,7 @@ const Sync = (() => {
   }
 
   function renameHabit(habitId, newName) {
+    newName = truncate(newName, CONFIG.MAX_LENGTH.NAME);
     applyRenameHabit(habitId, newName);
     LocalStore.enqueue('rename_habit', { habitId, name: newName });
     kickSync();
@@ -234,6 +271,7 @@ const Sync = (() => {
   }
 
   function updateEventNote(dateStr, eventId, note) {
+    note = truncate(note, CONFIG.MAX_LENGTH.NOTE);
     applyUpdateEventNote(dateStr, eventId, note);
     LocalStore.enqueue('update_event_note', { eventId, note });
     kickSync();
@@ -241,6 +279,7 @@ const Sync = (() => {
 
   // dateStr = null → ghi chú chung; dateStr = 'YYYY-MM-DD' → ghi chú riêng ngày đó
   function setHabitNote(habitId, dateStr, content) {
+    content = truncate(content, CONFIG.MAX_LENGTH.NOTE);
     applySetHabitNote(habitId, dateStr, content);
     LocalStore.enqueue('set_habit_note', { habitId, date: dateStr, content });
     kickSync();
@@ -445,7 +484,18 @@ const Sync = (() => {
         }
       }
 
-      LocalStore.saveQueue(stillPending);
+      const queueSaved = LocalStore.saveQueue(stillPending);
+      if (!queueSaved && !lastSaveFailed) {
+        // Cùng lớp lỗi với persistLocal() (localStorage đầy), nhưng
+        // xảy ra ở bước lưu HÀNG ĐỢI ĐỒNG BỘ chứ không phải dữ liệu
+        // chính — nếu không báo, các thao tác đang chờ gửi lên server
+        // (stillPending) sẽ mất khỏi localStorage âm thầm, không ai
+        // biết cho tới khi phát hiện dữ liệu không đồng bộ. Dùng
+        // chung kênh onSaveError vì cùng bản chất "ghi localStorage
+        // thất bại", không cần thêm 1 kênh báo lỗi riêng.
+        lastSaveFailed = true;
+        notifySaveError('local_storage_full');
+      }
     } finally {
       isSyncing = false;
     }
@@ -514,7 +564,7 @@ const Sync = (() => {
   setInterval(() => { flushQueue(); }, 30000);
 
   return {
-    getData, onChange, offChange,
+    getData, onChange, offChange, onSaveError,
     addHabit, removeHabit, restoreHabit, emptyTrash,
     setCheck, addEvent, removeEvent,
     renameHabit, reorderHabits, updateEventNote,

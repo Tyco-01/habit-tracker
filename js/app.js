@@ -49,11 +49,11 @@
             <i class="ti ti-home" style="font-size:16px;" aria-hidden="true"></i>
           </button>
           <button class="tab-btn tab-btn-icon" id="nav-year" aria-label="Cả năm" title="Cả năm">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="5" width="18" height="16" rx="3"/>
               <path d="M3 9.5h18"/>
               <path d="M8 3v3M16 3v3"/>
-              <text x="12" y="16.8" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none" font-family="Manrope, sans-serif">${new Date().getDate()}</text>
+              <text x="12" y="16.8" text-anchor="middle" font-size="${new Date().getDate() >= 10 ? 7.5 : 9}" font-weight="700" fill="currentColor" stroke="none" font-family="Manrope, sans-serif">${new Date().getDate()}</text>
             </svg>
           </button>
           <button class="tab-btn tab-btn-icon" id="nav-stats" aria-label="Thống kê" title="Thống kê">
@@ -217,20 +217,40 @@
     const el = document.getElementById('sync-indicator');
     if (!el) return;
 
+    // Cảnh báo hết dung lượng NGHIÊM TRỌNG hơn cảnh báo mạng (mất mạng
+    // chỉ trễ đồng bộ, còn hết dung lượng có thể MẤT THAY ĐỔI thật) —
+    // dùng cờ này để chặn các nhánh offline/online ghi đè mất cảnh báo
+    // quan trọng hơn khi cả 2 tình huống xảy ra cùng lúc.
+    let storageFull = false;
+
     function showOffline() {
+      if (storageFull) return;
       el.textContent = 'Đang chờ mạng để đồng bộ';
       el.classList.add('visible');
     }
     function hide() {
+      if (storageFull) return;
       el.classList.remove('visible');
     }
 
     if (!navigator.onLine) showOffline();
     window.addEventListener('offline', showOffline);
     window.addEventListener('online', () => {
+      if (storageFull) return;
       el.textContent = 'Đã kết nối lại';
       el.classList.add('visible');
       setTimeout(hide, 2000);
+    });
+
+    Sync.onSaveError((reason) => {
+      if (reason === 'local_storage_full') {
+        storageFull = true;
+        el.textContent = 'Hết dung lượng lưu trữ — thay đổi mới nhất có thể CHƯA được lưu. Hãy xoá bớt việc/dấu ấn cũ.';
+        el.classList.add('visible');
+      } else if (reason === 'recovered') {
+        storageFull = false;
+        el.classList.remove('visible');
+      }
     });
   }
 

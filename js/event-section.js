@@ -137,6 +137,16 @@ const EventSection = (() => {
 
     const eventListEl = container.querySelector('.event-list-slot');
 
+    // Số mốc timeline đang hiện cho từng dấu ấn (khoá theo event.id) —
+    // đặt ở đây (phạm vi render(), không phải trong drawEvents) để
+    // KHÔNG bị reset về mặc định mỗi khi drawEvents chạy lại. drawEvents
+    // chạy lại rất thường xuyên (Sync.onChange bắn cho MỌI thay đổi dữ
+    // liệu, kể cả ở dấu ấn khác hoàn toàn không liên quan) — nếu đặt
+    // biến này trong drawEvents, người dùng bấm "Xem thêm" xong chỉ cần
+    // 1 thay đổi bất kỳ ở nơi khác là timeline lại tự thu gọn về ban đầu.
+    const TIMELINE_PAGE_SIZE = 5; // số mốc hiện mặc định + mỗi lần "Xem thêm"
+    const timelineExpanded = new Map(); // event.id -> số mốc đang hiện
+
     function drawEvents() {
       const { events } = Sync.getData();
       const evs = events[dateStr] || [];
@@ -147,7 +157,10 @@ const EventSection = (() => {
       eventListEl.innerHTML = evs.length === 0
         ? `<p style="font-size:13px;color:var(--mute);margin:0;">Chưa có dấu ấn nào cho ngày này.</p>`
         : evs.map(e => {
-          const historyRows = showHistory ? historyFor(e.name, dateStr).reverse() : [];
+          const fullHistory = showHistory ? historyFor(e.name, dateStr).reverse() : [];
+          const visibleCount = timelineExpanded.get(e.id) || TIMELINE_PAGE_SIZE;
+          const historyRows = fullHistory.slice(0, visibleCount);
+          const remaining = fullHistory.length - historyRows.length;
           return `
             <div class="event-row" style="flex-direction:column;align-items:stretch;gap:8px;">
               <div style="display:flex;align-items:center;gap:10px;">
@@ -159,13 +172,21 @@ const EventSection = (() => {
               <textarea class="event-note-input" data-event-note="${e.id}" placeholder="Ghi chú thêm (tuỳ chọn)..." maxlength="500" rows="1">${DomUtils.escapeHtml(e.note || '')}</textarea>
               ${historyRows.length > 0 ? `
                 <div class="event-timeline">
-                  ${historyRows.map((r, i) => `
-                    <button class="event-timeline-item ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
-                      <span class="event-timeline-dot ${i === 0 ? 'latest' : ''}"></span>
-                      <span class="event-timeline-date">${DateUtils.formatDayMonthLabel(DateUtils.parseDateStr(r.dateStr))}${r.isCurrent ? ' <span class="event-timeline-today-tag">hôm nay</span>' : ''}</span>
-                      <span class="event-timeline-gap">${r.gapText}</span>
+                  <div class="event-timeline-track">
+                    ${historyRows.map((r, i) => `
+                      <button class="event-timeline-item ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
+                        <span class="event-timeline-dot ${i === 0 ? 'latest' : ''}"></span>
+                        <span class="event-timeline-date">${DateUtils.formatDayMonthLabel(DateUtils.parseDateStr(r.dateStr))}${r.isCurrent ? ' <span class="event-timeline-today-tag">hôm nay</span>' : ''}</span>
+                        <span class="event-timeline-gap">${r.gapText}</span>
+                      </button>
+                    `).join('')}
+                  </div>
+                  ${remaining > 0 ? `
+                    <button type="button" class="event-timeline-more" data-expand="${e.id}">
+                      Xem thêm ${Math.min(remaining, TIMELINE_PAGE_SIZE)} mốc cũ hơn
+                      <i class="ti ti-chevron-down" style="font-size:12px;" aria-hidden="true"></i>
                     </button>
-                  `).join('')}
+                  ` : ''}
                 </div>
               ` : ''}
             </div>
@@ -183,6 +204,7 @@ const EventSection = (() => {
           });
           if (!ok) return;
           Sync.removeEvent(dateStr, btn.dataset.event);
+          timelineExpanded.delete(btn.dataset.event);
         });
       });
 
@@ -199,6 +221,15 @@ const EventSection = (() => {
 
       eventListEl.querySelectorAll('[data-jump]').forEach(btn => {
         btn.addEventListener('click', () => jumpToDate(btn.dataset.jump));
+      });
+
+      eventListEl.querySelectorAll('[data-expand]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const eventId = btn.dataset.expand;
+          const current = timelineExpanded.get(eventId) || TIMELINE_PAGE_SIZE;
+          timelineExpanded.set(eventId, current + TIMELINE_PAGE_SIZE);
+          drawEvents();
+        });
       });
     }
 
@@ -236,6 +267,17 @@ const EventSection = (() => {
     const addSave = container.querySelector(`#${saveId}`);
     const suggestSlot = container.querySelector(`#${dropdownId}`);
 
+    // Nút "+ Thêm" phải tự đổi thành "✕ Đóng" khi khối đang mở, để
+    // người dùng biết bấm lại là gập lại — trước đây nút bị bỏ sót,
+    // luôn hiện cố định "+ Thêm" bất kể trạng thái, gây hiểu lầm khối
+    // không hề mở/đóng theo nút này.
+    function setAddBtnState(isOpen) {
+      addBtn.classList.toggle('active', isOpen);
+      addBtn.innerHTML = isOpen
+        ? `<i class="ti ti-x" style="font-size:12px;" aria-hidden="true"></i> Đóng`
+        : `<i class="ti ti-plus" style="font-size:12px;" aria-hidden="true"></i> Thêm`;
+    }
+
     function drawSuggestions() {
       const { events } = Sync.getData();
       const todayNames = new Set((events[dateStr] || []).map(e => e.name));
@@ -243,7 +285,7 @@ const EventSection = (() => {
       if (names.length === 0) { suggestSlot.style.display = 'none'; suggestSlot.innerHTML = ''; return; }
 
       suggestSlot.innerHTML = `
-        <p class="event-dropdown-label">đã dùng trước đây</p>
+        <p class="event-dropdown-label">hoặc chạm để dùng lại</p>
         <div class="event-dropdown-scroll">${names.map(n => `<button type="button" class="event-dropdown-chip" data-suggest="${DomUtils.escapeHtml(n)}">${DomUtils.escapeHtml(n)}</button>`).join('')}</div>
       `;
       suggestSlot.style.display = 'block';
@@ -259,12 +301,14 @@ const EventSection = (() => {
     function closeAddRow() {
       addRow.style.display = 'none';
       addInput.value = '';
+      setAddBtnState(false);
     }
 
     addBtn.addEventListener('click', () => {
       const showing = addRow.style.display !== 'none';
       if (showing) { closeAddRow(); return; }
       addRow.style.display = 'flex';
+      setAddBtnState(true);
       drawSuggestions();
       addInput.focus();
     });

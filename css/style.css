@@ -800,6 +800,14 @@ button {
   color: var(--paper);
 }
 
+/* Trạng thái cố định (không phụ thuộc hover) — dùng khi nút đại diện
+   1 khối đang MỞ, ví dụ nút "+ Thêm" đổi thành "✕ Đóng" của khối Dấu
+   ấn khi khối input đang hiện. Cùng pattern với .tab-btn.active. */
+.pill-btn.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
 .day-toggle-row {
   display: flex;
   align-items: center;
@@ -959,6 +967,27 @@ button {
    đó. Dùng ở cả màn "Hôm nay" và màn chi tiết 1 ngày, thay cho khối
    "Lịch sử" đầy đủ riêng biệt kiểu bảng cũ (đã bỏ vì trùng lặp thông
    tin, xem ARCHITECTURE.md mục 8). */
+/* Đường nối dọc — bọc riêng các .event-timeline-item trong 1
+   div.event-timeline-track, TÁCH RIÊNG khỏi nút "Xem thêm" (đứng
+   ngoài track, là em/sibling của .event-timeline chứ không phải 1
+   mốc thời gian). Nếu dùng bottom cố định trên toàn .event-timeline
+   như trước, đường nối sẽ tính sai chiều cao mỗi khi nút "Xem thêm"
+   xuất hiện/biến mất (số mốc hiện ra thay đổi qua các lần bấm) — vì
+   khi đó item cuối cùng không còn nằm ở đáy khối theo trực quan nữa. */
+.event-timeline-track {
+  position: relative;
+}
+
+.event-timeline-track::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  bottom: 14px;
+  width: 1.5px;
+  background: var(--line);
+}
+
 .event-timeline {
   position: relative;
   display: flex;
@@ -967,17 +996,9 @@ button {
   margin-left: 4px;
 }
 
-/* Đường nối dọc — dừng trước item cuối 1 khoảng bằng margin-bottom
-   của item cuối (không dùng bottom:0 để không "thừa đuôi" sau chấm
-   cuối cùng). */
-.event-timeline::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 8px;
-  bottom: 14px;
-  width: 1.5px;
-  background: var(--line);
+.event-timeline-track {
+  display: flex;
+  flex-direction: column;
 }
 
 .event-timeline-item {
@@ -1049,6 +1070,29 @@ button {
 .event-timeline-gap {
   font-size: 11px;
   color: var(--mute);
+}
+
+/* Nút "Xem thêm N mốc cũ hơn" — mặc định chỉ hiện TIMELINE_PAGE_SIZE
+   mốc gần nhất (xem event-section.js), nút này mở rộng dần theo từng
+   đợt thay vì render hết toàn bộ lịch sử cùng lúc. Quan trọng với dấu
+   ấn dùng lâu dài, có thể lên tới hàng trăm mốc qua nhiều năm — nếu
+   không giới hạn, timeline sẽ kéo dài vô hạn xuống dưới trang. */
+.event-timeline-more {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  font-family: 'Manrope', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--mute);
+  padding: 4px 0 0;
+  cursor: pointer;
+}
+
+.event-timeline-more:hover {
+  color: var(--ink);
 }
 
 /* ---- Trạng thái đồng bộ (kín đáo, không làm phiền) ---- */

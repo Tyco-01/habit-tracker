@@ -75,7 +75,13 @@ const LocalStore = (() => {
   }
 
   function saveQueue(queue) {
-    localStorage.setItem(CONFIG.STORAGE_KEYS.SYNC_QUEUE, JSON.stringify(queue));
+    try {
+      localStorage.setItem(CONFIG.STORAGE_KEYS.SYNC_QUEUE, JSON.stringify(queue));
+      return true;
+    } catch (e) {
+      console.error('Không lưu được hàng đợi đồng bộ:', e);
+      return false;
+    }
   }
 
   function enqueue(type, payload) {

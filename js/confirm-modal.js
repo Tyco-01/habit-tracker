@@ -57,11 +57,11 @@ const ConfirmModal = (() => {
 
       overlay.innerHTML = `
         <div class="confirm-modal-card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
-          <p class="confirm-modal-title" id="confirm-modal-title">${title}</p>
-          ${body ? `<p class="confirm-modal-body">${body}</p>` : ''}
+          <p class="confirm-modal-title" id="confirm-modal-title">${DomUtils.escapeHtml(title)}</p>
+          ${body ? `<p class="confirm-modal-body">${DomUtils.escapeHtml(body)}</p>` : ''}
           <div class="confirm-modal-actions">
-            ${hideCancel ? '' : `<button class="confirm-modal-btn confirm-modal-btn-cancel" id="confirm-modal-cancel">${cancelLabel}</button>`}
-            <button class="confirm-modal-btn confirm-modal-btn-ok" id="confirm-modal-ok">${confirmLabel}</button>
+            ${hideCancel ? '' : `<button class="confirm-modal-btn confirm-modal-btn-cancel" id="confirm-modal-cancel">${DomUtils.escapeHtml(cancelLabel)}</button>`}
+            <button class="confirm-modal-btn confirm-modal-btn-ok" id="confirm-modal-ok">${DomUtils.escapeHtml(confirmLabel)}</button>
           </div>
         </div>
       `;

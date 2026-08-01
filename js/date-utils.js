@@ -56,11 +56,6 @@ const DateUtils = (() => {
     return `${DAYS_VN[d.getDay()]}, ${d.getDate()} ${MONTH_NAMES_FULL[d.getMonth()]}`;
   }
 
-  // Nhãn ngắn dạng "30/7" — dùng cho lịch sử dấu ấn rút gọn.
-  function formatShortLabel(d) {
-    return `${d.getDate()}/${d.getMonth() + 1}`;
-  }
-
   // Nhãn dạng "1 tháng 8" (không kèm thứ, khác formatFullLabel) — dùng
   // cho timeline lịch sử dấu ấn, nơi thứ trong tuần không cần thiết và
   // chiếm chỗ không đáng.
@@ -76,6 +71,6 @@ const DateUtils = (() => {
   return {
     DAYS_VN, MONTH_NAMES_FULL, MONTHS_SHORT_BAR, MONTHS_SHORT_GRID,
     dateKey, dateKeyFromParts, parseDateStr,
-    formatFullLabel, formatShortLabel, formatDayMonthLabel, isToday
+    formatFullLabel, formatDayMonthLabel, isToday
   };
 })();

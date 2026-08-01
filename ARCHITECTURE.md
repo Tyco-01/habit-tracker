@@ -126,7 +126,23 @@ tùy chỉnh.
 **Rủi ro đã biết và chấp nhận:** mã bí mật ngắn/dễ đoán có thể bị dò
 bằng dictionary attack. Không có "quên mật khẩu" — mất mã là mất
 quyền truy cập dữ liệu vĩnh viễn (nhưng dữ liệu vẫn còn trên
-server, chỉ là không đăng nhập lại được).
+server, chỉ là không đăng nhập lại được). Không thêm rate-limit
+phía CLIENT cho việc này dù có vẻ hợp lý — rate-limit chỉ ở tầng JS
+không có giá trị bảo mật thật (kẻ tấn công gọi thẳng RPC endpoint
+qua `fetch`, bỏ qua hoàn toàn code JS của app), chỉ tạo cảm giác an
+toàn giả. Bảo vệ thật phải nằm ở server (ngoài phạm vi codebase
+này).
+
+**Bug bảo mật đã tìm thấy và sửa (XSS qua `confirm-modal.js`):**
+> `ConfirmModal.show({ title, body })` từng chèn `title`/`body`
+> THẲNG vào `innerHTML` không qua `DomUtils.escapeHtml()`, khác với
+> mọi nơi khác trong app. 3 nơi gọi (`event-section.js`,
+> `views/day-detail.js`, `views/today.js`) chèn tên habit/dấu ấn
+> DO NGƯỜI DÙNG TỰ ĐẶT vào `title` (ví dụ `Xoá "${name}"?`) — nếu ai
+> đặt tên habit là `<img src=x onerror=...>`, mã độc chạy ngay lúc
+> họ bấm XOÁ habit đó (thời điểm nhạy cảm, đúng lúc cố dọn dẹp). Đã
+> sửa bằng cách escape ngay trong `confirm-modal.js` (1 chỗ, bảo vệ
+> mọi caller hiện tại lẫn tương lai) thay vì vá riêng từng nơi gọi.
 
 ## 5. Cơ chế Offline-First — ĐỌC KỸ TRƯỚC KHI SỬA `sync.js`
 
@@ -263,9 +279,38 @@ là nguyên nhân gây ra lỗi "nút mới không hiện dù đã cập nhật 
 
 ## 7. Bộ test hiện có (chạy bằng Node, không cần trình duyệt)
 
-Các bộ test được viết trong quá trình phát triển để xác minh logic
-đúng, **không nằm trong repo** (chỉ chạy tạm trong môi trường
-Claude lúc code). Nếu cần sửa lại các phần dưới đây, **nên viết lại
+Hầu hết bộ test dưới đây được viết trong quá trình phát triển để xác
+minh logic đúng, **không nằm trong repo** (chỉ chạy tạm trong môi
+trường Claude lúc code). Ngoại lệ — CÓ nằm trong repo:
+- `smoke-test-event-section.js` — viết ra sau khi phát hiện đổi cơ
+  chế chip/timeline trong `event-section.js` chưa từng được verify
+  bằng cách chạy code thật (chỉ tin `node -c` + đọc code bằng mắt).
+- `smoke-test-storage-error.js` — xác minh cơ chế cảnh báo khi
+  `localStorage` đầy (`Sync.onSaveError`). LƯU Ý khi viết test tương
+  tự: không override `localStorage.setItem` trực tiếp — `localStorage`
+  là "exotic object" theo chuẩn Web Storage API, gán property vào nó
+  sẽ tự động biến thành 1 cặp key-value lưu trữ thay vì override hàm
+  thật (JSDOM implement đúng hành vi này, không phải bug môi trường
+  test). Override thẳng `LocalStore.save` (object thường) thay vào đó.
+- `smoke-test-offline-queue.js` — mô phỏng đúng kịch bản "mất mạng
+  giữa chừng" mô tả ở mục 5 (bug đã từng xảy ra: chỉ giữ lại đúng 1
+  entry lỗi, làm rơi mất các entry phía sau chưa kịp xử lý). Kích
+  hoạt `flushQueue()` (không nằm trong export công khai của `Sync`)
+  qua cách gián tiếp: bắn sự kiện `'online'` mà chính `sync.js` đã tự
+  đăng ký lúc load — đây là cách duy nhất gọi được nó từ ngoài mà
+  không phải thêm 1 API chỉ để phục vụ test.
+
+Chạy lại bất cứ khi nào sửa các file liên quan:
+
+```
+npm install jsdom --no-save   # cài tạm, không cần commit
+node smoke-test-event-section.js
+node smoke-test-storage-error.js
+node smoke-test-offline-queue.js
+rm -rf node_modules package-lock.json   # dọn lại sau khi xong
+```
+
+Nếu cần sửa lại các phần dưới đây (ngoài 3 file trên), **nên viết lại
 test tương tự** trước khi tin code đã đúng:
 
 - **Streak & héo úa** (`tree-icons.js`): kiểm tra tính đúng của
@@ -330,6 +375,29 @@ lý do — đừng tự ý "sửa cho đúng" nếu chưa hiểu vì sao:
   `day-detail-event-...`) — vì `EventSection` được gọi từ 2 nơi có
   thể cùng tồn tại trong DOM lúc 1 thời điểm (1 cái ẩn qua
   `display:none`), nên không thể dùng ID cứng.
+- **Chip gợi ý dấu ấn lọc bỏ tên đã có trong ngày hôm nay** (xem
+  `drawSuggestions` trong `event-section.js`) — không phải thiếu chip,
+  mà cố ý: bấm 1 chip là ghi nhận NGAY LẬP TỨC (không qua bước xem lại
+  trong ô input như trước), nên nếu không lọc, bấm nhầm 1 chip cho tên
+  đã tồn tại hôm nay sẽ tạo dấu ấn trùng tên mà `addEvent` (`sync.js`)
+  không hề chặn.
+- **Timeline lịch sử phân trang theo `timelineExpanded` (Map, khoá
+  theo `event.id`), đặt ở phạm vi `render()` chứ không phải bên trong
+  `drawEvents()`** — cố ý, vì `Sync.onChange(drawEvents)` khiến
+  `drawEvents` chạy lại rất thường xuyên (mọi thay đổi dữ liệu bất kỳ,
+  kể cả ở dấu ấn khác không liên quan). Nếu đặt biến đếm số mốc đang
+  hiện bên trong `drawEvents`, người dùng bấm "Xem thêm" xong chỉ cần
+  1 thay đổi bất kỳ ở nơi khác là timeline tự thu gọn lại về mặc định.
+- **`Sync.onSaveError` là kênh THÔNG BÁO RIÊNG, tách khỏi
+  `Sync.onChange`** dù cả 2 đều bắn ra khi `persistLocal()` chạy —
+  cố ý không gộp chung, vì `onChange` vốn nghĩa là "dữ liệu đã đổi,
+  vẽ lại UI" (mọi listener hiện có chỉ mong nhận `data` để render),
+  còn `onSaveError` nghĩa là "vừa đổi dữ liệu NHƯNG KHÔNG lưu được
+  xuống đĩa" — 2 việc khác hẳn nhau. Gộp chung sẽ buộc mọi listener
+  cũ của `onChange` phải tự đoán thêm ý nghĩa mới, dễ gây bug im lặng.
+  `onSaveError` chỉ bắn khi CHUYỂN trạng thái (`local_storage_full`
+  lúc thất bại lần đầu, `recovered` khi lưu lại thành công) — không
+  bắn lặp lại mỗi lần ghi nếu vẫn đang lỗi, tránh spam UI.
 
 ## 9. Nếu muốn nhờ người khác (hoặc AI khác) sửa tiếp
 
