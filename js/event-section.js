@@ -57,6 +57,18 @@ const EventSection = (() => {
     return Math.round((a - b) / 86400000);
   }
 
+  // So khớp tên "cùng 1 dấu ấn" — không phân biệt hoa/thường, bỏ
+  // khoảng trắng 2 đầu, để "Habit Tracker" và "habit tracker " được
+  // coi là trùng chứ không tạo thành 2 dấu ấn tách biệt. Dùng chung
+  // cho cả lọc chip gợi ý (drawSuggestions) lẫn chặn gõ tay trùng tên
+  // (submitEvent) — trước đây 2 chỗ này lệch nhau: chip có lọc còn ô
+  // nhập tay thì không, nên gõ tay đúng tên đã có hôm nay vẫn tạo
+  // thêm 1 event object MỚI trùng tên (id khác), khiến UI hiện 2 khối
+  // dấu ấn giống hệt nhau cho cùng 1 sự việc.
+  function sameEventName(a, b) {
+    return a.trim().toLowerCase() === b.trim().toLowerCase();
+  }
+
   function jumpToDate(dateStr) {
     if (typeof window.__jumpToDate === 'function') {
       window.__jumpToDate(dateStr);
@@ -289,8 +301,8 @@ const EventSection = (() => {
       if (addRow.style.display === 'none') return;
 
       const { events } = Sync.getData();
-      const todayNames = new Set((events[dateStr] || []).map(e => e.name));
-      const names = allEventNames().filter(n => !todayNames.has(n));
+      const todayNames = (events[dateStr] || []).map(e => e.name);
+      const names = allEventNames().filter(n => !todayNames.some(t => sameEventName(t, n)));
       if (names.length === 0) { suggestSlot.style.display = 'none'; suggestSlot.innerHTML = ''; return; }
 
       suggestSlot.innerHTML = `
@@ -338,6 +350,16 @@ const EventSection = (() => {
     function submitEvent() {
       const name = addInput.value.trim();
       if (!name) return;
+      // Chặn trùng tên với dấu ấn ĐÃ CÓ hôm nay — trước đây chỉ chip
+      // gợi ý được lọc (xem drawSuggestions), còn gõ tay thì không,
+      // nên gõ đúng tên đã tồn tại vẫn tạo ra 1 event object MỚI
+      // trùng tên (id khác), UI hiện 2 khối dấu ấn giống hệt nhau cho
+      // cùng 1 sự việc. Nếu trùng, không tạo gì thêm — chỉ đóng khối
+      // lại, coi như đã "chọn" đúng dấu ấn có sẵn, giống hệt hành vi
+      // bấm chip gợi ý cho cùng cái tên đó.
+      const { events } = Sync.getData();
+      const alreadyToday = (events[dateStr] || []).some(e => sameEventName(e.name, name));
+      if (alreadyToday) { closeAddRow(); return; }
       Sync.addEvent(dateStr, name);
       closeAddRow();
     }

@@ -976,8 +976,8 @@ button {
   content: '';
   position: absolute;
   left: 4px;
-  top: 8px;
-  bottom: 14px;
+  top: 10px;
+  bottom: 10px;
   width: 1.5px;
   background: var(--line);
 }
@@ -999,9 +999,10 @@ button {
   position: relative;
   display: flex;
   flex-direction: row;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-height: 20px;
   background: transparent;
   border: none;
   font-family: 'Manrope', sans-serif;
@@ -1017,7 +1018,8 @@ button {
 .event-timeline-dot {
   position: absolute;
   left: -26px;
-  top: 3px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 9px;
   height: 9px;
   border-radius: 50%;
@@ -1031,7 +1033,6 @@ button {
   width: 11px;
   height: 11px;
   left: -27px;
-  top: 1px;
   background: var(--ink);
   border: 2px solid var(--card);
   box-shadow: 0 0 0 1.5px var(--ink);

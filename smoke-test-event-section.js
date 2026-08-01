@@ -190,6 +190,40 @@ Sync.addEvent(pastDates[1], 'zzz-test-sync');
 const chipsAfterSync = container.querySelectorAll('[data-suggest]');
 check('Khối ĐANG MỞ SẴN tự cập nhật, chip "zzz-test-sync" xuất hiện KHÔNG CẦN đóng/mở lại',
   [...chipsAfterSync].some(c => c.dataset.suggest === 'zzz-test-sync'));
+addBtn2.click(); // đóng lại, dọn trạng thái cho test sau
+
+// ---- Test 11: gõ tay TRÙNG tên đã có hôm nay KHÔNG được tạo bản sao ----
+// Đây đúng là bug đã báo và tái hiện được: trước sửa, chip gợi ý có
+// lọc tên trùng nhưng Ô NHẬP TAY thì không — gõ đúng tên 1 dấu ấn đã
+// ghi nhận hôm nay vẫn tạo ra 1 event object MỚI (id khác) trùng tên,
+// khiến UI hiện 2 khối "dấu ấn" giống hệt nhau cho cùng 1 sự việc
+// (đúng như ảnh chụp màn hình người dùng gửi: 2 khối "habit tracker").
+const countBeforeDup = Sync.getData().events[todayKey].length;
+const addBtn3 = container.querySelector('#today-event-add-btn');
+const addRow3 = container.querySelector('#today-event-input-row');
+const input3 = container.querySelector('#today-event-input');
+const saveBtn3 = container.querySelector('#today-event-save');
+addBtn3.click();
+input3.value = 'habit tracker'; // tên NÀY đã có trong dữ liệu hôm nay (test 8 vừa ghi lại)
+saveBtn3.click();
+const countAfterDup = Sync.getData().events[todayKey].length;
+check('Gõ tay tên TRÙNG hôm nay KHÔNG tạo thêm event object mới (số lượng không đổi)',
+  countAfterDup === countBeforeDup);
+check('Sau khi gõ trùng, khối input vẫn tự ĐÓNG lại (coi như đã chọn cái có sẵn)',
+  addRow3.style.display === 'none');
+const eventRowsAfterDup = container.querySelectorAll('.event-row');
+check('UI CHỈ hiện 1 khối "habit tracker" cho hôm nay, không nhân đôi',
+  [...eventRowsAfterDup].filter(r => r.querySelector('.event-name').textContent === 'habit tracker').length === 1);
+
+// Gõ tay khác HOA/THƯỜNG và thừa khoảng trắng cũng phải bị chặn trùng
+// — không so sánh tuyệt đối chuỗi, để tránh lách qua bằng cách gõ
+// "Habit Tracker " thay vì "habit tracker".
+addBtn3.click();
+input3.value = '  Habit Tracker  ';
+saveBtn3.click();
+const countAfterCaseDup = Sync.getData().events[todayKey].length;
+check('Gõ trùng tên khác HOA/THƯỜNG + thừa khoảng trắng vẫn bị chặn (không tạo bản sao)',
+  countAfterCaseDup === countBeforeDup);
 
 console.log('');
 console.log(`========== KẾT QUẢ: ${pass} PASS, ${fail} FAIL ==========`);
