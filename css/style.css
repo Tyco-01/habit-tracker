@@ -912,12 +912,6 @@ button {
   padding: 8px;
 }
 
-.event-dropdown-label {
-  font-size: 10.5px;
-  color: var(--mute);
-  margin: 0 0 6px;
-}
-
 /* Dãy thẻ gợi ý cuộn ngang — nếu nhiều thẻ hơn chỗ hiển thị, vuốt
    trái/phải để xem hết thay vì xếp thành danh sách dọc dài. */
 .event-dropdown-scroll {
@@ -1004,9 +998,10 @@ button {
 .event-timeline-item {
   position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
   background: transparent;
   border: none;
   font-family: 'Manrope', sans-serif;
@@ -1045,18 +1040,13 @@ button {
 .event-timeline-date {
   font-size: 13.5px;
   color: var(--mute);
+  flex-shrink: 0;
 }
 
 .event-timeline-item.current .event-timeline-date {
   font-size: 14px;
   font-weight: 700;
   color: var(--ink);
-}
-
-.event-timeline-today-tag {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--mute);
 }
 
 .event-timeline-item:hover:not(:disabled) .event-timeline-date {
@@ -1067,9 +1057,14 @@ button {
   cursor: default;
 }
 
-.event-timeline-gap {
+/* Cụm bên phải mỗi hàng: "hôm nay · cách lần trước N ngày" (hoặc chỉ
+   "lần đầu ghi nhận") — gộp chung 1 dòng, canh phải, thay vì xuống
+   hàng riêng bên dưới ngày như trước. */
+.event-timeline-meta {
   font-size: 11px;
   color: var(--mute);
+  text-align: right;
+  white-space: nowrap;
 }
 
 /* Nút "Xem thêm N mốc cũ hơn" — mặc định chỉ hiện TIMELINE_PAGE_SIZE

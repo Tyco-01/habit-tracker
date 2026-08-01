@@ -48,6 +48,10 @@ const EventSection = (() => {
   // quyết đúng gốc: idPrefix luôn cố định dù DOM node có bị thay mới
   // bao nhiêu lần, nên luôn tìm đúng listener cũ để gỡ.
   const changeListenersByPrefix = {};
+  // Cùng lý do và cùng pattern với changeListenersByPrefix ở trên,
+  // riêng cho listener đồng bộ khối chip gợi ý (drawSuggestions) —
+  // xem sửa ở dưới, đoạn "Đồng bộ chip gợi ý".
+  const suggestListenersByPrefix = {};
 
   function daysBetween(a, b) {
     return Math.round((a - b) / 86400000);
@@ -176,8 +180,8 @@ const EventSection = (() => {
                     ${historyRows.map((r, i) => `
                       <button class="event-timeline-item ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
                         <span class="event-timeline-dot ${i === 0 ? 'latest' : ''}"></span>
-                        <span class="event-timeline-date">${DateUtils.formatDayMonthLabel(DateUtils.parseDateStr(r.dateStr))}${r.isCurrent ? ' <span class="event-timeline-today-tag">hôm nay</span>' : ''}</span>
-                        <span class="event-timeline-gap">${r.gapText}</span>
+                        <span class="event-timeline-date">${DateUtils.formatDayMonthLabel(DateUtils.parseDateStr(r.dateStr))}</span>
+                        <span class="event-timeline-meta">${r.isCurrent ? 'hôm nay · ' : ''}${r.gapText}</span>
                       </button>
                     `).join('')}
                   </div>
@@ -279,13 +283,17 @@ const EventSection = (() => {
     }
 
     function drawSuggestions() {
+      // Chỉ vẽ khi khối thêm đang mở — nếu đang đóng thì bỏ qua, để
+      // listener Sync.onChange (đăng ký bên dưới) không tốn công vẽ
+      // lại 1 khối người dùng còn chưa mở tới.
+      if (addRow.style.display === 'none') return;
+
       const { events } = Sync.getData();
       const todayNames = new Set((events[dateStr] || []).map(e => e.name));
       const names = allEventNames().filter(n => !todayNames.has(n));
       if (names.length === 0) { suggestSlot.style.display = 'none'; suggestSlot.innerHTML = ''; return; }
 
       suggestSlot.innerHTML = `
-        <p class="event-dropdown-label">hoặc chạm để dùng lại</p>
         <div class="event-dropdown-scroll">${names.map(n => `<button type="button" class="event-dropdown-chip" data-suggest="${DomUtils.escapeHtml(n)}">${DomUtils.escapeHtml(n)}</button>`).join('')}</div>
       `;
       suggestSlot.style.display = 'block';
@@ -312,6 +320,20 @@ const EventSection = (() => {
       drawSuggestions();
       addInput.focus();
     });
+
+    // ---- Đồng bộ chip gợi ý theo thời gian thực ----
+    // Trước đây drawSuggestions() chỉ chạy đúng 1 lần lúc bấm "+ Thêm"
+    // mở khối lên — nếu sau đó có dấu ấn mới được tạo ở bất kỳ đâu
+    // khác trong cùng chuỗi (ví dụ nguồn khác đồng bộ xuống, hoặc bấm
+    // 1 chip gợi ý ở khối "Hôm nay"/"day-detail" còn lại), khối đang
+    // mở sẵn này không tự cập nhật danh sách chip cho tới khi đóng rồi
+    // mở lại — dữ liệu hiện trên màn hình không khớp dữ liệu thật.
+    // Đăng ký vào Sync.onChange giống drawEvents ở trên để luôn khớp;
+    // drawSuggestions() tự bỏ qua nếu khối đang đóng nên không tốn
+    // công vẽ thừa.
+    if (suggestListenersByPrefix[idPrefix]) Sync.offChange(suggestListenersByPrefix[idPrefix]);
+    suggestListenersByPrefix[idPrefix] = drawSuggestions;
+    Sync.onChange(drawSuggestions);
 
     function submitEvent() {
       const name = addInput.value.trim();

@@ -118,8 +118,10 @@ check('Nút đổi chữ thành "Đóng"', addBtn.textContent.trim().includes('�
 check('Nút có class "active" (fill đen cố định)', addBtn.classList.contains('active'));
 
 // ---- Test 6: chip gợi ý hiện NGAY (không cần gõ), và LỌC tên đã có hôm nay ----
+// Label "hoặc chạm để dùng lại" đã bỏ (dư thừa với project chỉ 1
+// người dùng) — giờ chỉ còn kiểm tra bản thân chip có hiện đúng.
 const suggestBox = container.querySelector('#today-event-dropdown');
-check('Khối gợi ý hiện đúng label "hoặc chạm để dùng lại"', suggestBox.innerHTML.includes('hoặc chạm để dùng lại'));
+check('Khối gợi ý hiện block chip (display: block)', suggestBox.style.display === 'block');
 const chips = suggestBox.querySelectorAll('[data-suggest]');
 check('Chip "habit tracker" bị LỌC KHỎI gợi ý (đã có trong dấu ấn hôm nay)',
   ![...chips].some(c => c.dataset.suggest === 'habit tracker'));
@@ -156,13 +158,38 @@ check('Bấm chip xong, khối tự ĐÓNG lại', addRow.style.display === 'non
 // ---- Test 9: chạy render() nhiều lần liên tiếp (mô phỏng chuyển tab qua lại) — không cộng dồn listener ----
 // Dùng thẳng Sync._listenerCount() (API debug nội bộ, xem cuối sync.js)
 // để đo CHÍNH XÁC, thay vì đo gián tiếp qua hành vi UI.
+// Số ổn định đúng giờ là 2 (không phải 1): drawEvents + drawSuggestions
+// (thêm sau, để chip gợi ý tự đồng bộ real-time — xem event-section.js),
+// mỗi cái đăng ký đúng 1 lần qua idPrefix riêng, gỡ listener cũ trước
+// khi đăng ký cái mới ở mỗi lần render().
 const listenersBefore = Sync._listenerCount();
 for (let i = 0; i < 5; i++) {
   EventSection.render(container, todayKey, { idPrefix: 'today', showHistory: true });
 }
 const listenersAfter = Sync._listenerCount();
-check('render() gọi lại 5 lần liên tiếp KHÔNG làm listener cộng dồn (vẫn đúng 1, không phải 6)',
-  listenersAfter === 1 && listenersAfter === listenersBefore);
+check('render() gọi lại 5 lần liên tiếp KHÔNG làm listener cộng dồn (vẫn đúng 2, không phải 12)',
+  listenersAfter === 2 && listenersAfter === listenersBefore);
+
+// ---- Test 10: chip gợi ý tự đồng bộ real-time khi khối ĐANG MỞ SẴN ----
+// Đây đúng là bug đã sửa: trước đây drawSuggestions() chỉ chạy 1 lần
+// lúc bấm "+ Thêm", không nghe Sync.onChange — nên nếu có dấu ấn mới
+// xuất hiện trong khi khối đang mở sẵn (không đóng/mở lại), chip cũ
+// vẫn còn nguyên, không phản ánh đúng dữ liệu thật.
+Sync.getData().events[todayKey] = Sync.getData().events[todayKey].filter(e => e.name !== 'zzz-test-sync');
+const addBtn2 = container.querySelector('#today-event-add-btn');
+if (addBtn2.classList.contains('active')) addBtn2.click(); // đảm bảo đóng trước
+addBtn2.click(); // mở khối, không đóng lại nữa trong suốt test này
+const chipsBeforeSync = container.querySelectorAll('[data-suggest]');
+check('Trước khi có thay đổi ngoài, chip "zzz-test-sync" CHƯA xuất hiện',
+  ![...chipsBeforeSync].some(c => c.dataset.suggest === 'zzz-test-sync'));
+// Mô phỏng 1 dấu ấn mới được ghi nhận ở NGÀY KHÁC (không phải hôm nay)
+// bằng chính API thật Sync.addEvent — đây là nguồn tạo ra tên mới cho
+// allEventNames(), đúng đường đi thật của app chứ không chỉnh thẳng
+// object dữ liệu để giả lập.
+Sync.addEvent(pastDates[1], 'zzz-test-sync');
+const chipsAfterSync = container.querySelectorAll('[data-suggest]');
+check('Khối ĐANG MỞ SẴN tự cập nhật, chip "zzz-test-sync" xuất hiện KHÔNG CẦN đóng/mở lại',
+  [...chipsAfterSync].some(c => c.dataset.suggest === 'zzz-test-sync'));
 
 console.log('');
 console.log(`========== KẾT QUẢ: ${pass} PASS, ${fail} FAIL ==========`);
