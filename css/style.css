@@ -1230,9 +1230,15 @@ button {
    đúng tâm dot đầu tiên (item đầu tại y=0..38, tâm=19) và tâm dot
    cuối cùng (item cuối, item:last-child bỏ hẳn phần dưới nó vì
    không có item kế tiếp — track kết thúc đúng tại tâm dot cuối). */
+/* left: 9.75px — line là con TRỰC TIẾP của .event-timeline-track
+   (không phải con của .event-timeline-item), nên toạ độ tính theo
+   padding-box của TRACK, không cộng dồn qua item. Muốn tâm line
+   (width 1.5px) trùng đúng tâm dot (dot tâm tại track-x=10.5px, xem
+   .event-timeline-dot — dot đó lại tính theo item vì nó LÀ con thật
+   của item): left = 10.5 - 1.5/2 = 9.75px. */
 .event-timeline-line {
   position: absolute;
-  left: 6px;
+  left: 9.75px;
   top: 19px;
   bottom: 19px;
   width: 1.5px;
@@ -1291,11 +1297,13 @@ button {
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-/* Chấm của mốc "hôm nay" (ngày đang xem) — đặc, to hơn hẳn, không
-   viền ngoài rườm rà. Đơn giản hoá so với bản cũ (bỏ box-shadow viền
-   kép) để rõ ràng "đây là điểm neo" ngay từ hình dạng, không cần
-   thêm hiệu ứng phụ. */
-.event-timeline-dot.latest {
+/* Chấm của ngày ĐANG XEM (r.isCurrent) — đặc, to hơn hẳn, không viền
+   ngoài rườm rà, để biết ngay đang đứng ở đâu trên timeline. Trước
+   đây gắn theo "mốc mới nhất theo thời gian" (i===0) — đổi sang
+   isCurrent vì mục đích của dot to là chỉ VỊ TRÍ ĐANG XEM, không
+   phải "đâu là mới nhất" hay "đâu là hôm nay" (2 khái niệm khác,
+   xem isToday trong .event-timeline-meta). */
+.event-timeline-dot.current-marker {
   width: 14px;
   height: 14px;
   left: -14.5px;

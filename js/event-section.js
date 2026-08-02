@@ -195,9 +195,9 @@ const EventSection = (() => {
                 <div class="event-timeline">
                   <div class="event-timeline-track">
                     <div class="event-timeline-line"></div>
-                    ${fullHistory.map((r, i) => `
+                    ${fullHistory.map(r => `
                       <button class="event-timeline-item ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
-                        <span class="event-timeline-dot ${i === 0 ? 'latest' : ''}"></span>
+                        <span class="event-timeline-dot ${r.isCurrent ? 'current-marker' : ''}"></span>
                         <span class="event-timeline-date">${DateUtils.formatDayMonthLabel(DateUtils.parseDateStr(r.dateStr))}</span>
                         <span class="event-timeline-meta">${r.isToday ? 'hôm nay · ' : ''}${r.gapText}</span>
                       </button>
