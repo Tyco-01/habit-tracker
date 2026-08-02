@@ -267,6 +267,38 @@ const stillOldName = Sync.getData().events[todayKey].find(e => e.id === renamedE
 check('Sửa tên trùng với dấu ấn KHÁC cùng ngày bị CHẶN (tên giữ nguyên, không đổi)',
   stillOldName === 'thói quen theo dõi');
 
+// ---- Test 14: bất biến toán học của timeline (đọc CSS trực tiếp) ----
+// KHÔNG dùng render engine/chụp ảnh để kiểm tra vị trí — cách đó đã
+// chứng minh không đáng tin cậy (công cụ render sẵn có dùng WebKit
+// rất cũ, không phản ánh đúng trình duyệt thật). Thay vào đó xác
+// nhận bằng TOÁN HỌC: timeline giờ dựa vào nguyên tắc "mọi item cao
+// CỐ ĐỊNH TUYỆT ĐỐI bằng nhau" (height, không phải min-height) —
+// nên top/bottom của .event-timeline-line phải luôn bằng ĐÚNG NỬA
+// height của .event-timeline-item, bất kể con số cụ thể là bao
+// nhiêu. Đây là bất biến phải giữ đúng mãi mãi.
+const cssText = fs.readFileSync(path.join(__dirname, 'css/style.css'), 'utf8');
+const itemHeightMatch = cssText.match(/\.event-timeline-item\s*\{[^}]*\bheight:\s*(\d+(?:\.\d+)?)px/);
+const lineTopMatch = cssText.match(/\.event-timeline-line\s*\{[^}]*\btop:\s*(\d+(?:\.\d+)?)px/);
+const lineBottomMatch = cssText.match(/\.event-timeline-line\s*\{[^}]*\bbottom:\s*(\d+(?:\.\d+)?)px/);
+check('.event-timeline-item có height CỐ ĐỊNH (không phải min-height — nội dung không được phép đổi chiều cao dòng)',
+  !!itemHeightMatch && !cssText.match(/\.event-timeline-item\s*\{[^}]*\bmin-height:/));
+check('.event-timeline-line có top VÀ bottom cố định (không phụ thuộc JS đo runtime)',
+  !!lineTopMatch && !!lineBottomMatch);
+if (itemHeightMatch && lineTopMatch && lineBottomMatch) {
+  const itemHeight = parseFloat(itemHeightMatch[1]);
+  const lineTop = parseFloat(lineTopMatch[1]);
+  const lineBottom = parseFloat(lineBottomMatch[1]);
+  check(`top của line (${lineTop}px) = ĐÚNG NỬA height item (${itemHeight}px / 2 = ${itemHeight/2}px) — sai số này khiến dot lệch tâm`,
+    lineTop === itemHeight / 2);
+  check(`bottom của line (${lineBottom}px) = ĐÚNG NỬA height item (${itemHeight}px / 2 = ${itemHeight/2}px)`,
+    lineBottom === itemHeight / 2);
+}
+// Không còn JS đo runtime nữa — xác nhận positionTimelineLines() đã
+// bị xoá hẳn khỏi code, không sót lại lời gọi mồ côi nào.
+const jsText = fs.readFileSync(path.join(__dirname, 'js/event-section.js'), 'utf8');
+check('Đã bỏ hẳn positionTimelineLines() (không còn phụ thuộc JS đo runtime để định vị timeline)',
+  !jsText.includes('positionTimelineLines'));
+
 console.log('');
 console.log(`========== KẾT QUẢ: ${pass} PASS, ${fail} FAIL ==========`);
 process.exit(fail > 0 ? 1 : 0);

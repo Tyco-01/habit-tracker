@@ -1035,41 +1035,44 @@ button {
    đó. Dùng ở cả màn "Hôm nay" và màn chi tiết 1 ngày, thay cho khối
    "Lịch sử" đầy đủ riêng biệt kiểu bảng cũ (đã bỏ vì trùng lặp thông
    tin, xem ARCHITECTURE.md mục 8). */
-/* Đường nối dọc — bọc riêng các .event-timeline-item trong 1
-   div.event-timeline-track, TÁCH RIÊNG khỏi nút "Xem thêm" (đứng
-   ngoài track, là em/sibling của .event-timeline chứ không phải 1
-   mốc thời gian). Nếu dùng bottom cố định trên toàn .event-timeline
-   như trước, đường nối sẽ tính sai chiều cao mỗi khi nút "Xem thêm"
-   xuất hiện/biến mất (số mốc hiện ra thay đổi qua các lần bấm) — vì
-   khi đó item cuối cùng không còn nằm ở đáy khối theo trực quan nữa. */
-.event-timeline-track {
-  position: relative;
-}
-
-/* Đường nối dọc: vị trí top/height chính xác do JS tính sau khi
-   render (xem positionTimelineLine() trong event-section.js), KHÔNG
-   dùng số cố định — vì mốc "hôm nay" có font to/đậm hơn (.current)
-   nên item đầu tiên cao hơn các item còn lại, khiến 1 con số top/
-   bottom cố định không bao giờ khớp đúng tâm dot ở MỌI trường hợp
-   (đã thử và xác nhận lệch qua ảnh chụp thật, xem lịch sử sửa). */
-.event-timeline-line {
-  position: absolute;
-  left: 6px;
-  width: 1.5px;
-  background: var(--line);
-}
+/* ============================================================
+   TIMELINE — viết lại hoàn toàn (không dùng JS đo runtime nữa).
+   Nguyên tắc: MỌI .event-timeline-item cao CỐ ĐỊNH TUYỆT ĐỐI bằng
+   nhau (height, KHÔNG PHẢI min-height) — kể cả dòng .current có
+   font đậm hơn. Vì mọi dòng cao bằng nhau tuyệt đối, tâm dot của
+   item thứ N luôn nằm ở đúng vị trí:
+     top_N = N * ITEM_H + ITEM_H/2
+   Đường nối dọc dùng ĐÚNG 1 công thức top/bottom cố định, tính 1
+   lần duy nhất theo ITEM_H, không cần JS đo lại vị trí thật của
+   từng dot sau khi render — loại bỏ hoàn toàn nguồn sai lệch trước
+   đây (font-weight khác nhau làm dòng cao không đều, khiến số đo
+   cố định cũ luôn lệch).
+   ITEM_H = 26px (đủ chứa dòng chữ 15px + khoảng thở, xem
+   .event-timeline-item bên dưới — mọi giá trị top/bottom liên quan
+   trong khối này đều tính theo đúng con số 26 này).
+   ============================================================ */
 
 .event-timeline {
   position: relative;
-  display: flex;
-  flex-direction: column;
   padding-left: 30px;
   margin-left: 4px;
 }
 
 .event-timeline-track {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+}
+
+/* Đường nối dọc: top/bottom cố định = nửa ITEM_H (13px), để chạm
+   đúng tâm dot đầu tiên (item đầu tại y=0..26, tâm=13) và tâm dot
+   cuối cùng (item cuối, item:last-child bỏ hẳn phần dưới nó vì
+   không có item kế tiếp — track kết thúc đúng tại tâm dot cuối). */
+.event-timeline-line {
+  position: absolute;
+  left: 6px;
+  top: 13px;
+  bottom: 13px;
+  width: 1.5px;
+  background: var(--line);
 }
 
 .event-timeline-item {
@@ -1079,17 +1082,14 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 24px;
+  height: 26px;
+  overflow: hidden;
   background: transparent;
   border: none;
   font-family: 'Manrope', sans-serif;
   text-align: left;
-  padding: 0 0 22px;
+  padding: 0;
   cursor: pointer;
-}
-
-.event-timeline-item:last-child {
-  padding-bottom: 0;
 }
 
 .event-timeline-dot {
@@ -1102,6 +1102,7 @@ button {
   border-radius: 50%;
   background: var(--card);
   border: 1.5px solid var(--line);
+  flex-shrink: 0;
 }
 
 /* Chấm của lần ghi nhận gần nhất — đặc + viền ngoài để nổi bật hơn
@@ -1117,12 +1118,14 @@ button {
 
 .event-timeline-date {
   font-size: 15px;
+  line-height: 1;
   color: var(--mute);
   flex-shrink: 0;
 }
 
 .event-timeline-item.current .event-timeline-date {
   font-size: 15px;
+  line-height: 1;
   font-weight: 700;
   color: var(--ink);
 }
@@ -1140,6 +1143,7 @@ button {
    hàng riêng bên dưới ngày như trước. */
 .event-timeline-meta {
   font-size: 11px;
+  line-height: 1.3;
   color: var(--mute);
   text-align: right;
   white-space: nowrap;

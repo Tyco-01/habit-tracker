@@ -300,33 +300,6 @@ const EventSection = (() => {
           drawEvents();
         });
       });
-
-      positionTimelineLines();
-    }
-
-    // Đặt top/height thật cho .event-timeline-line dựa vào vị trí ĐO
-    // ĐƯỢC của dot đầu tiên và dot cuối cùng trong mỗi track — không
-    // dùng số CSS cố định (top/bottom đoán trước) vì mốc "hôm nay"
-    // (.current) có font to/đậm hơn các mốc khác, làm item đó cao hơn
-    // — 1 con số cố định không thể khớp đúng tâm dot cho mọi trường
-    // hợp chiều cao item khác nhau (đã xác nhận qua ảnh chụp thật:
-    // line luôn lệch tâm khi có ít nhất 1 item cao khác các item còn
-    // lại). offsetTop đo trực tiếp trên DOM thật nên luôn đúng bất kể
-    // font-size/nội dung là gì.
-    function positionTimelineLines() {
-      eventListEl.querySelectorAll('.event-timeline-track').forEach(track => {
-        const line = track.querySelector('.event-timeline-line');
-        const dots = track.querySelectorAll('.event-timeline-dot');
-        if (!line || dots.length < 2) { if (line) line.style.display = 'none'; return; }
-        line.style.display = 'block';
-        const trackTop = track.getBoundingClientRect().top;
-        const firstRect = dots[0].getBoundingClientRect();
-        const lastRect = dots[dots.length - 1].getBoundingClientRect();
-        const firstCenter = firstRect.top - trackTop + firstRect.height / 2;
-        const lastCenter = lastRect.top - trackTop + lastRect.height / 2;
-        line.style.top = `${firstCenter}px`;
-        line.style.height = `${lastCenter - firstCenter}px`;
-      });
     }
 
     drawEvents();
