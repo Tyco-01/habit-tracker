@@ -1035,6 +1035,7 @@ button {
 
 .event-input-field {
   flex: 1;
+  min-width: 0;
 }
 
 .event-input-field input {
@@ -1092,6 +1093,7 @@ button {
   gap: 6px;
   overflow-x: auto;
   padding-right: 24px;
+  touch-action: pan-x;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
@@ -1153,25 +1155,31 @@ button {
    trong khối này đều tính theo đúng con số 26 này).
    ============================================================ */
 
-/* ITEM_H nâng 26px → 30px: hàng thoáng hơn, đúng tinh thần mockup
-   (mỗi mốc có "khoảng thở" riêng thay vì san sát nhau). Mọi số đo
-   top/bottom của .event-timeline-line bên dưới tính lại theo 30. */
+/* ITEM_H nâng lần nữa 30px → 38px theo yêu cầu — dòng thoáng hơn rõ
+   rệt, đỡ cảm giác chật. Mọi số đo top/bottom của .event-timeline-line
+   và max-height của track bên dưới tính lại theo 38 này. */
 .event-timeline {
   position: relative;
   margin-left: 4px;
 }
 
-/* max-height giới hạn ~5 mốc hiển thị cùng lúc (5 × 30px = 150px),
+/* max-height giới hạn ~5 mốc hiển thị cùng lúc (5 × 38px = 190px),
    overflow-y: auto cho phép cuộn dọc xem hết lịch sử dài hơn — thay
-   thế hẳn cơ chế "Xem thêm" bấm-để-tải-thêm trước đây. .event-timeline-line
+   thế hẳn cơ chế "Xem thêm" bấm-để-tải-thêm trước đây.
+   scrollbar-gutter: stable RESERVE sẵn 1 dải trống cho thanh cuộn dọc
+   ngay cả khi chưa cuộn — nếu không có dòng này, trình duyệt chèn
+   scrollbar ĐÈ LÊN nội dung (cắt/che mất chữ ở mép phải) thay vì đẩy
+   nội dung sang trái nhường chỗ. padding-right thêm khoảng đệm giữa
+   nội dung và scrollbar để 2 thứ không dính sát nhau. .event-timeline-line
    dùng position:absolute + top/bottom NEO THEO CHIỀU CAO NỘI DUNG THẬT
    của track (không phải theo max-height hiển thị), nên khi cuộn xuống
    line vẫn kéo dài liền mạch đúng vị trí, không bị cắt cụt ở mép khung. */
 .event-timeline-track {
   position: relative;
-  max-height: 150px;
+  max-height: 190px;
   overflow-y: auto;
-  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding-right: 10px;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
@@ -1185,15 +1193,15 @@ button {
   border-radius: 4px;
 }
 
-/* Đường nối dọc: top/bottom cố định = nửa ITEM_H (15px), để chạm
-   đúng tâm dot đầu tiên (item đầu tại y=0..30, tâm=15) và tâm dot
+/* Đường nối dọc: top/bottom cố định = nửa ITEM_H (19px), để chạm
+   đúng tâm dot đầu tiên (item đầu tại y=0..38, tâm=19) và tâm dot
    cuối cùng (item cuối, item:last-child bỏ hẳn phần dưới nó vì
    không có item kế tiếp — track kết thúc đúng tại tâm dot cuối). */
 .event-timeline-line {
   position: absolute;
   left: 6px;
-  top: 15px;
-  bottom: 15px;
+  top: 19px;
+  bottom: 19px;
   width: 1.5px;
   background: var(--line);
 }
@@ -1206,7 +1214,7 @@ button {
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  height: 30px;
+  height: 38px;
   margin-left: 14px;
   padding-left: 10px;
   background: transparent;
@@ -1300,6 +1308,7 @@ button {
   color: var(--mute);
   text-align: right;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ---- Trạng thái đồng bộ (kín đáo, không làm phiền) ---- */
