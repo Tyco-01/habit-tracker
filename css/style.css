@@ -922,8 +922,47 @@ button {
 
 /* ---- Ô nhập sự kiện + dropdown gợi ý tự vẽ ---- */
 
+/* Khối "Thêm sự kiện": trước đây không có nền riêng (thừa hưởng nền
+   --paper của trang), khiến nó trông "lơ lửng" giữa nút bấm và danh
+   sách bên dưới — không rõ đây là 1 khối tương tác riêng biệt. Thêm
+   nền --card (trắng, khác hẳn --paper nền trang) + border rõ + bóng
+   rất nhẹ để tạo cảm giác "nổi lên" — mức độ sâu duy nhất trong toàn
+   app (design hiện tại là "flat", không dùng box-shadow ở đâu khác),
+   nên cố tình giữ bóng RẤT nhẹ để không phá vỡ phong cách chung, chỉ
+   đủ phân biệt "khối đang mở" với nền tĩnh xung quanh.
+   ANIMATION mở/đóng: dùng max-height + opacity + transition thay vì
+   display:none/flex đổi tức thì như trước — display không nội suy
+   được nên không thể animate trực tiếp. Trạng thái logic (mở hay
+   đóng) vẫn đọc qua class .is-open, KHÔNG đọc qua style.display nữa
+   — xem addBtn click handler trong event-section.js. Khi đóng hẳn,
+   visibility:hidden ngăn Tab/click lọt vào ô input ẩn dù nó vẫn
+   chiếm layout trong lúc max-height đang co về 0. */
 .event-input-wrap {
   align-items: flex-start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 1px 3px rgba(26, 24, 20, 0.06);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  visibility: hidden;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  transition: max-height 0.28s ease, opacity 0.2s ease,
+    padding 0.28s ease, border-width 0.28s ease, margin 0.28s ease;
+}
+
+.event-input-wrap.is-open {
+  max-height: 400px;
+  opacity: 1;
+  visibility: visible;
+  margin-bottom: 14px;
+  padding: 10px;
+  border-width: 1px;
 }
 
 .event-input-field {
@@ -978,6 +1017,7 @@ button {
   border-radius: 20px;
   padding: 8px 14px;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 /* Đảo màu hẳn khi hover — cùng pattern với nút "Lưu" và nút toggle
@@ -1014,7 +1054,7 @@ button {
    (đã thử và xác nhận lệch qua ảnh chụp thật, xem lịch sử sửa). */
 .event-timeline-line {
   position: absolute;
-  left: 4px;
+  left: 6px;
   width: 1.5px;
   background: var(--line);
 }
@@ -1023,7 +1063,7 @@ button {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding-left: 26px;
+  padding-left: 30px;
   margin-left: 4px;
 }
 
@@ -1039,12 +1079,12 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 20px;
+  min-height: 24px;
   background: transparent;
   border: none;
   font-family: 'Manrope', sans-serif;
   text-align: left;
-  padding: 0 0 14px;
+  padding: 0 0 22px;
   cursor: pointer;
 }
 
@@ -1054,11 +1094,11 @@ button {
 
 .event-timeline-dot {
   position: absolute;
-  left: -26px;
+  left: -30px;
   top: 50%;
   transform: translateY(-50%);
-  width: 9px;
-  height: 9px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--card);
   border: 1.5px solid var(--line);
@@ -1067,22 +1107,22 @@ button {
 /* Chấm của lần ghi nhận gần nhất — đặc + viền ngoài để nổi bật hơn
    hẳn các mốc cũ, mắt tìm được ngay "mới nhất" là đâu trên timeline. */
 .event-timeline-dot.latest {
-  width: 11px;
-  height: 11px;
-  left: -27px;
+  width: 15px;
+  height: 15px;
+  left: -31.5px;
   background: var(--ink);
   border: 2px solid var(--card);
   box-shadow: 0 0 0 1.5px var(--ink);
 }
 
 .event-timeline-date {
-  font-size: 13.5px;
+  font-size: 15px;
   color: var(--mute);
   flex-shrink: 0;
 }
 
 .event-timeline-item.current .event-timeline-date {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--ink);
 }

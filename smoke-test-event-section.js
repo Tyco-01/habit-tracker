@@ -109,9 +109,9 @@ check('Chấm đầu tiên (mới nhất) có class "latest"', firstDot && first
 // ---- Test 5: nút "+ Thêm" mở khối, đổi thành "Đóng", có class active ----
 const addBtn = container.querySelector('#today-event-add-btn');
 const addRow = container.querySelector('#today-event-input-row');
-check('Khối input mặc định ẨN', addRow.style.display === 'none');
+check('Khối input mặc định ẨN', !addRow.classList.contains('is-open'));
 addBtn.click();
-check('Sau khi bấm "+ Thêm", khối input HIỆN', addRow.style.display === 'flex');
+check('Sau khi bấm "+ Thêm", khối input HIỆN', addRow.classList.contains('is-open'));
 check('Nút đổi chữ thành "Đóng"', addBtn.textContent.trim().includes('Đóng'));
 check('Nút có class "active" (fill đen cố định)', addBtn.classList.contains('active'));
 
@@ -130,7 +130,7 @@ const saveBtn = container.querySelector('#today-event-save');
 input.value = 'cắt tóc';
 saveBtn.click();
 check('Dấu ấn mới "cắt tóc" đã được thêm vào data thật', Sync.getData().events[todayKey].some(e => e.name === 'cắt tóc'));
-check('Sau khi Lưu, khối input tự ĐÓNG lại', addRow.style.display === 'none');
+check('Sau khi Lưu, khối input tự ĐÓNG lại', !addRow.classList.contains('is-open'));
 check('Sau khi đóng, nút trở lại chữ "Thêm" (không còn class active)',
   addBtn.textContent.trim().includes('Thêm') && !addBtn.classList.contains('active'));
 
@@ -151,7 +151,7 @@ check('Sau khi xoá "habit tracker" khỏi hôm nay, chip xuất hiện lại tr
 if (chipReappear) chipReappear.click();
 check('Bấm chip = ghi nhận NGAY vào data thật (không cần qua ô input/Lưu)',
   Sync.getData().events[todayKey].some(e => e.name === 'habit tracker'));
-check('Bấm chip xong, khối tự ĐÓNG lại', addRow.style.display === 'none');
+check('Bấm chip xong, khối tự ĐÓNG lại', !addRow.classList.contains('is-open'));
 
 // ---- Test 9: chạy render() nhiều lần liên tiếp (mô phỏng chuyển tab qua lại) — không cộng dồn listener ----
 // Dùng thẳng Sync._listenerCount() (API debug nội bộ, xem cuối sync.js)
@@ -208,7 +208,7 @@ const countAfterDup = Sync.getData().events[todayKey].length;
 check('Gõ tay tên TRÙNG hôm nay KHÔNG tạo thêm event object mới (số lượng không đổi)',
   countAfterDup === countBeforeDup);
 check('Sau khi gõ trùng, khối input vẫn tự ĐÓNG lại (coi như đã chọn cái có sẵn)',
-  addRow3.style.display === 'none');
+  !addRow3.classList.contains('is-open'));
 const eventRowsAfterDup = container.querySelectorAll('.event-row');
 check('UI CHỈ hiện 1 khối "habit tracker" cho hôm nay, không nhân đôi',
   [...eventRowsAfterDup].filter(r => r.querySelector('.event-name').textContent === 'habit tracker').length === 1);

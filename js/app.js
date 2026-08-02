@@ -245,7 +245,7 @@
     Sync.onSaveError((reason) => {
       if (reason === 'local_storage_full') {
         storageFull = true;
-        el.textContent = 'Hết dung lượng lưu trữ — thay đổi mới nhất có thể CHƯA được lưu. Hãy xoá bớt việc/dấu ấn cũ.';
+        el.textContent = 'Hết dung lượng lưu trữ — thay đổi mới nhất có thể CHƯA được lưu. Hãy xoá bớt việc/sự kiện cũ.';
         el.classList.add('visible');
       } else if (reason === 'recovered') {
         storageFull = false;

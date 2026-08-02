@@ -136,12 +136,12 @@ const EventSection = (() => {
 
     container.innerHTML = `
       <div class="section-header-row">
-        <p class="section-label" style="margin:0;">DẤU ẤN<span class="section-label-count" id="${idPrefix}-event-count">0</span></p>
+        <p class="section-label" style="margin:0;">Sự kiện ngày<span class="section-label-count" id="${idPrefix}-event-count">0</span></p>
         <button class="pill-btn" id="${addBtnId}">
           <i class="ti ti-plus" style="font-size:12px;" aria-hidden="true"></i> Thêm
         </button>
       </div>
-      <div class="input-row event-input-wrap" id="${inputRowId}" style="display:none;">
+      <div class="input-row event-input-wrap" id="${inputRowId}">
         <div class="event-input-field">
           <input type="text" id="${inputId}" placeholder="ví dụ: cắt tóc" maxlength="60" autocomplete="new-event-name" />
           <div class="event-dropdown" id="${dropdownId}" style="display:none;"></div>
@@ -171,7 +171,7 @@ const EventSection = (() => {
       if (countEl) countEl.textContent = evs.length;
 
       eventListEl.innerHTML = evs.length === 0
-        ? `<p style="font-size:13px;color:var(--mute);margin:0;">Chưa có dấu ấn nào cho ngày này.</p>`
+        ? `<p style="font-size:13px;color:var(--mute);margin:0;">Chưa có sự kiện nào cho ngày này.</p>`
         : evs.map(e => {
           const fullHistory = showHistory ? historyFor(e.name, dateStr).reverse() : [];
           const visibleCount = timelineExpanded.get(e.id) || TIMELINE_PAGE_SIZE;
@@ -265,10 +265,10 @@ const EventSection = (() => {
       eventListEl.querySelectorAll('.event-remove').forEach(btn => {
         btn.addEventListener('click', async () => {
           const ev = evs.find(e => e.id === btn.dataset.event);
-          const name = ev ? ev.name : 'dấu ấn này';
+          const name = ev ? ev.name : 'sự kiện này';
           const ok = await ConfirmModal.show({
             title: `Xoá "${name}"?`,
-            body: 'Dấu ấn này sẽ bị xoá hẳn, không có thùng rác cho dấu ấn 1 lần.',
+            body: 'Sự kiện này sẽ bị xoá hẳn, không có thùng rác cho sự kiện 1 lần.',
             confirmLabel: 'Xoá'
           });
           if (!ok) return;
@@ -378,7 +378,7 @@ const EventSection = (() => {
       // Chỉ vẽ khi khối thêm đang mở — nếu đang đóng thì bỏ qua, để
       // listener Sync.onChange (đăng ký bên dưới) không tốn công vẽ
       // lại 1 khối người dùng còn chưa mở tới.
-      if (addRow.style.display === 'none') return;
+      if (!addRow.classList.contains('is-open')) return;
 
       const { events } = Sync.getData();
       const todayNames = (events[dateStr] || []).map(e => e.name);
@@ -399,15 +399,15 @@ const EventSection = (() => {
     }
 
     function closeAddRow() {
-      addRow.style.display = 'none';
+      addRow.classList.remove('is-open');
       addInput.value = '';
       setAddBtnState(false);
     }
 
     addBtn.addEventListener('click', () => {
-      const showing = addRow.style.display !== 'none';
+      const showing = addRow.classList.contains('is-open');
       if (showing) { closeAddRow(); return; }
-      addRow.style.display = 'flex';
+      addRow.classList.add('is-open');
       setAddBtnState(true);
       drawSuggestions();
       addInput.focus();
