@@ -1095,6 +1095,7 @@ button {
   padding-right: 24px;
   touch-action: pan-x;
   scrollbar-width: thin;
+  scrollbar-color: rgba(26, 24, 20, 0.18) transparent;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1102,9 +1103,19 @@ button {
   height: 4px;
 }
 
+.event-dropdown-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .event-dropdown-scroll::-webkit-scrollbar-thumb {
-  background: var(--line);
+  background: rgba(26, 24, 20, 0.18);
   border-radius: 4px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.event-dropdown-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 24, 20, 0.32);
 }
 
 .event-dropdown-chip {
@@ -1174,13 +1185,25 @@ button {
    dùng position:absolute + top/bottom NEO THEO CHIỀU CAO NỘI DUNG THẬT
    của track (không phải theo max-height hiển thị), nên khi cuộn xuống
    line vẫn kéo dài liền mạch đúng vị trí, không bị cắt cụt ở mép khung. */
+/* padding-left: 18px — dành khoảng trống bên trái để chứa dot mà
+   KHÔNG cần đặt dot ở toạ độ âm (xem .event-timeline-dot bên dưới).
+   Trước đây dot dùng left âm (vd -14.5px) để lồi ra ngoài margin-left
+   của item — cách này chỉ an toàn khi track không giới hạn overflow
+   theo trục X. Nhưng overflow-y:auto ở trên buộc trình duyệt tự áp
+   overflow-x:auto theo CSS spec (không thể chỉ giới hạn 1 trục), nên
+   bất kỳ phần tử nào có toạ độ âm đều có nguy cơ bị cắt mất — đúng
+   bug đã xảy ra (dot "hôm nay" bị cắt mất 1 phần). Padding-left dành
+   sẵn chỗ + dot đặt tại toạ độ dương giải quyết dứt điểm, không còn
+   phụ thuộc vào việc track có giới hạn overflow theo trục nào. */
 .event-timeline-track {
   position: relative;
   max-height: 190px;
   overflow-y: auto;
   scrollbar-gutter: stable;
+  padding-left: 18px;
   padding-right: 10px;
   scrollbar-width: thin;
+  scrollbar-color: rgba(26, 24, 20, 0.18) transparent;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1188,9 +1211,19 @@ button {
   width: 4px;
 }
 
+.event-timeline-track::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .event-timeline-track::-webkit-scrollbar-thumb {
-  background: var(--line);
+  background: rgba(26, 24, 20, 0.18);
   border-radius: 4px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.event-timeline-track::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 24, 20, 0.32);
 }
 
 /* Đường nối dọc: top/bottom cố định = nửa ITEM_H (19px), để chạm
@@ -1215,7 +1248,6 @@ button {
   gap: 8px;
   width: 100%;
   height: 38px;
-  margin-left: 14px;
   padding-left: 10px;
   background: transparent;
   border: none;
