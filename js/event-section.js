@@ -100,7 +100,12 @@ const EventSection = (() => {
         const prevD = DateUtils.parseDateStr(uniqueDates[i - 1]);
         gapText = `cách lần trước ${daysBetween(kd, prevD)} ngày`;
       }
-      return { dateStr: k, gapText, isCurrent: k === currentDateStr };
+      return {
+        dateStr: k,
+        gapText,
+        isCurrent: k === currentDateStr,
+        isToday: DateUtils.isToday(k)
+      };
     });
   }
 
@@ -198,7 +203,7 @@ const EventSection = (() => {
                       <button class="event-timeline-item ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
                         <span class="event-timeline-dot ${i === 0 ? 'latest' : ''}"></span>
                         <span class="event-timeline-date">${DateUtils.formatDayMonthLabel(DateUtils.parseDateStr(r.dateStr))}</span>
-                        <span class="event-timeline-meta">${r.isCurrent ? 'hôm nay · ' : ''}${r.gapText}</span>
+                        <span class="event-timeline-meta">${r.isToday ? 'hôm nay · ' : ''}${r.gapText}</span>
                       </button>
                     `).join('')}
                   </div>
