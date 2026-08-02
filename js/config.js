@@ -4,6 +4,10 @@
 // ============================================================
 
 const CONFIG = Object.freeze({
+  // Ghi số phiên bản ở đây khi có đợt cập nhật đáng chú ý — không đặt
+  // version vào tên file zip, giữ tên file gọn "habit-tracker" cố định.
+  VERSION: '1.3.0',
+
   SUPABASE_URL: 'https://uljzcgygfbfcrkmimbwt.supabase.co',
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_1ql4QcnMzQVDpeqKtWWRcg_fcMNHzjA',
 

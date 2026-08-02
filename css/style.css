@@ -1044,8 +1044,14 @@ button {
 
 /* Dropdown dính liền ngay dưới ô nhập, bo góc nối liền thành 1 khối —
    nằm trong luồng bình thường (không absolute) nên KHÔNG BAO GIỜ đè
-   lên nội dung phía dưới; chỉ đẩy nó xuống khi mở, thu lại khi đóng. */
+   lên nội dung phía dưới; chỉ đẩy nó xuống khi mở, thu lại khi đóng.
+   position:relative để làm mốc cho gradient fade (::after) của dãy
+   chip cuộn ngang bên trong — không đặt gradient trực tiếp trên
+   .event-dropdown-scroll vì overflow-x:auto sẽ cắt mất phần tử con
+   position:absolute nằm ngoài vùng content, phải neo vào lớp cha
+   không cuộn này. */
 .event-dropdown {
+  position: relative;
   background: var(--paper);
   border: 0.5px solid var(--line);
   border-top: none;
@@ -1053,12 +1059,39 @@ button {
   padding: 8px;
 }
 
+/* Gradient mờ dần bên phải — báo hiệu còn chip nằm ngoài khung nhìn,
+   để người dùng biết vuốt/cuộn ngang thay vì tưởng đã hết danh sách
+   (trước đây dãy chip bị cắt cụt không có tín hiệu thị giác nào).
+   pointer-events:none để không chặn thao tác vuốt/click chip bên dưới.
+   Ẩn hẳn khi dãy chip không tràn (.no-overflow, gán bằng JS) để không
+   hiện gradient thừa khi mọi chip đã vừa đủ khung. */
+.event-dropdown::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  right: 8px;
+  width: 28px;
+  background: linear-gradient(to right, transparent, var(--paper));
+  pointer-events: none;
+  border-radius: 0 0 10px 0;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.event-dropdown.no-overflow::after {
+  opacity: 0;
+}
+
 /* Dãy thẻ gợi ý cuộn ngang — nếu nhiều thẻ hơn chỗ hiển thị, vuốt
-   trái/phải để xem hết thay vì xếp thành danh sách dọc dài. */
+   trái/phải để xem hết thay vì xếp thành danh sách dọc dài. Đệm phải
+   28px = đúng bề rộng gradient ở trên, để chip cuối cùng cuộn hẳn ra
+   khỏi vùng bị che mờ thay vì dừng lại ngay dưới gradient. */
 .event-dropdown-scroll {
   display: flex;
   gap: 6px;
   overflow-x: auto;
+  padding-right: 24px;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
@@ -1128,8 +1161,28 @@ button {
   margin-left: 4px;
 }
 
+/* max-height giới hạn ~5 mốc hiển thị cùng lúc (5 × 30px = 150px),
+   overflow-y: auto cho phép cuộn dọc xem hết lịch sử dài hơn — thay
+   thế hẳn cơ chế "Xem thêm" bấm-để-tải-thêm trước đây. .event-timeline-line
+   dùng position:absolute + top/bottom NEO THEO CHIỀU CAO NỘI DUNG THẬT
+   của track (không phải theo max-height hiển thị), nên khi cuộn xuống
+   line vẫn kéo dài liền mạch đúng vị trí, không bị cắt cụt ở mép khung. */
 .event-timeline-track {
   position: relative;
+  max-height: 150px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.event-timeline-track::-webkit-scrollbar {
+  width: 4px;
+}
+
+.event-timeline-track::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
 }
 
 /* Đường nối dọc: top/bottom cố định = nửa ITEM_H (15px), để chạm
@@ -1247,41 +1300,6 @@ button {
   color: var(--mute);
   text-align: right;
   white-space: nowrap;
-}
-
-/* Nút "Xem thêm N mốc cũ hơn" — mặc định chỉ hiện TIMELINE_PAGE_SIZE
-   mốc gần nhất (xem event-section.js), nút này mở rộng dần theo từng
-   đợt thay vì render hết toàn bộ lịch sử cùng lúc. Quan trọng với dấu
-   ấn dùng lâu dài, có thể lên tới hàng trăm mốc qua nhiều năm — nếu
-   không giới hạn, timeline sẽ kéo dài vô hạn xuống dưới trang. */
-.event-timeline-more {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  font-family: 'Manrope', sans-serif;
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--mute);
-  padding: 4px 0 0;
-  cursor: pointer;
-  transition: color 0.15s ease, gap 0.15s ease;
-  animation: timeline-item-in 0.25s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
-  animation-delay: 0.26s;
-}
-
-.event-timeline-more:hover {
-  color: var(--ink);
-  gap: 6px;
-}
-
-.event-timeline-more i {
-  transition: transform 0.15s ease;
-}
-
-.event-timeline-more:hover i {
-  transform: translateY(1px);
 }
 
 /* ---- Trạng thái đồng bộ (kín đáo, không làm phiền) ---- */

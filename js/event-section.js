@@ -158,15 +158,14 @@ const EventSection = (() => {
 
     const eventListEl = container.querySelector('.event-list-slot');
 
-    // Số mốc timeline đang hiện cho từng dấu ấn (khoá theo event.id) —
-    // đặt ở đây (phạm vi render(), không phải trong drawEvents) để
-    // KHÔNG bị reset về mặc định mỗi khi drawEvents chạy lại. drawEvents
-    // chạy lại rất thường xuyên (Sync.onChange bắn cho MỌI thay đổi dữ
-    // liệu, kể cả ở dấu ấn khác hoàn toàn không liên quan) — nếu đặt
-    // biến này trong drawEvents, người dùng bấm "Xem thêm" xong chỉ cần
-    // 1 thay đổi bất kỳ ở nơi khác là timeline lại tự thu gọn về ban đầu.
-    const TIMELINE_PAGE_SIZE = 5; // số mốc hiện mặc định + mỗi lần "Xem thêm"
-    const timelineExpanded = new Map(); // event.id -> số mốc đang hiện
+    // Trước đây giới hạn số mốc render qua TIMELINE_PAGE_SIZE + nút "Xem
+    // thêm" (bấm để render thêm từng đợt). Giờ luôn render TOÀN BỘ lịch
+    // sử ngay từ đầu — giới hạn chiều cao hiển thị chuyển hẳn sang CSS
+    // (.event-timeline-track max-height + overflow-y: auto, xem
+    // style.css), người dùng cuộn dọc trong khung cố định thay vì bấm
+    // nút để tải thêm. Đơn giản hơn (không cần theo dõi trạng thái mở
+    // rộng của từng dấu ấn) và mượt hơn (không có bước "chờ render lại"
+    // mỗi lần muốn xem thêm).
 
     function drawEvents() {
       const { events } = Sync.getData();
@@ -179,9 +178,6 @@ const EventSection = (() => {
         ? `<p style="font-size:13px;color:var(--mute);margin:0;">Chưa có sự kiện nào cho ngày này.</p>`
         : evs.map(e => {
           const fullHistory = showHistory ? historyFor(e.name, dateStr).reverse() : [];
-          const visibleCount = timelineExpanded.get(e.id) || TIMELINE_PAGE_SIZE;
-          const historyRows = fullHistory.slice(0, visibleCount);
-          const remaining = fullHistory.length - historyRows.length;
           return `
             <div class="event-row" style="flex-direction:column;align-items:stretch;gap:8px;">
               <div style="display:flex;align-items:center;gap:6px;">
@@ -195,11 +191,11 @@ const EventSection = (() => {
                 </button>
               </div>
               <textarea class="event-note-input" data-event-note="${e.id}" placeholder="Ghi chú thêm (tuỳ chọn)..." maxlength="500" rows="1">${DomUtils.escapeHtml(e.note || '')}</textarea>
-              ${historyRows.length > 0 ? `
+              ${fullHistory.length > 0 ? `
                 <div class="event-timeline">
                   <div class="event-timeline-track">
                     <div class="event-timeline-line"></div>
-                    ${historyRows.map((r, i) => `
+                    ${fullHistory.map((r, i) => `
                       <button class="event-timeline-item ${r.isCurrent ? 'current' : ''}" data-jump="${r.dateStr}" ${r.isCurrent ? 'disabled' : ''}>
                         <span class="event-timeline-dot ${i === 0 ? 'latest' : ''}"></span>
                         <span class="event-timeline-date">${DateUtils.formatDayMonthLabel(DateUtils.parseDateStr(r.dateStr))}</span>
@@ -207,12 +203,6 @@ const EventSection = (() => {
                       </button>
                     `).join('')}
                   </div>
-                  ${remaining > 0 ? `
-                    <button type="button" class="event-timeline-more" data-expand="${e.id}">
-                      Xem thêm ${Math.min(remaining, TIMELINE_PAGE_SIZE)} mốc cũ hơn
-                      <i class="ti ti-chevron-down" style="font-size:12px;" aria-hidden="true"></i>
-                    </button>
-                  ` : ''}
                 </div>
               ` : ''}
             </div>
@@ -289,7 +279,6 @@ const EventSection = (() => {
             await new Promise(resolve => setTimeout(resolve, 220));
           }
           Sync.removeEvent(dateStr, btn.dataset.event);
-          timelineExpanded.delete(btn.dataset.event);
         });
       });
 
@@ -306,15 +295,6 @@ const EventSection = (() => {
 
       eventListEl.querySelectorAll('[data-jump]').forEach(btn => {
         btn.addEventListener('click', () => jumpToDate(btn.dataset.jump));
-      });
-
-      eventListEl.querySelectorAll('[data-expand]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const eventId = btn.dataset.expand;
-          const current = timelineExpanded.get(eventId) || TIMELINE_PAGE_SIZE;
-          timelineExpanded.set(eventId, current + TIMELINE_PAGE_SIZE);
-          drawEvents();
-        });
       });
     }
 
@@ -385,6 +365,22 @@ const EventSection = (() => {
           closeAddRow();
         });
       });
+
+      // Gradient fade (::after trên .event-dropdown, xem style.css) chỉ
+      // có ý nghĩa khi dãy chip THỰC SỰ tràn khỏi khung nhìn — ẩn nó đi
+      // (class .no-overflow) nếu mọi chip đã vừa đủ chỗ, và ẩn luôn khi
+      // người dùng đã cuộn tới sát mép phải (không còn gì để báo hiệu
+      // nữa). requestAnimationFrame vì scrollWidth cần 1 nhịp vẽ để
+      // chính xác ngay sau khi vừa đổi innerHTML.
+      const scrollEl = suggestSlot.querySelector('.event-dropdown-scroll');
+      function updateFadeState() {
+        if (!scrollEl) return;
+        const hasOverflow = scrollEl.scrollWidth > scrollEl.clientWidth + 2;
+        const atEnd = scrollEl.scrollLeft + scrollEl.clientWidth >= scrollEl.scrollWidth - 2;
+        suggestSlot.classList.toggle('no-overflow', !hasOverflow || atEnd);
+      }
+      requestAnimationFrame(updateFadeState);
+      if (scrollEl) scrollEl.addEventListener('scroll', updateFadeState);
     }
 
     function closeAddRow() {
