@@ -56,11 +56,13 @@ const DateUtils = (() => {
     return `${DAYS_VN[d.getDay()]}, ${d.getDate()} ${MONTH_NAMES_FULL[d.getMonth()]}`;
   }
 
-  // Nhãn dạng "1 tháng 8" (không kèm thứ, khác formatFullLabel) — dùng
-  // cho timeline lịch sử dấu ấn, nơi thứ trong tuần không cần thiết và
-  // chiếm chỗ không đáng.
+  // Nhãn dạng "1 tháng 8, 2026" cho timeline lịch sử dấu ấn — có năm để
+  // phân biệt các mốc cách nhau nhiều năm (không có năm thì "1 tháng 8"
+  // của 2024 và 2026 hiện y hệt nhau, dễ nhầm khi lịch sử dùng lâu dài).
+  // Không kèm thứ (khác formatFullLabel) vì thứ trong tuần không cần
+  // thiết ở đây và chiếm chỗ không đáng.
   function formatDayMonthLabel(d) {
-    return `${d.getDate()} ${MONTH_NAMES_FULL[d.getMonth()]}`;
+    return `${d.getDate()} ${MONTH_NAMES_FULL[d.getMonth()]}, ${d.getFullYear()}`;
   }
 
   // true nếu dateStr trùng đúng ngày hôm nay (giờ địa phương).

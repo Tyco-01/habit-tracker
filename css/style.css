@@ -246,6 +246,31 @@ button {
   color: var(--paper);
 }
 
+/* Dùng chung cho MỌI khối "input-row thêm mới" cần mở/đóng có
+   animation (khối thêm việc, khối thêm sự kiện...) — tách riêng khỏi
+   .event-input-wrap (chỉ style riêng cho khối sự kiện) để không phải
+   lặp lại y hệt đoạn max-height/opacity này ở từng nơi dùng. Trước
+   đây #add-habit-row dùng style.display trực tiếp (đổi tức thì,
+   không animate) trong khi khối sự kiện đã có animation mượt — giờ
+   đồng nhất cả 2 dùng chung 1 class, đọc trạng thái qua .is-open. */
+.anim-collapse {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  visibility: hidden;
+  margin-bottom: 0;
+  transition: max-height 0.28s ease, opacity 0.2s ease,
+    margin 0.28s ease, visibility 0s linear 0.28s;
+}
+
+.anim-collapse.is-open {
+  max-height: 400px;
+  opacity: 1;
+  visibility: visible;
+  margin-bottom: 14px;
+  transition: max-height 0.28s ease, opacity 0.2s ease, margin 0.28s ease;
+}
+
 .habit-row {
   display: flex;
   align-items: center;
@@ -850,6 +875,39 @@ button {
   border-radius: var(--radius);
   padding: 10px 14px;
   margin-bottom: 6px;
+  animation: row-in 0.22s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+
+/* Toàn bộ event-list-slot bị innerHTML-replace mỗi lần drawEvents()
+   chạy (kể cả khi chỉ 1 dấu ấn khác thay đổi) — nếu mỗi hàng fade-in
+   với cùng animation-delay, MỌI hàng nhấp nháy lại đồng loạt kể cả
+   hàng không đổi gì. Lệch pha nhẹ theo thứ tự để cảm giác "rơi vào
+   theo tầng" thay vì "toé ra cùng lúc", đỡ chói mắt khi list dài. */
+.event-row:nth-of-type(1) { animation-delay: 0s; }
+.event-row:nth-of-type(2) { animation-delay: 0.03s; }
+.event-row:nth-of-type(3) { animation-delay: 0.06s; }
+.event-row:nth-of-type(4) { animation-delay: 0.09s; }
+.event-row:nth-of-type(5) { animation-delay: 0.12s; }
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Trạng thái "đang xoá" — gán bằng JS ngay trước khi gọi Sync.removeEvent,
+   để hàng fade-out + co lại mượt thay vì biến mất tức thì khi
+   drawEvents() vẽ lại danh sách không còn nó nữa. */
+.event-row.is-removing {
+  opacity: 0;
+  transform: translateX(8px) scale(0.98);
+  margin-bottom: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+  transition: opacity 0.18s ease, transform 0.18s ease,
+    max-height 0.22s ease 0.06s, margin 0.22s ease 0.06s,
+    padding 0.22s ease 0.06s;
 }
 
 .event-name {
@@ -863,6 +921,11 @@ button {
   background: transparent;
   color: var(--mute);
   padding: 2px;
+  transition: color 0.15s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.event-remove:active {
+  transform: scale(0.85);
 }
 
 /* Nút bút chì (sửa tên) và ô input inline hiện ra khi bấm — cùng
@@ -875,6 +938,11 @@ button {
   color: var(--mute);
   padding: 2px;
   flex-shrink: 0;
+  transition: color 0.15s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.event-edit-name:active {
+  transform: scale(0.85);
 }
 
 .event-edit-name:hover,
@@ -1052,9 +1120,11 @@ button {
    trong khối này đều tính theo đúng con số 26 này).
    ============================================================ */
 
+/* ITEM_H nâng 26px → 30px: hàng thoáng hơn, đúng tinh thần mockup
+   (mỗi mốc có "khoảng thở" riêng thay vì san sát nhau). Mọi số đo
+   top/bottom của .event-timeline-line bên dưới tính lại theo 30. */
 .event-timeline {
   position: relative;
-  padding-left: 30px;
   margin-left: 4px;
 }
 
@@ -1062,15 +1132,15 @@ button {
   position: relative;
 }
 
-/* Đường nối dọc: top/bottom cố định = nửa ITEM_H (13px), để chạm
-   đúng tâm dot đầu tiên (item đầu tại y=0..26, tâm=13) và tâm dot
+/* Đường nối dọc: top/bottom cố định = nửa ITEM_H (15px), để chạm
+   đúng tâm dot đầu tiên (item đầu tại y=0..30, tâm=15) và tâm dot
    cuối cùng (item cuối, item:last-child bỏ hẳn phần dưới nó vì
    không có item kế tiếp — track kết thúc đúng tại tâm dot cuối). */
 .event-timeline-line {
   position: absolute;
   left: 6px;
-  top: 13px;
-  bottom: 13px;
+  top: 15px;
+  bottom: 15px;
   width: 1.5px;
   background: var(--line);
 }
@@ -1082,38 +1152,66 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  height: 26px;
-  overflow: hidden;
+  width: 100%;
+  height: 30px;
+  margin-left: 14px;
+  padding-left: 10px;
   background: transparent;
   border: none;
   font-family: 'Manrope', sans-serif;
   text-align: left;
-  padding: 0;
   cursor: pointer;
+  animation: timeline-item-in 0.25s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
 }
 
+/* Mỗi mốc lệch pha nhẹ theo thứ tự xuất hiện — timeline "rơi vào"
+   theo tầng thay vì bật ra đồng loạt cùng lúc, mắt dễ theo dõi hơn.
+   Giới hạn ở 8 mốc đầu vì mốc xa hơn độ trễ không còn cảm nhận được. */
+.event-timeline-item:nth-child(1) { animation-delay: 0.02s; }
+.event-timeline-item:nth-child(2) { animation-delay: 0.05s; }
+.event-timeline-item:nth-child(3) { animation-delay: 0.08s; }
+.event-timeline-item:nth-child(4) { animation-delay: 0.11s; }
+.event-timeline-item:nth-child(5) { animation-delay: 0.14s; }
+.event-timeline-item:nth-child(6) { animation-delay: 0.17s; }
+.event-timeline-item:nth-child(7) { animation-delay: 0.20s; }
+.event-timeline-item:nth-child(8) { animation-delay: 0.23s; }
+
+@keyframes timeline-item-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Chấm mốc cũ: RỖNG, viền mảnh — nhẹ, lùi hẳn về sau so với dot
+   "hôm nay" đặc. Cùng tinh thần mockup: chỉ 1 điểm nhấn thị giác
+   duy nhất trên toàn timeline (mốc hiện tại), còn lại chỉ là dấu vết. */
 .event-timeline-dot {
   position: absolute;
-  left: -30px;
+  left: -13px;
   top: 50%;
   transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: var(--card);
   border: 1.5px solid var(--line);
   flex-shrink: 0;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-/* Chấm của lần ghi nhận gần nhất — đặc + viền ngoài để nổi bật hơn
-   hẳn các mốc cũ, mắt tìm được ngay "mới nhất" là đâu trên timeline. */
+/* Chấm của mốc "hôm nay" (ngày đang xem) — đặc, to hơn hẳn, không
+   viền ngoài rườm rà. Đơn giản hoá so với bản cũ (bỏ box-shadow viền
+   kép) để rõ ràng "đây là điểm neo" ngay từ hình dạng, không cần
+   thêm hiệu ứng phụ. */
 .event-timeline-dot.latest {
-  width: 15px;
-  height: 15px;
-  left: -31.5px;
+  width: 14px;
+  height: 14px;
+  left: -14.5px;
   background: var(--ink);
-  border: 2px solid var(--card);
-  box-shadow: 0 0 0 1.5px var(--ink);
+  border: none;
+}
+
+.event-timeline-item:hover:not(:disabled) .event-timeline-dot {
+  border-color: var(--ink);
 }
 
 .event-timeline-date {
@@ -1121,6 +1219,7 @@ button {
   line-height: 1;
   color: var(--mute);
   flex-shrink: 0;
+  transition: color 0.15s ease;
 }
 
 .event-timeline-item.current .event-timeline-date {
@@ -1139,8 +1238,9 @@ button {
 }
 
 /* Cụm bên phải mỗi hàng: "hôm nay · cách lần trước N ngày" (hoặc chỉ
-   "lần đầu ghi nhận") — gộp chung 1 dòng, canh phải, thay vì xuống
-   hàng riêng bên dưới ngày như trước. */
+   "lần đầu ghi nhận") — gộp chung 1 dòng, canh phải, ngang hàng với
+   ngày + chấm bên trái (giữ nguyên nội dung, chỉ đổi mật độ dòng ở
+   trên để cụm này có thêm khoảng thở). */
 .event-timeline-meta {
   font-size: 11px;
   line-height: 1.3;
@@ -1166,10 +1266,22 @@ button {
   color: var(--mute);
   padding: 4px 0 0;
   cursor: pointer;
+  transition: color 0.15s ease, gap 0.15s ease;
+  animation: timeline-item-in 0.25s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  animation-delay: 0.26s;
 }
 
 .event-timeline-more:hover {
   color: var(--ink);
+  gap: 6px;
+}
+
+.event-timeline-more i {
+  transition: transform 0.15s ease;
+}
+
+.event-timeline-more:hover i {
+  transform: translateY(1px);
 }
 
 /* ---- Trạng thái đồng bộ (kín đáo, không làm phiền) ---- */

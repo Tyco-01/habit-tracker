@@ -272,6 +272,17 @@ const EventSection = (() => {
             confirmLabel: 'Xoá'
           });
           if (!ok) return;
+          // Fade-out trước khi xoá dữ liệu thật — nếu removeEvent() chạy
+          // ngay, Sync.onChange bắn tức thì khiến drawEvents() vẽ lại
+          // TOÀN BỘ danh sách thiếu hàng này ngay lập tức, hàng biến mất
+          // "cụt" không animation dù CSS .is-removing đã định nghĩa sẵn.
+          // 220ms khớp với thời lượng transition dài nhất trong
+          // .event-row.is-removing (max-height/margin/padding ở 0.22s).
+          const row = btn.closest('.event-row');
+          if (row) {
+            row.classList.add('is-removing');
+            await new Promise(resolve => setTimeout(resolve, 220));
+          }
           Sync.removeEvent(dateStr, btn.dataset.event);
           timelineExpanded.delete(btn.dataset.event);
         });

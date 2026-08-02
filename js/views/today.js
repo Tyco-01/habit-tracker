@@ -81,7 +81,7 @@ const TodayView = (() => {
           <i class="ti ti-plus" style="font-size:15px;" aria-hidden="true"></i>
         </button>
       </div>
-      <div class="input-row" id="add-habit-row" style="display:none;">
+      <div class="input-row anim-collapse" id="add-habit-row">
         <input type="text" id="add-habit-input" placeholder="ví dụ: tập thể dục" maxlength="60" />
         <button id="add-habit-save">Lưu</button>
       </div>
@@ -369,8 +369,8 @@ const TodayView = (() => {
     const addSave = container.querySelector('#add-habit-save');
 
     addBtn.addEventListener('click', () => {
-      const showing = addRow.style.display !== 'none';
-      addRow.style.display = showing ? 'none' : 'flex';
+      const showing = addRow.classList.contains('is-open');
+      addRow.classList.toggle('is-open', !showing);
       if (!showing) addInput.focus();
     });
 
@@ -379,7 +379,7 @@ const TodayView = (() => {
       if (!name) return;
       Sync.addHabit(name);
       addInput.value = '';
-      addRow.style.display = 'none';
+      addRow.classList.remove('is-open');
     }
     addSave.addEventListener('click', submitAdd);
     addInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitAdd(); });
