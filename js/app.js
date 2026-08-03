@@ -75,10 +75,10 @@
           </button>
         </div>
       </div>
-      <div id="view-today"></div>
-      <div id="view-year" style="display:none;"></div>
-      <div id="view-stats" style="display:none;"></div>
-      <div id="view-trash" style="display:none;"></div>
+      <div id="view-today" class="view-fade-in"></div>
+      <div id="view-year" class="view-fade-in" style="display:none;"></div>
+      <div id="view-stats" class="view-fade-in" style="display:none;"></div>
+      <div id="view-trash" class="view-fade-in" style="display:none;"></div>
       <div id="view-day" style="display:none;"></div>
       <div class="sync-indicator" id="sync-indicator"></div>
     `;

@@ -1,9 +1,10 @@
 // ============================================================
-// Smoke test: EventSection sau khi sửa cơ chế chip + timeline phân
-// trang. Nạp toàn bộ app thật vào JSDOM (đúng thứ tự script trong
-// index.html), gọi EventSection.render() thật, thao tác DOM thật —
-// theo đúng yêu cầu ARCHITECTURE.md mục 7 ("luôn chạy smoke test này
-// sau khi sửa bất kỳ view hay module dùng chung nào").
+// Smoke test: EventSection — chip gợi ý tên sự kiện + timeline lịch
+// sử (dạng cuộn dọc trong khung cố định, render đủ toàn bộ mốc ngay
+// từ đầu, không phân trang). Nạp toàn bộ app thật vào JSDOM (đúng thứ
+// tự script trong index.html), gọi EventSection.render() thật, thao
+// tác DOM thật — theo đúng yêu cầu ARCHITECTURE.md mục 7 ("luôn chạy
+// smoke test này sau khi sửa bất kỳ view hay module dùng chung nào").
 //
 // Chạy: node smoke-test-event-section.js (cần `npm install jsdom`
 // trước, không cần commit vào repo — chỉ dùng để tự kiểm tra).
@@ -88,23 +89,25 @@ EventSection.render(container, todayKey, { idPrefix: 'today', showHistory: true 
 const countEl = container.querySelector('#today-event-count');
 check('Số lượng dấu ấn hiển thị = 1', countEl.textContent === '1');
 
-// ---- Test 2: timeline mặc định chỉ hiện 5 mốc (không phải cả 7) ----
+// ---- Test 2: timeline render ĐỦ toàn bộ lịch sử ngay từ đầu (không
+// còn phân trang "Xem thêm" — đã bỏ hẳn cơ chế đó, giới hạn hiển thị
+// giờ chuyển sang CSS max-height + overflow-y trên .event-timeline-track,
+// không giới hạn số phần tử DOM được render) ----
 let timelineItems = container.querySelectorAll('.event-timeline-item');
-check('Timeline mặc định hiện đúng 5/7 mốc (phân trang)', timelineItems.length === 5);
+check('Timeline render ĐỦ cả 7/7 mốc ngay từ đầu (không phân trang)', timelineItems.length === 7);
+check('KHÔNG còn nút "Xem thêm" (cơ chế đã bỏ hẳn)', !container.querySelector('[data-expand]'));
 
-const moreBtn = container.querySelector('[data-expand]');
-check('Có nút "Xem thêm" khi còn mốc chưa hiện', !!moreBtn);
-check('Nút "Xem thêm" ghi đúng số mốc còn lại (2)', moreBtn && moreBtn.textContent.includes('2'));
-
-// ---- Test 3: bấm "Xem thêm" mở rộng đúng, không mất mốc đã hiện ----
-if (moreBtn) moreBtn.click();
-timelineItems = container.querySelectorAll('.event-timeline-item');
-check('Sau khi bấm "Xem thêm", hiện đủ cả 7/7 mốc', timelineItems.length === 7);
-check('Hết mốc thì KHÔNG còn nút "Xem thêm"', !container.querySelector('[data-expand]'));
-
-// ---- Test 4: chấm mới nhất có class "latest", đúng thứ tự mới->cũ ----
-const firstDot = container.querySelector('.event-timeline-item:first-of-type .event-timeline-dot');
-check('Chấm đầu tiên (mới nhất) có class "latest"', firstDot && firstDot.classList.contains('latest'));
+// ---- Test 3: chấm "đang xem" (current-marker) gắn đúng vào mốc
+// isCurrent — ở đây dữ liệu giả có todayKey trùng đúng dateStr truyền
+// vào render(), nên mốc đó vừa isCurrent vừa isToday cùng lúc. Chấm
+// KHÔNG còn gắn theo "mới nhất theo thời gian" (đã đổi ý nghĩa ở lượt
+// sửa trước — xem event-section.js: isCurrent thay vì i===0) ----
+const currentItem = container.querySelector('.event-timeline-item.current');
+check('Có đúng 1 mốc mang class "current" (đang xem)', !!currentItem);
+const currentMarkerDot = currentItem && currentItem.querySelector('.event-timeline-dot.current-marker');
+check('Mốc "đang xem" có chấm "current-marker" (đậm, to)', !!currentMarkerDot);
+const otherDots = container.querySelectorAll('.event-timeline-item:not(.current) .event-timeline-dot.current-marker');
+check('KHÔNG mốc nào khác mang chấm "current-marker"', otherDots.length === 0);
 
 // ---- Test 5: nút "+ Thêm" mở khối, đổi thành "Đóng", có class active ----
 const addBtn = container.querySelector('#today-event-add-btn');

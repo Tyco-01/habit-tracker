@@ -62,15 +62,20 @@ const StatsView = (() => {
   }
 
   function render(container) {
+    let lastStatsHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế
+
     function draw() {
       const { habits, checks } = Sync.getData();
       const today = new Date();
 
       if (habits.length === 0) {
-        container.innerHTML = `
+        const emptyHtml = `
           <h3 style="margin:0 0 4px;font-weight:600;font-size:18px;color:var(--ink);">Thống kê</h3>
           <div class="empty-state"><p>Chưa có việc nào để thống kê.</p></div>
         `;
+        if (emptyHtml === lastStatsHtml) return;
+        lastStatsHtml = emptyHtml;
+        container.innerHTML = emptyHtml;
         return;
       }
 
@@ -83,7 +88,7 @@ const StatsView = (() => {
       const rates = monthlyRates(habitChecks, today);
       const maxRate = Math.max(...rates, 1);
 
-      container.innerHTML = `
+      const mainHtml = `
         <h3 style="margin:0 0 16px;font-weight:600;font-size:18px;color:var(--ink);">Thống kê</h3>
 
         <div class="stats-habit-picker" id="stats-picker"></div>
@@ -109,6 +114,16 @@ const StatsView = (() => {
           `).join('')}
         </div>
       `;
+
+      // Chuỗi picker (chọn habit đang xem thống kê) đổi theo selectedId,
+      // cần gộp vào cùng chuỗi so sánh — nếu chỉ so sánh mainHtml, đổi
+      // habit đang chọn (mà số liệu 2 habit tình cờ giống hệt nhau) sẽ
+      // không kích hoạt render lại phần "active" pill.
+      const pickerHtmlPreview = habits.map(h => (h.id === selected.id ? '1' : '0')).join('');
+      const fullHtml = mainHtml + '|' + pickerHtmlPreview;
+      if (fullHtml === lastStatsHtml) return;
+      lastStatsHtml = fullHtml;
+      container.innerHTML = mainHtml;
 
       const picker = container.querySelector('#stats-picker');
       picker.innerHTML = habits.map(h => `

@@ -41,14 +41,24 @@ const ConfirmModal = (() => {
     return overlayEl;
   }
 
+  const CLOSE_ANIM_MS = 180; // khớp đúng transition trong .confirm-modal-overlay (style.css)
+
   function show({ title, body = '', confirmLabel = 'OK', cancelLabel = 'Huỷ', hideCancel = false }) {
     const overlay = ensureOverlay();
 
     return new Promise((resolve) => {
       function close(result) {
-        overlay.style.display = 'none';
-        overlay.innerHTML = '';
+        // Bỏ .is-open trước để animation lùi (fade + scale down) kịp
+        // chạy, CHỜ ĐỦ THỜI LƯỢNG animation rồi mới thực sự ẩn hẳn +
+        // xoá nội dung — nếu ẩn ngay lập tức (display:none tức thì),
+        // animation đóng không có thời gian để hiện, y hệt vấn đề đã
+        // gặp với .event-row khi xoá sự kiện trước đây.
+        overlay.classList.remove('is-open');
         document.removeEventListener('keydown', onKeydown);
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          overlay.innerHTML = '';
+        }, CLOSE_ANIM_MS);
         resolve(result);
       }
       function onKeydown(e) {
@@ -66,6 +76,16 @@ const ConfirmModal = (() => {
         </div>
       `;
       overlay.style.display = 'flex';
+
+      // requestAnimationFrame: đảm bảo trình duyệt thực sự VẼ XONG frame
+      // với display:flex + opacity:0 (trạng thái ban đầu, kế thừa từ CSS
+      // mặc định) TRƯỚC KHI thêm .is-open (opacity:1) ở frame kế tiếp —
+      // nếu thêm is-open ngay trong cùng 1 lệnh, trình duyệt có thể gộp
+      // 2 thay đổi vào cùng 1 frame và bỏ qua animation hoàn toàn (từ
+      // display:none nhảy thẳng lên opacity:1, không có gì để nội suy).
+      requestAnimationFrame(() => {
+        overlay.classList.add('is-open');
+      });
 
       overlay.querySelector('#confirm-modal-ok').addEventListener('click', () => close(true));
       const cancelBtn = overlay.querySelector('#confirm-modal-cancel');

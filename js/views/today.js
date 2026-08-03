@@ -121,9 +121,11 @@ const TodayView = (() => {
             <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
           </button>
         </div>
-        <div class="habit-note-panel" id="note-panel-${h.id}" style="display:none;"></div>
+        <div class="habit-note-panel" id="note-panel-${h.id}"></div>
       `;
     }
+
+    let lastHabitsHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế
 
     function draw() {
       const { habits } = Sync.getData();
@@ -138,7 +140,7 @@ const TodayView = (() => {
 
       const { roots, childrenOf } = buildTree(habits);
 
-      listEl.innerHTML = roots.map(h => {
+      const html = roots.map(h => {
         const children = childrenOf[h.id] || [];
         return `
           <div class="habit-group" data-group-root="${h.id}">
@@ -149,6 +151,14 @@ const TodayView = (() => {
           </div>
         `;
       }).join('');
+
+      // Bỏ qua ghi lại nếu không đổi gì — quan trọng hơn cả hiệu năng:
+      // tránh HUỶ THAO TÁC KÉO-THẢ đang diễn ra nếu 1 thay đổi dữ liệu
+      // khác (vd tick habit khác) xảy ra đúng lúc đang kéo — trước đây
+      // innerHTML bị ghi đè vô điều kiện có thể làm gãy thao tác kéo.
+      if (html === lastHabitsHtml) return;
+      lastHabitsHtml = html;
+      listEl.innerHTML = html;
 
       bindRowEvents();
       bindDragDropRows();
@@ -221,10 +231,10 @@ const TodayView = (() => {
           const habitId = btn.dataset.note;
           const panel = container.querySelector(`#note-panel-${habitId}`);
           if (!panel) return;
-          const isOpen = panel.style.display !== 'none';
-          container.querySelectorAll('.habit-note-panel').forEach(p => { p.style.display = 'none'; });
+          const isOpen = panel.classList.contains('is-open');
+          container.querySelectorAll('.habit-note-panel').forEach(p => { p.classList.remove('is-open'); });
           if (!isOpen) {
-            panel.style.display = 'block';
+            panel.classList.add('is-open');
             HabitNotePanel.render(panel, habitId, todayKey);
           }
         });

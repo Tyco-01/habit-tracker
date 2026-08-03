@@ -22,10 +22,12 @@ const TrashView = (() => {
   }
 
   function render(container) {
+    let lastTrashHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế — ở đây còn tránh .event-row (animation row-in trong CSS) chạy lại animation vô ích
+
     function draw() {
       const trashed = trashList();
 
-      container.innerHTML = `
+      const headerHtml = `
         <div class="today-header">
           <p class="today-date">Việc đã xoá, giữ tối đa ${RETENTION_DAYS} ngày</p>
         </div>
@@ -36,25 +38,30 @@ const TrashView = (() => {
         <div id="trash-list"></div>
       `;
 
-      const listEl = container.querySelector('#trash-list');
-
-      if (trashed.length === 0) {
-        listEl.innerHTML = `
+      const listHtml = trashed.length === 0
+        ? `
           <div class="empty-state">
             <i class="ti ti-trash-off" style="font-size:28px;display:block;margin:0 auto 10px;" aria-hidden="true"></i>
             <p>Thùng rác trống.</p>
           </div>
-        `;
-        return;
-      }
+        `
+        : trashed.map(t => `
+          <div class="event-row">
+            <span class="event-name" style="text-decoration:line-through;color:var(--mute);">${DomUtils.escapeHtml(t.name)}</span>
+            <span style="font-size:11px;color:var(--mute);margin-right:8px;white-space:nowrap;">còn ${t.daysLeft} ngày</span>
+            <button class="pill-btn" data-restore="${t.id}" style="border-radius:8px;flex-shrink:0;">Khôi phục</button>
+          </div>
+        `).join('');
 
-      listEl.innerHTML = trashed.map(t => `
-        <div class="event-row">
-          <span class="event-name" style="text-decoration:line-through;color:var(--mute);">${DomUtils.escapeHtml(t.name)}</span>
-          <span style="font-size:11px;color:var(--mute);margin-right:8px;white-space:nowrap;">còn ${t.daysLeft} ngày</span>
-          <button class="pill-btn" data-restore="${t.id}" style="border-radius:8px;flex-shrink:0;">Khôi phục</button>
-        </div>
-      `).join('');
+      const fullHtml = headerHtml + listHtml;
+      if (fullHtml === lastTrashHtml) return;
+      lastTrashHtml = fullHtml;
+
+      container.innerHTML = headerHtml;
+      const listEl = container.querySelector('#trash-list');
+      listEl.innerHTML = listHtml;
+
+      if (trashed.length === 0) return;
 
       listEl.querySelectorAll('[data-restore]').forEach(btn => {
         btn.addEventListener('click', () => {

@@ -406,12 +406,30 @@ button {
   color: var(--ink);
 }
 
+/* ANIMATION mở/đóng: cùng cơ chế max-height/opacity như .anim-collapse
+   (không dùng chung class đó vì margin-bottom 14px của nó dành cho
+   input-row, không khớp margin 8px vốn có của panel này) — trạng thái
+   đọc qua .is-open, đặt bằng JS ở today.js/day-detail.js. Trước đây
+   dùng style.display='none'/'block' đổi tức thì, không animate. */
 .habit-note-panel {
+  margin: 0 0 0 8px;
+  padding: 0 12px;
+  background: var(--card);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.18s ease, padding 0.25s ease,
+    margin 0.25s ease, border-color 0.25s ease;
+}
+
+.habit-note-panel.is-open {
   margin: 0 0 8px 8px;
   padding: 10px 12px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  max-height: 300px;
+  opacity: 1;
+  border-color: var(--line);
 }
 
 .note-toggle-row {
@@ -643,7 +661,7 @@ button {
   justify-content: center;
   font-size: 10px;
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--mute);
@@ -745,6 +763,20 @@ button {
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* Chuyển tab chính (Hôm nay/Cả năm/Thống kê/Thùng rác) — fade nhẹ,
+   không trượt ngang (khác .day-view ở trên, dành riêng cho "đi sâu
+   vào chi tiết 1 ngày" nên có cảm giác tiến-tới rõ hơn). CSS animation
+   tự chạy lại mỗi khi display đổi từ none sang khác none, không cần
+   thêm cơ chế JS nào khác ngoài việc gán class này 1 lần lúc tạo HTML. */
+.view-fade-in {
+  animation: view-fade-in 0.18s ease;
+}
+
+@keyframes view-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .day-detail-header {
   display: flex;
   align-items: center;
@@ -842,28 +874,6 @@ button {
   border-radius: var(--radius);
   padding: 12px 14px;
   margin-bottom: 6px;
-}
-
-.toggle-btn {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1.5px solid var(--ink);
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  flex-shrink: 0;
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
-}
-
-.toggle-btn:active {
-  transform: scale(0.88);
-}
-
-.toggle-btn.checked {
-  background: var(--ink);
 }
 
 .event-row {
@@ -1464,6 +1474,13 @@ button {
    định của Chrome/hệ điều hành.
    ============================================================ */
 
+/* ANIMATION mở/đóng: overlay fade (opacity), card scale nhẹ từ 0.96
+   lên 1 — kiểu "pop" quen thuộc của modal, nhẹ nhàng hơn hẳn so với
+   bật ra tức thì như trước (display:none ↔ flex). Trạng thái đóng
+   dùng .is-closing (gán bằng JS ngay trước khi gọi close(), xem
+   confirm-modal.js) để có thời gian chạy animation lùi trước khi
+   thực sự gỡ khỏi DOM — nếu gỡ ngay lập tức, animation đóng sẽ không
+   kịp hiện, y hệt vấn đề đã gặp với .event-row khi xoá sự kiện. */
 .confirm-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1473,6 +1490,12 @@ button {
   justify-content: center;
   padding: 20px;
   z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.confirm-modal-overlay.is-open {
+  opacity: 1;
 }
 
 .confirm-modal-card {
@@ -1482,6 +1505,12 @@ button {
   max-width: 380px;
   width: 100%;
   box-shadow: 0 12px 32px rgba(26, 24, 20, 0.18);
+  transform: scale(0.96) translateY(4px);
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.confirm-modal-overlay.is-open .confirm-modal-card {
+  transform: scale(1) translateY(0);
 }
 
 .confirm-modal-title {

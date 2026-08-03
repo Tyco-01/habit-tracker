@@ -39,6 +39,7 @@ const YearView = (() => {
 
     container.innerHTML = `<div id="year-content"></div>`;
     const content = container.querySelector('#year-content');
+    let lastYearHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế — quan trọng hơn cả ở đây vì draw() build cả lưới 365 ô + vòng lặp đếm mỗi lần gọi, tốn kém hơn hẳn các view khác
 
     function draw() {
       const { habits, checks, events, habitNotes } = Sync.getData();
@@ -82,6 +83,8 @@ const YearView = (() => {
 
       if (total === 0) {
         html += `<div class="empty-state"><p>Chưa có việc nào để hiển thị.</p></div>`;
+        if (html === lastYearHtml) return;
+        lastYearHtml = html;
         content.innerHTML = html;
         bindNav();
         bindDateJump();
@@ -136,6 +139,15 @@ const YearView = (() => {
       }
       html += `</div>`;
 
+      // Bỏ qua ghi lại nếu không đổi gì — build lưới 365 ô + vòng lặp
+      // đếm fullDays ở trên chạy MỖI KHI Sync.onChange bắn, kể cả khi
+      // đang xem tab khác hoặc thay đổi không liên quan gì tới lưới
+      // ngày (vd gõ note 1 event ở tab "Hôm nay"). So sánh HTML trước
+      // khi ghi tránh lãng phí, và tránh mất giá trị đang gõ dở trong
+      // #date-jump-input nếu người dùng đang thao tác đúng lúc có thay
+      // đổi khác xảy ra.
+      if (html === lastYearHtml) return;
+      lastYearHtml = html;
       content.innerHTML = html;
 
       content.querySelectorAll('.day-cell[data-date]').forEach(cell => {

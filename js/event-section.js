@@ -111,9 +111,9 @@ const EventSection = (() => {
 
   // options: { idPrefix (bắt buộc), showHistory }
   //   showHistory: nếu true, hiện TOÀN BỘ lịch sử ghi nhận (dạng timeline
-  //     dọc, đốt chấm nối liền — chấm đặc + viền ngoài cho lần gần nhất,
-  //     chấm rỗng mờ dần cho các lần cũ hơn) ngay dưới mỗi dấu ấn, bấm để
-  //     nhảy tới ngày đó. Trước đây từng giới hạn CHỈ 3 lần gần nhất
+  //     dọc, đốt chấm nối liền — chấm đặc to cho NGÀY ĐANG XEM (isCurrent),
+  //     chấm rỗng viền mảnh cho các mốc còn lại) ngay dưới mỗi dấu ấn, bấm
+  //     để nhảy tới ngày đó. Trước đây từng giới hạn CHỈ 3 lần gần nhất
   //     (đặt tên "compactHistory") cùng lúc với 1 chế độ "lịch sử đầy đủ"
   //     riêng (withHistory) hiện thành khối lớn riêng phía dưới — 2 chế
   //     độ đó đã bỏ hẳn vì trùng lặp thông tin với nhau (cùng dữ liệu,
@@ -167,6 +167,8 @@ const EventSection = (() => {
     // rộng của từng dấu ấn) và mượt hơn (không có bước "chờ render lại"
     // mỗi lần muốn xem thêm).
 
+    let lastEventsHtml = null; // so sánh trước khi ghi lại — xem giải thích dưới
+
     function drawEvents() {
       const { events } = Sync.getData();
       const evs = events[dateStr] || [];
@@ -174,7 +176,7 @@ const EventSection = (() => {
       const countEl = container.querySelector(`#${idPrefix}-event-count`);
       if (countEl) countEl.textContent = evs.length;
 
-      eventListEl.innerHTML = evs.length === 0
+      const html = evs.length === 0
         ? `<p style="font-size:13px;color:var(--mute);margin:0;">Chưa có sự kiện nào cho ngày này.</p>`
         : evs.map(e => {
           const fullHistory = showHistory ? historyFor(e.name, dateStr).reverse() : [];
@@ -208,6 +210,18 @@ const EventSection = (() => {
             </div>
           `;
         }).join('');
+
+      // Sync.onChange bắn cho MỌI thay đổi dữ liệu trong toàn app, kể cả
+      // ở nơi hoàn toàn không liên quan tới khối "Sự kiện ngày" này (vd
+      // tick 1 habit, đổi ghi chú 1 dấu ấn khác ngày). Nếu HTML mới giống
+      // hệt HTML đã render, bỏ qua việc ghi lại — tránh animation fade-in
+      // (.event-row, .event-timeline-item) chạy lại vô ích, và quan
+      // trọng hơn: tránh làm mất focus/con trỏ nếu người dùng đang gõ dở
+      // trong 1 ô input khác của cùng khối này khi thay đổi từ nơi khác
+      // xảy ra.
+      if (html === lastEventsHtml) return;
+      lastEventsHtml = html;
+      eventListEl.innerHTML = html;
 
       eventListEl.querySelectorAll('.event-edit-name').forEach(btn => {
         btn.addEventListener('click', () => {

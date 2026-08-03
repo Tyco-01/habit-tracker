@@ -51,17 +51,19 @@ const DayDetailView = (() => {
       const titleEl = container.querySelector('#day-title');
       const habitsEl = container.querySelector('#day-habits');
 
+      let lastHabitsHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế
+
       function drawHabits() {
         const { habits, checks } = Sync.getData();
         const doneCount = habits.filter(h => checks[h.id] && checks[h.id][dateStr]).length;
         titleEl.textContent = `${doneCount}/${habits.length} việc hoàn thành`;
 
-        habitsEl.innerHTML = habits.map(h => {
+        const html = habits.map(h => {
           const checked = !!(checks[h.id] && checks[h.id][dateStr]);
           const noteActive = HabitNotePanel.hasAnyNote(h.id, dateStr);
           return `
             <div class="day-toggle-row">
-              <button class="toggle-btn ${checked ? 'checked' : ''}" data-habit="${h.id}">
+              <button class="check-btn ${checked ? 'checked' : ''}" data-habit="${h.id}" aria-label="Đánh dấu ${DomUtils.escapeHtml(h.name)}">
                 ${checked ? '<i class="ti ti-check" style="font-size:12px;color:var(--card);" aria-hidden="true"></i>' : ''}
               </button>
               <span style="font-size:14px;flex:1;${checked ? 'color:var(--mute);text-decoration:line-through;' : ''}">${DomUtils.escapeHtml(h.name)}</span>
@@ -73,25 +75,36 @@ const DayDetailView = (() => {
                 <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
               </button>
             </div>
-            <div class="habit-note-panel" id="day-detail-note-panel-${h.id}" style="display:none;"></div>
+            <div class="habit-note-panel" id="day-detail-note-panel-${h.id}"></div>
           `;
         }).join('');
+
+        // Bỏ qua ghi lại nếu không đổi gì — ngoài lợi ích hiệu năng, còn
+        // khắc phục 1 bug ẩn: trước đây innerHTML ghi đè vô điều kiện
+        // mỗi khi Sync.onChange bắn (kể cả do thay đổi không liên quan,
+        // vd tick 1 habit khác), khiến panel ghi chú đang mở của 1 habit
+        // bị ĐÓNG LẠI đột ngột (panel luôn render với display:none mặc
+        // định). Giờ không ghi lại nếu không có gì đổi, panel giữ đúng
+        // trạng thái đang mở.
+        if (html === lastHabitsHtml) return;
+        lastHabitsHtml = html;
+        habitsEl.innerHTML = html;
 
         habitsEl.querySelectorAll('[data-note]').forEach(btn => {
           btn.addEventListener('click', () => {
             const habitId = btn.dataset.note;
             const panel = habitsEl.querySelector(`#day-detail-note-panel-${habitId}`);
             if (!panel) return;
-            const isOpen = panel.style.display !== 'none';
-            habitsEl.querySelectorAll('.habit-note-panel').forEach(p => { p.style.display = 'none'; });
+            const isOpen = panel.classList.contains('is-open');
+            habitsEl.querySelectorAll('.habit-note-panel').forEach(p => { p.classList.remove('is-open'); });
             if (!isOpen) {
-              panel.style.display = 'block';
+              panel.classList.add('is-open');
               HabitNotePanel.render(panel, habitId, dateStr);
             }
           });
         });
 
-        habitsEl.querySelectorAll('.toggle-btn').forEach(btn => {
+        habitsEl.querySelectorAll('.check-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             const { checks } = Sync.getData();
             const isChecked = !!(checks[btn.dataset.habit] && checks[btn.dataset.habit][dateStr]);
