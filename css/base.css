@@ -15,14 +15,14 @@
    ============================================================ */
 
 :root {
-  --ink: #1A1814;
-  --mute: #8A8270;
-  --paper: #F5F1E8;
+  --ink: #202A33;
+  --mute: #71808D;
+  --paper: #F6F8FA;
   --card: #FFFFFF;
-  --line: #DDD6C4;
-  --full-bg: #1A1814;
-  --partial-bg: #EFE8D6;
-  --radius: 10px;
+  --line: #E0E6EB;
+  --full-bg: #293A46;
+  --partial-bg: #E7F3F5;
+  --radius: 12px;
 }
 
 * { box-sizing: border-box; }
