@@ -64,7 +64,19 @@
   border-radius: 8px;
   cursor: grab;
   position: relative;
-  transition: background 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+  will-change: transform, opacity;
+  transition: background 0.18s ease, opacity 0.18s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.habit-row.is-entering {
+  animation: habit-row-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.habit-row.is-moving { transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+
+@keyframes habit-row-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .habit-row:active {
@@ -231,4 +243,3 @@
   outline: none;
   border-color: var(--ink);
 }
-

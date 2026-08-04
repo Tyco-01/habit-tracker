@@ -136,6 +136,7 @@ const TodayView = (() => {
 
     function draw() {
       const { habits } = Sync.getData();
+      const before = new Map([...listEl.querySelectorAll('.habit-row')].map(row => [row.dataset.habitId, row.getBoundingClientRect()]));
 
       if (habits.length === 0) {
         listEl.style.display = 'none';
@@ -166,6 +167,23 @@ const TodayView = (() => {
       if (html === lastHabitsHtml) return;
       lastHabitsHtml = html;
       listEl.innerHTML = html;
+
+      // FLIP turns a data-driven re-render into a small positional animation
+      // instead of a visual jump, including drag/drop reorder operations.
+      requestAnimationFrame(() => {
+        listEl.querySelectorAll('.habit-row').forEach(row => {
+          const first = before.get(row.dataset.habitId);
+          if (!first) { row.classList.add('is-entering'); return; }
+          const last = row.getBoundingClientRect();
+          const dy = first.top - last.top;
+          if (!dy) return;
+          row.style.transform = `translateY(${dy}px)`;
+          row.getBoundingClientRect();
+          row.classList.add('is-moving');
+          row.style.transform = '';
+          row.addEventListener('transitionend', () => row.classList.remove('is-moving'), { once: true });
+        });
+      });
 
       bindRowEvents();
       bindDragDropRows();
@@ -376,8 +394,16 @@ const TodayView = (() => {
     // thay đổi dữ liệu, tích luỹ dần theo số lần chuyển tab (memory leak +
     // chạy draw() nhiều lần dư thừa).
     if (container.__todayOnChange) Sync.offChange(container.__todayOnChange);
-    container.__todayOnChange = draw;
-    Sync.onChange(draw);
+    let drawQueued = false;
+    container.__todayOnChange = () => {
+      if (drawQueued) return;
+      drawQueued = true;
+      requestAnimationFrame(() => {
+        drawQueued = false;
+        draw();
+      });
+    };
+    Sync.onChange(container.__todayOnChange);
     draw();
 
     const addBtn = container.querySelector('#add-habit-btn');
@@ -391,15 +417,31 @@ const TodayView = (() => {
       if (!showing) addInput.focus();
     });
 
-    function submitAdd() {
+    let isSubmitting = false;
+    function submitAdd(event) {
+      event?.preventDefault();
+      if (isSubmitting) return;
       const name = addInput.value.trim();
       if (!name) return;
-      Sync.addHabit(name);
-      addInput.value = '';
-      addRow.classList.remove('is-open');
+      isSubmitting = true;
+      addSave.disabled = true;
+      addInput.disabled = true;
+      try {
+        Sync.addHabit(name);
+        addInput.value = '';
+        addRow.classList.remove('is-open');
+      } finally {
+        // Keep the lock through the current input/click event turn. This is
+        // what prevents Enter + click or a double tap from becoming two adds.
+        requestAnimationFrame(() => {
+          isSubmitting = false;
+          addSave.disabled = false;
+          addInput.disabled = false;
+        });
+      }
     }
     addSave.addEventListener('click', submitAdd);
-    addInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitAdd(); });
+    addInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) submitAdd(e); });
   }
 
   return { render };

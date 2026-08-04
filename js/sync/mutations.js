@@ -9,6 +9,17 @@
 
 const SyncMutations = (() => {
 
+  // A UI lock is useful, but it is not a data-integrity boundary: touch/click
+  // pairs, two mounted views, or callers outside the UI can still invoke this
+  // function twice. Keep a short-lived normalized fingerprint at the mutation
+  // boundary so one user action can create at most one habit and one queue item.
+  const recentHabitAdds = new Map();
+  const HABIT_DEDUPE_WINDOW_MS = 1200;
+
+  function habitFingerprint(name) {
+    return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+  }
+
   // ---- Áp dụng thao tác vào state cục bộ (không đợi mạng) ----
 
   function applyAddHabit(habit) {
@@ -172,7 +183,17 @@ const SyncMutations = (() => {
   function addHabit(name) {
     const data = SyncState.getData();
     name = SyncState.truncate(name, CONFIG.MAX_LENGTH.NAME);
+    if (!name) return null;
+
+    const key = habitFingerprint(name);
+    const now = Date.now();
+    const recent = recentHabitAdds.get(key);
+    if (recent && now - recent.createdAt < HABIT_DEDUPE_WINDOW_MS) {
+      return recent.habit;
+    }
+
     const habit = { id: SyncState.tempId(), name, sortOrder: data.habits.length, parentId: null };
+    recentHabitAdds.set(key, { createdAt: now, habit });
     applyAddHabit(habit);
     LocalStore.enqueue('add_habit', { localId: habit.id, name });
     SyncQueue.kickSync();

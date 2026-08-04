@@ -8,7 +8,7 @@
 // có thể bị "kẹt" lại rất lâu dù đã tải code mới lên server.
 // ============================================================
 
-const CACHE_NAME = 'habit-tracker-v29';
+const CACHE_NAME = 'habit-tracker-v30';
 
 const CORE_ASSETS = [
   './',
@@ -111,4 +111,3 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
-
