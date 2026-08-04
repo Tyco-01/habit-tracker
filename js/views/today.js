@@ -125,7 +125,14 @@ const TodayView = (() => {
       `;
     }
 
-    let lastHabitsHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế
+    let lastHabitsHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế.
+    // LƯU Ý GIỚI HẠN: cơ chế này an toàn NHỜ mọi id trong app đều là
+    // UUID/random (tempId() trong sync.js, gen_random_uuid() ở DB) —
+    // không bao giờ trùng giữa 2 lần tạo khác nhau, dù tên hiển thị y
+    // hệt nhau. Nếu sau này đổi sang id tuần tự (1, 2, 3...), giả định
+    // này không còn đúng: xoá hết rồi tạo lại đúng số lượng habit cùng
+    // tên/thứ tự có thể sinh ra id trùng với trước, khiến HTML string
+    // giống hệt và bị bỏ qua render nhầm.
 
     function draw() {
       const { habits } = Sync.getData();

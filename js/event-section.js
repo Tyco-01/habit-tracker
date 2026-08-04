@@ -162,10 +162,10 @@ const EventSection = (() => {
     // thêm" (bấm để render thêm từng đợt). Giờ luôn render TOÀN BỘ lịch
     // sử ngay từ đầu — giới hạn chiều cao hiển thị chuyển hẳn sang CSS
     // (.event-timeline-track max-height + overflow-y: auto, xem
-    // style.css), người dùng cuộn dọc trong khung cố định thay vì bấm
-    // nút để tải thêm. Đơn giản hơn (không cần theo dõi trạng thái mở
-    // rộng của từng dấu ấn) và mượt hơn (không có bước "chờ render lại"
-    // mỗi lần muốn xem thêm).
+    // css/event-timeline.css), người dùng cuộn dọc trong khung cố định
+    // thay vì bấm nút để tải thêm. Đơn giản hơn (không cần theo dõi
+    // trạng thái mở rộng của từng dấu ấn) và mượt hơn (không có bước
+    // "chờ render lại" mỗi lần muốn xem thêm).
 
     let lastEventsHtml = null; // so sánh trước khi ghi lại — xem giải thích dưới
 
@@ -380,8 +380,8 @@ const EventSection = (() => {
         });
       });
 
-      // Gradient fade (::after trên .event-dropdown, xem style.css) chỉ
-      // có ý nghĩa khi dãy chip THỰC SỰ tràn khỏi khung nhìn — ẩn nó đi
+      // Gradient fade (::after trên .event-dropdown, xem css/components.css)
+      // chỉ có ý nghĩa khi dãy chip THỰC SỰ tràn khỏi khung nhìn — ẩn nó đi
       // (class .no-overflow) nếu mọi chip đã vừa đủ chỗ, và ẩn luôn khi
       // người dùng đã cuộn tới sát mép phải (không còn gì để báo hiệu
       // nữa). requestAnimationFrame vì scrollWidth cần 1 nhịp vẽ để

@@ -1,0 +1,67 @@
+/* ============================================================
+   css/layout.css — tách từ style.css gốc để dễ tra cứu/bảo trì theo domain.
+   Được load qua thẻ <link> riêng trong index.html (không dùng @import
+   — @import tạo network round-trip tuần tự, chậm hơn tải song song
+   qua nhiều <link>). Mỗi file cũng được cache riêng trong
+   service-worker.js (CORE_ASSETS).
+   ============================================================ */
+
+/* Điều hướng tab, animation chuyển view cấp app.js */
+
+/* ---- Điều hướng tab ---- */
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+/* Thanh tab dính lại khi cuộn xuống, để luôn thao tác được ngay mà
+   không cần cuộn ngược lên đầu trang. Nền đục để chữ/nút bên dưới
+   không đè lên, có viền mờ phân tách nhẹ khi đang dính. */
+.sticky-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--paper);
+  padding-top: 1.5rem;
+  margin-top: -1.5rem;
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+.tab-btn {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: none;
+  background: transparent;
+  color: var(--mute);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tab-btn.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.tab-btn-icon {
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+}
+
+/* Chuyển tab chính (Hôm nay/Cả năm/Thống kê/Thùng rác) — fade nhẹ,
+   không trượt ngang (khác .day-view ở trên, dành riêng cho "đi sâu
+   vào chi tiết 1 ngày" nên có cảm giác tiến-tới rõ hơn). CSS animation
+   tự chạy lại mỗi khi display đổi từ none sang khác none, không cần
+   thêm cơ chế JS nào khác ngoài việc gán class này 1 lần lúc tạo HTML. */
+.view-fade-in {
+  animation: view-fade-in 0.18s ease;
+}
+
+@keyframes view-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -1,0 +1,234 @@
+/* ============================================================
+   css/views/today.css — tách từ style.css gốc để dễ tra cứu/bảo trì theo domain.
+   Được load qua thẻ <link> riêng trong index.html (không dùng @import
+   — @import tạo network round-trip tuần tự, chậm hơn tải song song
+   qua nhiều <link>). Mỗi file cũng được cache riêng trong
+   service-worker.js (CORE_ASSETS).
+   ============================================================ */
+
+/* Màn "Hôm nay" — habit-row, panel ghi chú */
+
+/* ---- Màn "Hôm nay" ---- */
+
+.today-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.today-heading-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.today-date {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mute);
+  margin: 0;
+}
+
+.today-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.icon-btn-round {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.icon-btn-round:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+
+.habit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  cursor: grab;
+  position: relative;
+  transition: background 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+
+.habit-row:active {
+  cursor: grabbing;
+}
+
+.habit-row.dragging {
+  opacity: 0.4;
+}
+
+.habit-row.drag-over-child {
+  background: var(--partial-bg);
+  outline: 1.5px dashed var(--ink);
+  outline-offset: -2px;
+}
+
+/* Đổi thứ tự — vạch kẻ ngang đậm ở mép trên/dưới dòng đích, khác hẳn
+   với hiệu ứng "gộp vào" (nền be + viền chấm) để phân biệt rõ 2 ý
+   định khi kéo-thả: chèn trước/sau (vạch kẻ) vs làm con (nền be). */
+.habit-row.drag-over-top::before,
+.habit-row.drag-over-bottom::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: var(--ink);
+  border-radius: 1px;
+}
+
+.habit-row.drag-over-top::before {
+  top: -1px;
+}
+
+.habit-row.drag-over-bottom::after {
+  bottom: -1px;
+}
+
+/* Đang ở vùng "sẽ tách ra" khi thả — đối xứng với drag-over-child
+   nhưng khác biệt rõ (không có nền/viền chấm) để không lẫn với hiệu
+   ứng "sẽ gộp vào 1 việc khác". */
+.habit-row.will-detach {
+  opacity: 0.7;
+  outline: 1.5px dashed var(--mute);
+  outline-offset: 2px;
+  transform: scale(0.98);
+}
+
+/* Việc con: thụt lề để thấy rõ đang nhóm dưới 1 việc cha */
+.habit-row-child {
+  margin-left: 28px;
+}
+
+.habit-children:empty {
+  display: none;
+}
+
+.inline-edit-input {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--card);
+}
+
+
+/* ANIMATION mở/đóng: cùng cơ chế max-height/opacity như .anim-collapse
+   (không dùng chung class đó vì margin-bottom 14px của nó dành cho
+   input-row, không khớp margin 8px vốn có của panel này) — trạng thái
+   đọc qua .is-open, đặt bằng JS ở today.js/day-detail.js. Trước đây
+   dùng style.display='none'/'block' đổi tức thì, không animate. */
+.habit-note-panel {
+  margin: 0 0 0 8px;
+  padding: 0 12px;
+  background: var(--card);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.18s ease, padding 0.25s ease,
+    margin 0.25s ease, border-color 0.25s ease;
+}
+
+.habit-note-panel.is-open {
+  margin: 0 0 8px 8px;
+  padding: 10px 12px;
+  max-height: 300px;
+  opacity: 1;
+  border-color: var(--line);
+}
+
+.note-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.note-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  color: var(--mute);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  flex: 1;
+  justify-content: center;
+}
+
+/* Nút đang được chọn (đang xem/sửa loại ghi chú này) — nền đậm nổi
+   bật hẳn so với nút còn lại, không cần đọc chữ mới biết đang ở đâu. */
+.note-toggle-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.note-toggle-caption {
+  font-size: 11px;
+  color: var(--mute);
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+/* Nhãn ngắn cạnh icon note trên dòng habit — cho biết NGAY đang có
+   loại ghi chú nào mà không cần bấm mở panel ra xem (điểm sửa chính:
+   trước đây icon note không nói lên trạng thái gì cả). */
+.note-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--mute);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.note-hint-empty {
+  color: var(--line);
+}
+
+.note-textarea {
+  width: 100%;
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.note-textarea:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+

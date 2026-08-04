@@ -36,7 +36,9 @@ vm.createContext(context);
 
 const scripts = [
   'js/config.js', 'js/date-utils.js', 'js/dom-utils.js',
-  'js/storage-local.js', 'js/sync.js', 'js/confirm-modal.js',
+  'js/storage-local.js',
+  'js/sync/state.js', 'js/sync/queue.js', 'js/sync/mutations.js', 'js/sync/pull.js', 'js/sync/index.js',
+  'js/confirm-modal.js',
   'js/event-section.js'
 ];
 scripts.forEach(f => {
@@ -279,7 +281,7 @@ check('Sửa tên trùng với dấu ấn KHÁC cùng ngày bị CHẶN (tên gi
 // nên top/bottom của .event-timeline-line phải luôn bằng ĐÚNG NỬA
 // height của .event-timeline-item, bất kể con số cụ thể là bao
 // nhiêu. Đây là bất biến phải giữ đúng mãi mãi.
-const cssText = fs.readFileSync(path.join(__dirname, 'css/style.css'), 'utf8');
+const cssText = fs.readFileSync(path.join(__dirname, 'css/event-timeline.css'), 'utf8');
 const itemHeightMatch = cssText.match(/\.event-timeline-item\s*\{[^}]*\bheight:\s*(\d+(?:\.\d+)?)px/);
 const lineTopMatch = cssText.match(/\.event-timeline-line\s*\{[^}]*\btop:\s*(\d+(?:\.\d+)?)px/);
 const lineBottomMatch = cssText.match(/\.event-timeline-line\s*\{[^}]*\bbottom:\s*(\d+(?:\.\d+)?)px/);

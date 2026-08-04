@@ -56,7 +56,11 @@ vm.runInContext(`
 `, context);
 context.__callLog = callLog;
 
-vm.runInContext(fs.readFileSync(path.join(__dirname, 'js/sync.js'), 'utf8'), context, { filename: 'js/sync.js' });
+vm.runInContext(fs.readFileSync(path.join(__dirname, 'js/sync/state.js'), 'utf8'), context, { filename: 'js/sync/state.js' });
+vm.runInContext(fs.readFileSync(path.join(__dirname, 'js/sync/queue.js'), 'utf8'), context, { filename: 'js/sync/queue.js' });
+vm.runInContext(fs.readFileSync(path.join(__dirname, 'js/sync/mutations.js'), 'utf8'), context, { filename: 'js/sync/mutations.js' });
+vm.runInContext(fs.readFileSync(path.join(__dirname, 'js/sync/pull.js'), 'utf8'), context, { filename: 'js/sync/pull.js' });
+vm.runInContext(fs.readFileSync(path.join(__dirname, 'js/sync/index.js'), 'utf8'), context, { filename: 'js/sync/index.js' });
 vm.runInContext('window.Sync = Sync; window.LocalStore = LocalStore;', context);
 const { Sync, LocalStore } = dom.window;
 
@@ -72,7 +76,7 @@ console.log('=== Chạy flushQueue() thật (đã sửa) ===');
 // flushQueue không nằm trong export công khai của Sync (đúng thiết
 // kế — nó tự chạy qua setInterval/online listener bên trong module,
 // xem ARCHITECTURE.md). Gọi gián tiếp qua sự kiện 'online' mà chính
-// sync.js đã tự đăng ký lúc module load (window.addEventListener
+// js/sync/queue.js đã tự đăng ký lúc module load (window.addEventListener
 // ('online', () => flushQueue())) — đây là cách DUY NHẤT kích hoạt nó
 // từ bên ngoài mà không phải export thêm 1 API chỉ để phục vụ test.
 dom.window.dispatchEvent(new dom.window.Event('online'));

@@ -1,0 +1,65 @@
+/* ============================================================
+   css/views/day-detail.css — tách từ style.css gốc để dễ tra cứu/bảo trì theo domain.
+   Được load qua thẻ <link> riêng trong index.html (không dùng @import
+   — @import tạo network round-trip tuần tự, chậm hơn tải song song
+   qua nhiều <link>). Mỗi file cũng được cache riêng trong
+   service-worker.js (CORE_ASSETS).
+   ============================================================ */
+
+/* Màn chi tiết 1 ngày */
+
+/* ---- Màn chi tiết ngày ---- */
+
+.day-view {
+  animation: slide-in 0.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.day-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.back-btn {
+  border: none;
+  background: transparent;
+  padding: 4px;
+  color: var(--ink);
+  display: flex;
+}
+
+.day-detail-heading-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.day-detail-date {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mute);
+}
+
+.day-detail-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.day-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 6px;
+}

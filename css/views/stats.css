@@ -1,0 +1,95 @@
+/* ============================================================
+   css/views/stats.css — tách từ style.css gốc để dễ tra cứu/bảo trì theo domain.
+   Được load qua thẻ <link> riêng trong index.html (không dùng @import
+   — @import tạo network round-trip tuần tự, chậm hơn tải song song
+   qua nhiều <link>). Mỗi file cũng được cache riêng trong
+   service-worker.js (CORE_ASSETS).
+   ============================================================ */
+
+/* Màn "Thống kê" */
+
+/* ---- Màn "Thống kê" ---- */
+
+.stats-habit-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.stats-pill {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--mute);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.stats-pill.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.stats-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stats-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.stats-card-label {
+  font-size: 11px;
+  color: var(--mute);
+  margin: 0 0 6px;
+}
+
+.stats-card-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.stats-card-value span {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--mute);
+}
+
+.stats-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 76px;
+  margin-top: 10px;
+}
+
+.stats-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stats-bar {
+  width: 100%;
+  background: var(--ink);
+  border-radius: 3px 3px 0 0;
+  min-height: 4px;
+}
+
+.stats-bar-label {
+  font-size: 9px;
+  color: var(--mute);
+}

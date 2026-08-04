@@ -1,0 +1,610 @@
+/* ============================================================
+   css/components.css — tách từ style.css gốc để dễ tra cứu/bảo trì theo domain.
+   Được load qua thẻ <link> riêng trong index.html (không dùng @import
+   — @import tạo network round-trip tuần tự, chậm hơn tải song song
+   qua nhiều <link>). Mỗi file cũng được cache riêng trong
+   service-worker.js (CORE_ASSETS).
+   ============================================================ */
+
+/* Component dùng chung ≥2 view: nút, event-row, dropdown, modal, input-row */
+
+.input-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.input-row input {
+  flex: 1;
+  font-size: 14px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--card);
+}
+
+/* Trình duyệt tự thêm outline xanh dương mặc định khi input được
+   focus — chọi hẳn với tông kem/đen than của app. Thay bằng viền
+   đậm hơn cùng tông --ink đã dùng xuyên suốt, không cần outline
+   riêng vì border đổi màu là đủ báo hiệu đang focus. */
+.input-row input:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.input-row button {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.input-row button:hover,
+.input-row button:active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Dùng chung cho MỌI khối "input-row thêm mới" cần mở/đóng có
+   animation (khối thêm việc, khối thêm sự kiện...) — tách riêng khỏi
+   .event-input-wrap (chỉ style riêng cho khối sự kiện) để không phải
+   lặp lại y hệt đoạn max-height/opacity này ở từng nơi dùng. Trước
+   đây #add-habit-row dùng style.display trực tiếp (đổi tức thì,
+   không animate) trong khi khối sự kiện đã có animation mượt — giờ
+   đồng nhất cả 2 dùng chung 1 class, đọc trạng thái qua .is-open. */
+.anim-collapse {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  visibility: hidden;
+  margin-bottom: 0;
+  transition: max-height 0.28s ease, opacity 0.2s ease,
+    margin 0.28s ease, visibility 0s linear 0.28s;
+}
+
+.anim-collapse.is-open {
+  max-height: 400px;
+  opacity: 1;
+  visibility: visible;
+  margin-bottom: 14px;
+  transition: max-height 0.28s ease, opacity 0.2s ease, margin 0.28s ease;
+}
+
+.check-btn {
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+}
+
+.check-btn:active {
+  transform: scale(0.88);
+}
+
+.check-btn.checked {
+  background: var(--ink);
+}
+
+.habit-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: text;
+}
+
+.habit-name.done {
+  color: var(--mute);
+  text-decoration: line-through;
+}
+
+.habit-streak {
+  font-size: 12px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ---- Ghi chú cho việc tích: nút toggle 2 màu phân biệt CHUNG / RIÊNG NGÀY ---- */
+
+.note-btn {
+  border: none;
+  background: transparent;
+  color: var(--line);
+  padding: 4px;
+  display: flex;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.note-btn-active {
+  color: var(--ink);
+}
+
+.remove-btn {
+  border: none;
+  background: transparent;
+  color: var(--mute);
+  padding: 4px;
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.remove-btn:hover,
+.remove-btn:active {
+  opacity: 1;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--mute);
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: 6px;
+  padding: 4px 8px 4px 10px;
+  margin: 0 0 8px;
+}
+
+.section-label-count {
+  background: rgba(245, 241, 232, 0.2);
+  border-radius: 20px;
+  padding: 1px 6px;
+  font-size: 10.5px;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 20px;
+  padding: 3px 10px 3px 8px;
+  font-size: 11px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pill-btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Trạng thái cố định (không phụ thuộc hover) — dùng khi nút đại diện
+   1 khối đang MỞ, ví dụ nút "+ Thêm" đổi thành "✕ Đóng" của khối Dấu
+   ấn khi khối input đang hiện. Cùng pattern với .tab-btn.active. */
+.pill-btn.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  animation: row-in 0.22s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+
+/* Toàn bộ event-list-slot bị innerHTML-replace mỗi lần drawEvents()
+   chạy (kể cả khi chỉ 1 dấu ấn khác thay đổi) — nếu mỗi hàng fade-in
+   với cùng animation-delay, MỌI hàng nhấp nháy lại đồng loạt kể cả
+   hàng không đổi gì. Lệch pha nhẹ theo thứ tự để cảm giác "rơi vào
+   theo tầng" thay vì "toé ra cùng lúc", đỡ chói mắt khi list dài. */
+.event-row:nth-of-type(1) { animation-delay: 0s; }
+.event-row:nth-of-type(2) { animation-delay: 0.03s; }
+.event-row:nth-of-type(3) { animation-delay: 0.06s; }
+.event-row:nth-of-type(4) { animation-delay: 0.09s; }
+.event-row:nth-of-type(5) { animation-delay: 0.12s; }
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Trạng thái "đang xoá" — gán bằng JS ngay trước khi gọi Sync.removeEvent,
+   để hàng fade-out + co lại mượt thay vì biến mất tức thì khi
+   drawEvents() vẽ lại danh sách không còn nó nữa. */
+.event-row.is-removing {
+  opacity: 0;
+  transform: translateX(8px) scale(0.98);
+  margin-bottom: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+  transition: opacity 0.18s ease, transform 0.18s ease,
+    max-height 0.22s ease 0.06s, margin 0.22s ease 0.06s,
+    padding 0.22s ease 0.06s;
+}
+
+.event-name {
+  font-size: 14px;
+  color: var(--ink);
+  flex: 1;
+}
+
+.event-remove {
+  border: none;
+  background: transparent;
+  color: var(--mute);
+  padding: 2px;
+  transition: color 0.15s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.event-remove:active {
+  transform: scale(0.85);
+}
+
+/* Nút bút chì (sửa tên) và ô input inline hiện ra khi bấm — cùng
+   hàng với tên, thay chỗ tên hiển thị (.event-name ẩn đi lúc này).
+   Đồng bộ style với .event-remove / .event-note-input đã có, để
+   không tạo thêm 1 "ngôn ngữ hình ảnh" mới trong cùng 1 khối. */
+.event-edit-name {
+  border: none;
+  background: transparent;
+  color: var(--mute);
+  padding: 2px;
+  flex-shrink: 0;
+  transition: color 0.15s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.event-edit-name:active {
+  transform: scale(0.85);
+}
+
+.event-edit-name:hover,
+.event-remove:hover {
+  color: var(--ink);
+}
+
+.event-name-edit {
+  flex: 1;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 8px;
+  min-width: 0;
+}
+
+.event-name-edit:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.event-note-input {
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  resize: vertical;
+  min-height: 36px;
+}
+
+.event-note-input::placeholder {
+  color: var(--mute);
+}
+
+.event-note-input:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+/* ---- Ô nhập sự kiện + dropdown gợi ý tự vẽ ---- */
+
+/* Khối "Thêm sự kiện": trước đây không có nền riêng (thừa hưởng nền
+   --paper của trang), khiến nó trông "lơ lửng" giữa nút bấm và danh
+   sách bên dưới — không rõ đây là 1 khối tương tác riêng biệt. Thêm
+   nền --card (trắng, khác hẳn --paper nền trang) + border rõ + bóng
+   rất nhẹ để tạo cảm giác "nổi lên" — mức độ sâu duy nhất trong toàn
+   app (design hiện tại là "flat", không dùng box-shadow ở đâu khác),
+   nên cố tình giữ bóng RẤT nhẹ để không phá vỡ phong cách chung, chỉ
+   đủ phân biệt "khối đang mở" với nền tĩnh xung quanh.
+   ANIMATION mở/đóng: dùng max-height + opacity + transition thay vì
+   display:none/flex đổi tức thì như trước — display không nội suy
+   được nên không thể animate trực tiếp. Trạng thái logic (mở hay
+   đóng) vẫn đọc qua class .is-open, KHÔNG đọc qua style.display nữa
+   — xem addBtn click handler trong event-section.js. Khi đóng hẳn,
+   visibility:hidden ngăn Tab/click lọt vào ô input ẩn dù nó vẫn
+   chiếm layout trong lúc max-height đang co về 0. */
+.event-input-wrap {
+  align-items: flex-start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 1px 3px rgba(26, 24, 20, 0.06);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  visibility: hidden;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  transition: max-height 0.28s ease, opacity 0.2s ease,
+    padding 0.28s ease, border-width 0.28s ease, margin 0.28s ease;
+}
+
+.event-input-wrap.is-open {
+  max-height: 400px;
+  opacity: 1;
+  visibility: visible;
+  margin-bottom: 14px;
+  padding: 10px;
+  border-width: 1px;
+}
+
+.event-input-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.event-input-field input {
+  width: 100%;
+  border-radius: 10px 10px 0 0 !important;
+}
+
+/* Dropdown dính liền ngay dưới ô nhập, bo góc nối liền thành 1 khối —
+   nằm trong luồng bình thường (không absolute) nên KHÔNG BAO GIỜ đè
+   lên nội dung phía dưới; chỉ đẩy nó xuống khi mở, thu lại khi đóng.
+   position:relative để làm mốc cho gradient fade (::after) của dãy
+   chip cuộn ngang bên trong — không đặt gradient trực tiếp trên
+   .event-dropdown-scroll vì overflow-x:auto sẽ cắt mất phần tử con
+   position:absolute nằm ngoài vùng content, phải neo vào lớp cha
+   không cuộn này. */
+.event-dropdown {
+  position: relative;
+  background: var(--paper);
+  border: 0.5px solid var(--line);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  padding: 8px;
+}
+
+/* Gradient mờ dần bên phải — báo hiệu còn chip nằm ngoài khung nhìn,
+   để người dùng biết vuốt/cuộn ngang thay vì tưởng đã hết danh sách
+   (trước đây dãy chip bị cắt cụt không có tín hiệu thị giác nào).
+   pointer-events:none để không chặn thao tác vuốt/click chip bên dưới.
+   Ẩn hẳn khi dãy chip không tràn (.no-overflow, gán bằng JS) để không
+   hiện gradient thừa khi mọi chip đã vừa đủ khung. */
+.event-dropdown::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  right: 8px;
+  width: 28px;
+  background: linear-gradient(to right, transparent, var(--paper));
+  pointer-events: none;
+  border-radius: 0 0 10px 0;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.event-dropdown.no-overflow::after {
+  opacity: 0;
+}
+
+/* Dãy thẻ gợi ý cuộn ngang — nếu nhiều thẻ hơn chỗ hiển thị, vuốt
+   trái/phải để xem hết thay vì xếp thành danh sách dọc dài. Đệm phải
+   28px = đúng bề rộng gradient ở trên, để chip cuối cùng cuộn hẳn ra
+   khỏi vùng bị che mờ thay vì dừng lại ngay dưới gradient. */
+.event-dropdown-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-right: 24px;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(26, 24, 20, 0.18) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.event-dropdown-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.event-dropdown-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.event-dropdown-scroll::-webkit-scrollbar-thumb {
+  background: rgba(26, 24, 20, 0.18);
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.event-dropdown-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 24, 20, 0.32);
+}
+
+.event-dropdown-chip {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--card);
+  border: 0.5px solid var(--line);
+  border-radius: 20px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Đảo màu hẳn khi hover — cùng pattern với nút "Lưu" và nút toggle
+   đang chọn trong panel ghi chú (nền đen than, chữ kem), thay vì đổi
+   nền be nhạt như trước (quá gần tông nền trang, mất tương phản). */
+.event-dropdown-chip:hover,
+.event-dropdown-chip:active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* ---- Trạng thái đồng bộ (kín đáo, không làm phiền) ---- */
+
+.sync-indicator {
+  position: fixed;
+  bottom: 14px;
+  right: 14px;
+  font-size: 11px;
+  color: var(--mute);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 4px 10px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.sync-indicator.visible {
+  opacity: 1;
+}
+
+/* ============================================================
+   Modal xác nhận (ConfirmModal) — thay thế confirm() gốc trình
+   duyệt để đồng bộ theme kem/đen than, không phụ thuộc style mặc
+   định của Chrome/hệ điều hành.
+   ============================================================ */
+
+/* ANIMATION mở/đóng: overlay fade (opacity), card scale nhẹ từ 0.96
+   lên 1 — kiểu "pop" quen thuộc của modal, nhẹ nhàng hơn hẳn so với
+   bật ra tức thì như trước (display:none ↔ flex). Trạng thái đóng
+   dùng .is-closing (gán bằng JS ngay trước khi gọi close(), xem
+   confirm-modal.js) để có thời gian chạy animation lùi trước khi
+   thực sự gỡ khỏi DOM — nếu gỡ ngay lập tức, animation đóng sẽ không
+   kịp hiện, y hệt vấn đề đã gặp với .event-row khi xoá sự kiện. */
+.confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 24, 20, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.confirm-modal-overlay.is-open {
+  opacity: 1;
+}
+
+.confirm-modal-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 12px 32px rgba(26, 24, 20, 0.18);
+  transform: scale(0.96) translateY(4px);
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.confirm-modal-overlay.is-open .confirm-modal-card {
+  transform: scale(1) translateY(0);
+}
+
+.confirm-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.confirm-modal-body {
+  font-size: 13px;
+  color: var(--mute);
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-modal-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.confirm-modal-btn-cancel {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.confirm-modal-btn-cancel:hover {
+  background: var(--partial-bg);
+}
+
+.confirm-modal-btn-ok {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.confirm-modal-btn-ok:hover {
+  opacity: 0.85;
+}

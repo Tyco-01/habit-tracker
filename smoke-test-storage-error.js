@@ -23,7 +23,10 @@ function check(label, cond) {
   else { fail++; console.log('  FAIL ' + label); }
 }
 
-const scripts = ['js/config.js', 'js/date-utils.js', 'js/dom-utils.js', 'js/storage-local.js', 'js/sync.js'];
+const scripts = [
+  'js/config.js', 'js/date-utils.js', 'js/dom-utils.js', 'js/storage-local.js',
+  'js/sync/state.js', 'js/sync/queue.js', 'js/sync/mutations.js', 'js/sync/pull.js', 'js/sync/index.js'
+];
 scripts.forEach(f => {
   const code = fs.readFileSync(path.join(__dirname, f), 'utf8');
   vm.runInContext(code, context, { filename: f });

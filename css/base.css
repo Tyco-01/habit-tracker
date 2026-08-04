@@ -1,0 +1,61 @@
+/* ============================================================
+   css/base.css — tách từ style.css gốc để dễ tra cứu/bảo trì theo domain.
+   Được load qua thẻ <link> riêng trong index.html (không dùng @import
+   — @import tạo network round-trip tuần tự, chậm hơn tải song song
+   qua nhiều <link>). Mỗi file cũng được cache riêng trong
+   service-worker.js (CORE_ASSETS).
+   ============================================================ */
+
+/* Biến màu, reset, khung #app */
+
+/* ============================================================
+   style.css — Tông kem / đen than, font Manrope.
+   Màu khai báo cứng (không dùng biến theme hệ thống) để không bị
+   ảnh hưởng bởi chế độ sáng/tối của trình duyệt hay hệ điều hành.
+   ============================================================ */
+
+:root {
+  --ink: #1A1814;
+  --mute: #8A8270;
+  --paper: #F5F1E8;
+  --card: #FFFFFF;
+  --line: #DDD6C4;
+  --full-bg: #1A1814;
+  --partial-bg: #EFE8D6;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Manrope', -apple-system, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+button, input {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+#app {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+/* Màn "Cả năm" cần rộng hơn để chứa lưới 4 cột tháng thoải mái */
+#app:has(.months-grid) {
+  max-width: 880px;
+}

@@ -1,0 +1,216 @@
+/* ============================================================
+   css/event-timeline.css — tách từ style.css gốc để dễ tra cứu/bảo trì theo domain.
+   Được load qua thẻ <link> riêng trong index.html (không dùng @import
+   — @import tạo network round-trip tuần tự, chậm hơn tải song song
+   qua nhiều <link>). Mỗi file cũng được cache riêng trong
+   service-worker.js (CORE_ASSETS).
+   ============================================================ */
+
+/* Timeline lịch sử dấu ấn — khối lớn, phức tạp, tách riêng để dễ tra cứu */
+
+/* Timeline dọc hiện TOÀN BỘ lịch sử ghi nhận của 1 dấu ấn — đường nối
+   mảnh bên trái xuyên suốt các mốc, mỗi mốc là 1 chấm tròn trên đường
+   đó. Dùng ở cả màn "Hôm nay" và màn chi tiết 1 ngày, thay cho khối
+   "Lịch sử" đầy đủ riêng biệt kiểu bảng cũ (đã bỏ vì trùng lặp thông
+   tin, xem ARCHITECTURE.md mục 8). */
+/* ============================================================
+   TIMELINE — viết lại hoàn toàn (không dùng JS đo runtime nữa).
+   Nguyên tắc: MỌI .event-timeline-item cao CỐ ĐỊNH TUYỆT ĐỐI bằng
+   nhau (height, KHÔNG PHẢI min-height) — kể cả dòng .current có
+   font đậm hơn. Vì mọi dòng cao bằng nhau tuyệt đối, tâm dot của
+   item thứ N luôn nằm ở đúng vị trí:
+     top_N = N * ITEM_H + ITEM_H/2
+   Đường nối dọc dùng ĐÚNG 1 công thức top/bottom cố định, tính 1
+   lần duy nhất theo ITEM_H, không cần JS đo lại vị trí thật của
+   từng dot sau khi render — loại bỏ hoàn toàn nguồn sai lệch trước
+   đây (font-weight khác nhau làm dòng cao không đều, khiến số đo
+   cố định cũ luôn lệch).
+   ITEM_H = 26px (đủ chứa dòng chữ 15px + khoảng thở, xem
+   .event-timeline-item bên dưới — mọi giá trị top/bottom liên quan
+   trong khối này đều tính theo đúng con số 26 này).
+   ============================================================ */
+
+/* ITEM_H nâng lần nữa 30px → 38px theo yêu cầu — dòng thoáng hơn rõ
+   rệt, đỡ cảm giác chật. Mọi số đo top/bottom của .event-timeline-line
+   và max-height của track bên dưới tính lại theo 38 này. */
+.event-timeline {
+  position: relative;
+  margin-left: 4px;
+}
+
+/* max-height giới hạn ~5 mốc hiển thị cùng lúc (5 × 38px = 190px),
+   overflow-y: auto cho phép cuộn dọc xem hết lịch sử dài hơn — thay
+   thế hẳn cơ chế "Xem thêm" bấm-để-tải-thêm trước đây.
+   scrollbar-gutter: stable RESERVE sẵn 1 dải trống cho thanh cuộn dọc
+   ngay cả khi chưa cuộn — nếu không có dòng này, trình duyệt chèn
+   scrollbar ĐÈ LÊN nội dung (cắt/che mất chữ ở mép phải) thay vì đẩy
+   nội dung sang trái nhường chỗ. padding-right thêm khoảng đệm giữa
+   nội dung và scrollbar để 2 thứ không dính sát nhau. .event-timeline-line
+   dùng position:absolute + top/bottom NEO THEO CHIỀU CAO NỘI DUNG THẬT
+   của track (không phải theo max-height hiển thị), nên khi cuộn xuống
+   line vẫn kéo dài liền mạch đúng vị trí, không bị cắt cụt ở mép khung. */
+/* padding-left: 18px — dành khoảng trống bên trái để chứa dot mà
+   KHÔNG cần đặt dot ở toạ độ âm (xem .event-timeline-dot bên dưới).
+   Trước đây dot dùng left âm (vd -14.5px) để lồi ra ngoài margin-left
+   của item — cách này chỉ an toàn khi track không giới hạn overflow
+   theo trục X. Nhưng overflow-y:auto ở trên buộc trình duyệt tự áp
+   overflow-x:auto theo CSS spec (không thể chỉ giới hạn 1 trục), nên
+   bất kỳ phần tử nào có toạ độ âm đều có nguy cơ bị cắt mất — đúng
+   bug đã xảy ra (dot "hôm nay" bị cắt mất 1 phần). Padding-left dành
+   sẵn chỗ + dot đặt tại toạ độ dương giải quyết dứt điểm, không còn
+   phụ thuộc vào việc track có giới hạn overflow theo trục nào. */
+.event-timeline-track {
+  position: relative;
+  max-height: 190px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-left: 18px;
+  padding-right: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(26, 24, 20, 0.18) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.event-timeline-track::-webkit-scrollbar {
+  width: 4px;
+}
+
+.event-timeline-track::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.event-timeline-track::-webkit-scrollbar-thumb {
+  background: rgba(26, 24, 20, 0.18);
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.event-timeline-track::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 24, 20, 0.32);
+}
+
+/* Đường nối dọc: top/bottom cố định = nửa ITEM_H (19px), để chạm
+   đúng tâm dot đầu tiên (item đầu tại y=0..38, tâm=19) và tâm dot
+   cuối cùng (item cuối, item:last-child bỏ hẳn phần dưới nó vì
+   không có item kế tiếp — track kết thúc đúng tại tâm dot cuối). */
+/* left: 9.75px — line là con TRỰC TIẾP của .event-timeline-track
+   (không phải con của .event-timeline-item), nên toạ độ tính theo
+   padding-box của TRACK, không cộng dồn qua item. Muốn tâm line
+   (width 1.5px) trùng đúng tâm dot (dot tâm tại track-x=10.5px, xem
+   .event-timeline-dot — dot đó lại tính theo item vì nó LÀ con thật
+   của item): left = 10.5 - 1.5/2 = 9.75px. */
+.event-timeline-line {
+  position: absolute;
+  left: 9.75px;
+  top: 19px;
+  bottom: 19px;
+  width: 1.5px;
+  background: var(--line);
+}
+
+.event-timeline-item {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 38px;
+  padding-left: 10px;
+  background: transparent;
+  border: none;
+  font-family: 'Manrope', sans-serif;
+  text-align: left;
+  cursor: pointer;
+  animation: timeline-item-in 0.25s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+
+/* Mỗi mốc lệch pha nhẹ theo thứ tự xuất hiện — timeline "rơi vào"
+   theo tầng thay vì bật ra đồng loạt cùng lúc, mắt dễ theo dõi hơn.
+   Giới hạn ở 8 mốc đầu vì mốc xa hơn độ trễ không còn cảm nhận được. */
+.event-timeline-item:nth-child(1) { animation-delay: 0.02s; }
+.event-timeline-item:nth-child(2) { animation-delay: 0.05s; }
+.event-timeline-item:nth-child(3) { animation-delay: 0.08s; }
+.event-timeline-item:nth-child(4) { animation-delay: 0.11s; }
+.event-timeline-item:nth-child(5) { animation-delay: 0.14s; }
+.event-timeline-item:nth-child(6) { animation-delay: 0.17s; }
+.event-timeline-item:nth-child(7) { animation-delay: 0.20s; }
+.event-timeline-item:nth-child(8) { animation-delay: 0.23s; }
+
+@keyframes timeline-item-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Chấm mốc cũ: RỖNG, viền mảnh — nhẹ, lùi hẳn về sau so với dot
+   "hôm nay" đặc. Cùng tinh thần mockup: chỉ 1 điểm nhấn thị giác
+   duy nhất trên toàn timeline (mốc hiện tại), còn lại chỉ là dấu vết. */
+.event-timeline-dot {
+  position: absolute;
+  left: -13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+/* Chấm của ngày ĐANG XEM (r.isCurrent) — đặc, to hơn hẳn, không viền
+   ngoài rườm rà, để biết ngay đang đứng ở đâu trên timeline. Trước
+   đây gắn theo "mốc mới nhất theo thời gian" (i===0) — đổi sang
+   isCurrent vì mục đích của dot to là chỉ VỊ TRÍ ĐANG XEM, không
+   phải "đâu là mới nhất" hay "đâu là hôm nay" (2 khái niệm khác,
+   xem isToday trong .event-timeline-meta). */
+.event-timeline-dot.current-marker {
+  width: 14px;
+  height: 14px;
+  left: -14.5px;
+  background: var(--ink);
+  border: none;
+}
+
+.event-timeline-item:hover:not(:disabled) .event-timeline-dot {
+  border-color: var(--ink);
+}
+
+.event-timeline-date {
+  font-size: 15px;
+  line-height: 1;
+  color: var(--mute);
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.event-timeline-item.current .event-timeline-date {
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.event-timeline-item:hover:not(:disabled) .event-timeline-date {
+  color: var(--ink);
+}
+
+.event-timeline-item:disabled {
+  cursor: default;
+}
+
+/* Cụm bên phải mỗi hàng: "hôm nay · cách lần trước N ngày" (hoặc chỉ
+   "lần đầu ghi nhận") — gộp chung 1 dòng, canh phải, ngang hàng với
+   ngày + chấm bên trái (giữ nguyên nội dung, chỉ đổi mật độ dòng ở
+   trên để cụm này có thêm khoảng thở). */
+.event-timeline-meta {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--mute);
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

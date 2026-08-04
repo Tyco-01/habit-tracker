@@ -1,0 +1,230 @@
+/* ============================================================
+   css/views/year.css — tách từ style.css gốc để dễ tra cứu/bảo trì theo domain.
+   Được load qua thẻ <link> riêng trong index.html (không dùng @import
+   — @import tạo network round-trip tuần tự, chậm hơn tải song song
+   qua nhiều <link>). Mỗi file cũng được cache riêng trong
+   service-worker.js (CORE_ASSETS).
+   ============================================================ */
+
+/* Màn "Cả năm" — lưới ngày */
+
+/* ---- Màn "Cả năm" ---- */
+
+.year-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.date-jump-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  max-width: 220px;
+}
+
+.date-jump-input {
+  border: none;
+  background: transparent;
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+  flex: 1;
+  min-width: 0;
+}
+
+.date-jump-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.year-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.year-nav button {
+  border: none;
+  background: transparent;
+  padding: 2px;
+  display: flex;
+}
+
+.year-nav button:disabled {
+  color: var(--line);
+  cursor: default;
+}
+
+.year-label {
+  margin: 0;
+  font-weight: 600;
+  font-size: 16px;
+  min-width: 44px;
+  text-align: center;
+}
+
+.year-count {
+  font-size: 12px;
+  color: var(--mute);
+}
+
+.months-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px 16px;
+}
+
+/* Màn hình hẹp (điện thoại): 4 cột tháng quá chật, ô ngày co nhỏ tới
+   mức số bị ép mất — chuyển dần về ít cột hơn theo độ rộng thực tế. */
+@media (max-width: 900px) {
+  .months-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .months-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+.month-block {
+  min-width: 0;
+}
+
+.month-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 8px;
+  white-space: nowrap;
+}
+
+.weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.weekday-row span {
+  font-size: 9px;
+  color: var(--mute);
+  text-align: center;
+}
+
+.day-grid {
+  display: grid;
+  gap: 3px;
+}
+
+.day-grid.month-grid {
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.day-cell {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--mute);
+  position: relative;
+}
+
+.event-clip {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  font-size: 9px !important;
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.day-cell.full .event-clip {
+  color: var(--full-bg);
+}
+
+/* Dấu hiệu "ngày này có ghi chú riêng" — đặt góc trên-trái, đối xứng
+   với event-clip (góc trên-phải) để 2 dấu không đè lên nhau khi 1
+   ngày vừa có sự kiện vừa có ghi chú. */
+.note-mark {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  font-size: 9px !important;
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.day-cell.full .note-mark {
+  color: var(--full-bg);
+}
+
+.day-cell.blank {
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.day-cell.future-day {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--line);
+}
+
+.day-cell:hover {
+  transform: scale(1.25);
+  z-index: 2;
+  position: relative;
+}
+
+.day-cell.blank:hover {
+  transform: none;
+}
+
+.day-cell.partial {
+  background: var(--partial-bg);
+  border-color: var(--line);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.day-cell.full {
+  background: var(--full-bg);
+  border-color: var(--full-bg);
+  color: var(--card);
+  font-weight: 700;
+}
+
+.day-cell.today {
+  outline: 1.5px solid var(--ink);
+  outline-offset: 1.5px;
+}

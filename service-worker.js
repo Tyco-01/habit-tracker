@@ -8,20 +8,32 @@
 // có thể bị "kẹt" lại rất lâu dù đã tải code mới lên server.
 // ============================================================
 
-const CACHE_NAME = 'habit-tracker-v27';
+const CACHE_NAME = 'habit-tracker-v29';
 
 const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './css/style.css',
+  './css/base.css',
+  './css/layout.css',
+  './css/components.css',
+  './css/event-timeline.css',
+  './css/views/lock.css',
+  './css/views/today.css',
+  './css/views/year.css',
+  './css/views/day-detail.css',
+  './css/views/stats.css',
   './js/config.js',
   './js/date-utils.js',
   './js/dom-utils.js',
   './js/supabase-client.js',
   './js/auth.js',
   './js/storage-local.js',
-  './js/sync.js',
+  './js/sync/state.js',
+  './js/sync/queue.js',
+  './js/sync/mutations.js',
+  './js/sync/pull.js',
+  './js/sync/index.js',
   './js/tree-icons.js',
   './js/confirm-modal.js',
   './js/event-section.js',

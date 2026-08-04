@@ -1,0 +1,72 @@
+/* ============================================================
+   css/views/lock.css — tách từ style.css gốc để dễ tra cứu/bảo trì theo domain.
+   Được load qua thẻ <link> riêng trong index.html (không dùng @import
+   — @import tạo network round-trip tuần tự, chậm hơn tải song song
+   qua nhiều <link>). Mỗi file cũng được cache riêng trong
+   service-worker.js (CORE_ASSETS).
+   ============================================================ */
+
+/* Màn hình khoá (mã bí mật) */
+
+/* ---- Màn hình khoá (mã bí mật / PIN) ---- */
+
+.lock-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+.lock-screen h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.lock-screen p {
+  font-size: 14px;
+  color: var(--mute);
+  margin: 0 0 24px;
+  max-width: 320px;
+}
+
+.lock-input {
+  width: 100%;
+  max-width: 280px;
+  font-size: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.lock-input:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.lock-btn {
+  width: 100%;
+  max-width: 280px;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.lock-error {
+  color: #B5432B;
+  font-size: 13px;
+  margin-top: 10px;
+  min-height: 18px;
+}

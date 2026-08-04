@@ -41,7 +41,7 @@ const ConfirmModal = (() => {
     return overlayEl;
   }
 
-  const CLOSE_ANIM_MS = 180; // khớp đúng transition trong .confirm-modal-overlay (style.css)
+  const CLOSE_ANIM_MS = 180; // khớp đúng transition trong .confirm-modal-overlay (css/components.css)
 
   function show({ title, body = '', confirmLabel = 'OK', cancelLabel = 'Huỷ', hideCancel = false }) {
     const overlay = ensureOverlay();
