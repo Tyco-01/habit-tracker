@@ -44,4 +44,11 @@ check('Chỉ có một habit cục bộ', Sync.getData().habits.length === 1);
 const adds = LocalStore.loadQueue().filter(entry => entry.type === 'add_habit');
 check('Chỉ có một thao tác add trong hàng đợi đồng bộ', adds.length === 1);
 check('Tên hợp lệ vẫn được giữ nguyên cho người dùng', Sync.getData().habits[0].name === 'Tập   thể dục');
+// This must still be deduplicated after the short rapid-submit window.
+const originalNow = Date.now;
+Date.now = () => originalNow() + 5000;
+const third = Sync.addHabit('TẬP THỂ DỤC');
+Date.now = originalNow;
+check('Trùng tên sau thời gian dài vẫn trỏ tới habit đang có', third.id === first.id);
+check('Không có queue entry trùng sau thời gian dài', LocalStore.loadQueue().filter(entry => entry.type === 'add_habit').length === 1);
 console.log(`========== KẾT QUẢ: ${passed} PASS ==========`);

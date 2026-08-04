@@ -12,10 +12,12 @@
   display: flex;
   gap: 6px;
   margin-bottom: 14px;
+  min-width: 0;
 }
 
 .input-row input {
   flex: 1;
+  min-width: 0;
   font-size: 14px;
   padding: 9px 12px;
   border-radius: 8px;
@@ -37,6 +39,7 @@
 }
 
 .input-row button {
+  flex: 0 0 auto;
   font-size: 13px;
   font-weight: 500;
   padding: 8px 14px;
@@ -54,6 +57,12 @@
 }
 
 .input-row button:disabled { cursor: wait; opacity: 0.55; }
+
+@media (max-width: 380px) {
+  .input-row { flex-wrap: wrap; }
+  .input-row input { flex-basis: 100%; }
+  .input-row button { margin-left: auto; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }

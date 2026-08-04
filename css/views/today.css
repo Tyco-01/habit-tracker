@@ -74,9 +74,18 @@
 
 .habit-row.is-moving { transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
 
+.habit-row.is-existing {
+  animation: habit-row-existing 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @keyframes habit-row-enter {
   from { opacity: 0; transform: translateY(10px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes habit-row-existing {
+  0%, 100% { background: transparent; }
+  40% { background: var(--partial-bg); transform: scale(1.01); }
 }
 
 .habit-row:active {

@@ -427,9 +427,24 @@ const TodayView = (() => {
       addSave.disabled = true;
       addInput.disabled = true;
       try {
-        Sync.addHabit(name);
+        const existing = Sync.getData().habits.find(h =>
+          h.name.trim().replace(/\s+/g, ' ').toLocaleLowerCase() ===
+          name.trim().replace(/\s+/g, ' ').toLocaleLowerCase()
+        );
+        const habit = Sync.addHabit(name);
         addInput.value = '';
         addRow.classList.remove('is-open');
+        // A duplicate entry closes normally, then draws attention to the
+        // existing task so the action has a clear, useful result.
+        if (existing && habit) {
+          const row = listEl.querySelector(`[data-habit-id="${habit.id}"]`);
+          if (row) {
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            row.classList.remove('is-existing');
+            void row.offsetWidth;
+            row.classList.add('is-existing');
+          }
+        }
       } finally {
         // Keep the lock through the current input/click event turn. This is
         // what prevents Enter + click or a double tap from becoming two adds.

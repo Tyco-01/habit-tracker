@@ -11,8 +11,8 @@ const SyncMutations = (() => {
 
   // A UI lock is useful, but it is not a data-integrity boundary: touch/click
   // pairs, two mounted views, or callers outside the UI can still invoke this
-  // function twice. Keep a short-lived normalized fingerprint at the mutation
-  // boundary so one user action can create at most one habit and one queue item.
+  // function twice. This normalized fingerprint is also used to make names
+  // unique for the full lifetime of an active habit, not just a short window.
   const recentHabitAdds = new Map();
   const HABIT_DEDUPE_WINDOW_MS = 1200;
 
@@ -187,6 +187,8 @@ const SyncMutations = (() => {
 
     const key = habitFingerprint(name);
     const now = Date.now();
+    const existing = data.habits.find(h => habitFingerprint(h.name) === key);
+    if (existing) return existing;
     const recent = recentHabitAdds.get(key);
     if (recent && now - recent.createdAt < HABIT_DEDUPE_WINDOW_MS) {
       return recent.habit;

@@ -50,12 +50,16 @@ button {
 }
 
 #app {
-  max-width: 620px;
+  /* An explicit width keeps the app column constrained even when a host page
+     injects a display/layout rule for #app. min-width: 0 prevents flex/grid
+     children such as the add row from forcing horizontal overflow. */
+  width: min(100%, 620px);
+  min-width: 0;
   margin: 0 auto;
   padding: 1.5rem 1.25rem 3rem;
 }
 
 /* Màn "Cả năm" cần rộng hơn để chứa lưới 4 cột tháng thoải mái */
 #app:has(.months-grid) {
-  max-width: 880px;
+  width: min(100%, 880px);
 }
