@@ -197,7 +197,33 @@
 .day-cell.future-day {
   border: 1px solid var(--line);
   background: transparent;
-  color: var(--line);
+  color: color-mix(in srgb, var(--mute) 45%, var(--paper));
+}
+
+/* Ngày đã qua nhưng chưa có hoạt động vẫn hiện số ngày; nền trắng giữ
+   nó tách biệt rõ với ngày tương lai dùng nền trong suốt, màu nhạt hơn. */
+.day-cell.empty-day {
+  color: var(--mute);
+}
+
+.day-progress {
+  font-weight: 700;
+}
+
+.day-number {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font-size: 8px;
+  font-weight: 500;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.72;
+}
+
+.day-cell.full .day-number,
+.day-cell.partial .day-number {
+  opacity: 0.8;
 }
 
 .day-cell:hover {

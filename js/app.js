@@ -161,7 +161,7 @@
       requestAnimationFrame(() => window.scrollTo(0, scrollPositions[tab] || 0));
     }
 
-    function showTab(tab) {
+    function showTab(tab, { restoreScroll = true } = {}) {
       saveScrollPosition();
       viewToday.style.display = tab === 'today' ? 'block' : 'none';
       viewYear.style.display = tab === 'year' ? 'block' : 'none';
@@ -173,11 +173,14 @@
       navStats.classList.toggle('active', tab === 'stats');
       navTrash.classList.toggle('active', tab === 'trash');
       currentTab = tab;
-      restoreScrollPosition(tab);
+      if (restoreScroll) restoreScrollPosition(tab);
     }
 
     navToday.addEventListener('click', () => { showTab('today'); TodayView.render(viewToday); });
-    navYear.addEventListener('click', () => { showTab('year'); YearView.render(viewYear, openDay); });
+    navYear.addEventListener('click', () => {
+      showTab('year', { restoreScroll: false });
+      YearView.render(viewYear, openDay, { focusToday: true });
+    });
     navStats.addEventListener('click', () => { showTab('stats'); StatsView.render(viewStats); });
     navTrash.addEventListener('click', () => { showTab('trash'); TrashView.render(viewTrash); });
 

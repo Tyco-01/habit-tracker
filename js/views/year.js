@@ -34,8 +34,9 @@ const YearView = (() => {
     return 'partial';
   }
 
-  function render(container, dayClickHandler) {
+  function render(container, dayClickHandler, { focusToday = false } = {}) {
     onDayClick = dayClickHandler;
+    if (focusToday) viewYear = new Date().getFullYear();
 
     container.innerHTML = `<div id="year-content"></div>`;
     const content = container.querySelector('#year-content');
@@ -119,12 +120,12 @@ const YearView = (() => {
           if (isFuture) {
             // Ngày chưa tới: không có việc lặp lại để hiện số, nhưng vẫn
             // bấm mở được — để có thể đặt trước dấu ấn 1 lần (vd hẹn khám).
-            cells += `<div class="day-cell future-day" data-date="${key}">${clipHtml}${noteMarkHtml}${day}</div>`;
+            cells += `<div class="day-cell future-day" data-date="${key}">${clipHtml}${noteMarkHtml}<span class="day-number">${day}</span></div>`;
             continue;
           }
           const count = countForDate(checks, habits, key);
           const isToday = key === todayKey;
-          cells += `<div class="day-cell ${cellClass(count, total)} ${isToday ? 'today' : ''}" data-date="${key}">${clipHtml}${noteMarkHtml}${count > 0 ? count : ''}</div>`;
+          cells += `<div class="day-cell ${cellClass(count, total)} ${count === 0 ? 'empty-day' : ''} ${isToday ? 'today' : ''}" data-date="${key}">${clipHtml}${noteMarkHtml}${count > 0 ? `<span class="day-progress">${count}</span>` : ''}<span class="day-number">${day}</span></div>`;
         }
 
         html += `
@@ -158,6 +159,13 @@ const YearView = (() => {
 
       bindNav();
       bindDateJump();
+
+      if (focusToday && isCurrentYear) {
+        requestAnimationFrame(() => {
+          const todayCell = content.querySelector(`[data-date="${todayKey}"]`);
+          todayCell?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        });
+      }
     }
 
     // Cho phép gõ (hoặc chọn từ bộ lịch gốc của trình duyệt/hệ điều hành)
