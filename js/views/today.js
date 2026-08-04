@@ -237,7 +237,7 @@ const TodayView = (() => {
             committed = true;
             const newName = input.value.trim();
             if (newName && newName !== habit.name) {
-              Sync.renameHabit(habitId, newName);
+              if (!Sync.renameHabit(habitId, newName)) draw();
             } else {
               draw();
             }

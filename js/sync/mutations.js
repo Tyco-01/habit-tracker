@@ -9,13 +9,6 @@
 
 const SyncMutations = (() => {
 
-  // A UI lock is useful, but it is not a data-integrity boundary: touch/click
-  // pairs, two mounted views, or callers outside the UI can still invoke this
-  // function twice. This normalized fingerprint is also used to make names
-  // unique for the full lifetime of an active habit, not just a short window.
-  const recentHabitAdds = new Map();
-  const HABIT_DEDUPE_WINDOW_MS = 1200;
-
   function habitFingerprint(name) {
     return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
   }
@@ -70,6 +63,7 @@ const SyncMutations = (() => {
 
   function applySetCheck(habitId, dateStr, checked) {
     const data = SyncState.getData();
+    if (!data.habits.some(h => h.id === habitId)) return false;
     if (!data.checks[habitId]) data.checks[habitId] = {};
     if (checked) {
       data.checks[habitId][dateStr] = true;
@@ -77,6 +71,7 @@ const SyncMutations = (() => {
       delete data.checks[habitId][dateStr];
     }
     SyncState.persistLocal();
+    return true;
   }
 
   function applyAddEvent(dateStr, event) {
@@ -118,7 +113,12 @@ const SyncMutations = (() => {
     const data = SyncState.getData();
     const byId = {};
     data.habits.forEach(h => { byId[h.id] = h; });
-    data.habits = orderedIds.map((id, idx) => ({ ...byId[id], sortOrder: idx })).filter(Boolean);
+    const seen = new Set();
+    const validIds = orderedIds.filter(id => byId[id] && !seen.has(id) && seen.add(id));
+    // Keep any ID missing from a stale drag payload rather than silently
+    // dropping a habit from local state.
+    data.habits.forEach(h => { if (!seen.has(h.id)) validIds.push(h.id); });
+    data.habits = validIds.map((id, idx) => ({ ...byId[id], sortOrder: idx }));
     SyncState.persistLocal();
   }
 
@@ -158,22 +158,27 @@ const SyncMutations = (() => {
   // thật: kéo "abc" thả vào "thiền" — con của "abc").
   function applySetHabitParent(habitId, parentId) {
     const data = SyncState.getData();
+    const habit = data.habits.find(h => h.id === habitId);
+    if (!habit) return false;
     if (parentId) {
       const byId = {};
       data.habits.forEach(h => { byId[h.id] = h; });
+      if (!byId[parentId] || parentId === habitId) return false;
       let cur = byId[parentId];
       let guard = 0;
       while (cur && cur.parentId && guard < 20) {
         if (cur.parentId === habitId) {
           console.warn(`setHabitParent bị chặn: sẽ tạo vòng lặp cha-con (${habitId} <-> ${parentId})`);
-          return;
+          return false;
         }
         cur = byId[cur.parentId];
         guard++;
       }
     }
+    if (habit.parentId === parentId) return false;
     data.habits = data.habits.map(h => h.id === habitId ? { ...h, parentId } : h);
     SyncState.persistLocal();
+    return true;
   }
 
   // ---- Hành động công khai: gọi từ UI ----
@@ -186,16 +191,10 @@ const SyncMutations = (() => {
     if (!name) return null;
 
     const key = habitFingerprint(name);
-    const now = Date.now();
     const existing = data.habits.find(h => habitFingerprint(h.name) === key);
     if (existing) return existing;
-    const recent = recentHabitAdds.get(key);
-    if (recent && now - recent.createdAt < HABIT_DEDUPE_WINDOW_MS) {
-      return recent.habit;
-    }
 
     const habit = { id: SyncState.tempId(), name, sortOrder: data.habits.length, parentId: null };
-    recentHabitAdds.set(key, { createdAt: now, habit });
     applyAddHabit(habit);
     LocalStore.enqueue('add_habit', { localId: habit.id, name });
     SyncQueue.kickSync();
@@ -210,9 +209,13 @@ const SyncMutations = (() => {
   }
 
   function restoreHabit(habitId) {
+    const data = SyncState.getData();
+    const archived = data.archivedHabits.find(h => h.id === habitId);
+    if (!archived || data.habits.some(h => habitFingerprint(h.name) === habitFingerprint(archived.name))) return false;
     applyRestoreHabit(habitId);
     LocalStore.enqueue('restore_habit', { habitId });
     SyncQueue.kickSync();
+    return true;
   }
 
   // Xoá vĩnh viễn toàn bộ thùng rác — không hoàn tác được
@@ -223,9 +226,10 @@ const SyncMutations = (() => {
   }
 
   function setCheck(habitId, dateStr, checked) {
-    applySetCheck(habitId, dateStr, checked);
+    if (!applySetCheck(habitId, dateStr, checked)) return false;
     LocalStore.enqueue('set_check', { habitId, date: dateStr, checked });
     SyncQueue.kickSync();
+    return true;
   }
 
   function addEvent(dateStr, name) {
@@ -245,9 +249,14 @@ const SyncMutations = (() => {
 
   function renameHabit(habitId, newName) {
     newName = SyncState.truncate(newName, CONFIG.MAX_LENGTH.NAME);
+    if (!newName) return false;
+    const data = SyncState.getData();
+    if (!data.habits.some(h => h.id === habitId)) return false;
+    if (data.habits.some(h => h.id !== habitId && habitFingerprint(h.name) === habitFingerprint(newName))) return false;
     applyRenameHabit(habitId, newName);
     LocalStore.enqueue('rename_habit', { habitId, name: newName });
     SyncQueue.kickSync();
+    return true;
   }
 
   // Đổi tên 1 dấu ấn ÁP DỤNG CẢ CHUỖI lịch sử — mọi event cùng tên
@@ -265,9 +274,11 @@ const SyncMutations = (() => {
   }
 
   function reorderHabits(orderedIds) {
+    if (!Array.isArray(orderedIds)) return false;
     applyReorderHabits(orderedIds);
     LocalStore.enqueue('reorder_habits', { orderedIds });
     SyncQueue.kickSync();
+    return true;
   }
 
   function updateEventNote(dateStr, eventId, note) {
@@ -287,9 +298,10 @@ const SyncMutations = (() => {
 
   // parentId = null → tách thành việc độc lập
   function setHabitParent(habitId, parentId) {
-    applySetHabitParent(habitId, parentId);
+    if (!applySetHabitParent(habitId, parentId)) return false;
     LocalStore.enqueue('set_habit_parent', { habitId, parentId });
     SyncQueue.kickSync();
+    return true;
   }
 
   return {

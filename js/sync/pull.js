@@ -11,6 +11,10 @@ const SyncPull = (() => {
     const token = Auth.currentToken();
     if (!token) return;
 
+    // A pull replaces the in-memory snapshot. Flush first so an offline
+    // change saved in the local queue cannot be overwritten on app restart.
+    await SyncQueue.flushQueue();
+
     // Dọn tự động các mục thùng rác đã quá 30 ngày trước khi tải dữ liệu mới
     try {
       await SupabaseClient.rpc('purge_expired_trash', { p_session_token: token });
