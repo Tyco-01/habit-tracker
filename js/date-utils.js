@@ -70,9 +70,19 @@ const DateUtils = (() => {
     return dateStr === dateKey(new Date());
   }
 
+  // dateStr + delta ngày (delta có thể âm) → dateStr mới. Dùng khi cần
+  // duyệt qua 1 khoảng ngày (vd checklist tick-sẵn hồi tố trong
+  // habit-range-modal.js) mà không cần dựng đối tượng Date thủ công ở
+  // nơi gọi.
+  function addDays(dateStr, delta) {
+    const d = parseDateStr(dateStr);
+    d.setDate(d.getDate() + delta);
+    return dateKey(d);
+  }
+
   return {
     DAYS_VN, MONTH_NAMES_FULL, MONTHS_SHORT_BAR, MONTHS_SHORT_GRID,
     dateKey, dateKeyFromParts, parseDateStr,
-    formatFullLabel, formatDayMonthLabel, isToday
+    formatFullLabel, formatDayMonthLabel, isToday, addDays
   };
 })();

@@ -166,6 +166,27 @@
   opacity: 1;
 }
 
+/* Nút "Sửa phạm vi áp dụng" (mở HabitRangeModal) — cùng kích thước/vị
+   trí với note-btn/remove-btn để hàng habit không lệch cao khi thêm
+   nút mới, mờ mặc định giống remove-btn (thao tác không dùng hàng
+   ngày, không cần nổi bật thường trực). */
+.range-btn {
+  border: none;
+  background: transparent;
+  color: var(--mute);
+  padding: 4px;
+  opacity: 0.55;
+  flex-shrink: 0;
+  display: flex;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.range-btn:hover,
+.range-btn:active {
+  opacity: 1;
+  color: var(--ink);
+}
+
 .empty-state {
   text-align: center;
   padding: 2.5rem 1rem;
@@ -379,7 +400,7 @@
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 10px;
-  box-shadow: 0 1px 3px rgba(32, 42, 51, 0.06);
+  box-shadow: 0 1px 3px rgba(var(--ink-rgb), 0.06);
   overflow: hidden;
   max-height: 0;
   opacity: 0;
@@ -463,7 +484,7 @@
   padding-right: 24px;
   touch-action: pan-x;
   scrollbar-width: thin;
-  scrollbar-color: rgba(32, 42, 51, 0.18) transparent;
+  scrollbar-color: rgba(var(--ink-rgb), 0.18) transparent;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -476,14 +497,14 @@
 }
 
 .event-dropdown-scroll::-webkit-scrollbar-thumb {
-  background: rgba(32, 42, 51, 0.18);
+  background: rgba(var(--ink-rgb), 0.18);
   border-radius: 4px;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
 
 .event-dropdown-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(32, 42, 51, 0.32);
+  background: rgba(var(--ink-rgb), 0.32);
 }
 
 .event-dropdown-chip {
@@ -549,7 +570,7 @@
 .confirm-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(32, 42, 51, 0.45);
+  background: rgba(var(--ink-rgb), 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -569,7 +590,7 @@
   padding: 20px;
   max-width: 380px;
   width: 100%;
-  box-shadow: 0 12px 32px rgba(32, 42, 51, 0.18);
+  box-shadow: 0 12px 32px rgba(var(--ink-rgb), 0.18);
   transform: scale(0.96) translateY(4px);
   transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
@@ -626,4 +647,117 @@
 
 .confirm-modal-btn-ok:hover {
   opacity: 0.85;
+}
+
+/* ============================================================
+   Modal "Sửa phạm vi áp dụng" (js/habit-range-modal.js) — dùng lại
+   .confirm-modal-overlay/.confirm-modal-title/.confirm-modal-body/
+   .confirm-modal-actions/.confirm-modal-btn* ở trên cho khung + nút,
+   chỉ thêm phần riêng: field ngày, checklist tick hồi tố nhóm theo
+   tháng. Card rộng hơn confirm-modal-card 1 chút để chứa checklist
+   thoải mái hơn trên màn hình nhỏ.
+
+   z-index THẤP HƠN .confirm-modal-overlay 1 bậc CÓ CHỦ ĐÍCH — luồng
+   ở bước 1 tự mở thêm 1 ConfirmModal (cảnh báo ảnh hưởng) NGAY TRONG
+   LÚC overlay này vẫn đang mở phía sau, nên confirm-modal PHẢI luôn
+   nổi lên trên bất kể modal nào được TẠO RA (append vào <body>)
+   trước — thứ tự DOM tạo trước/sau giữa 2 module không nên quyết
+   định thứ tự xếp lớp hiển thị.
+   ============================================================ */
+
+.range-modal-overlay {
+  z-index: 999;
+}
+
+.range-modal-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 420px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 32px rgba(var(--ink-rgb), 0.18);
+  transform: scale(0.96) translateY(4px);
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.range-modal-overlay.is-open .range-modal-card {
+  transform: scale(1) translateY(0);
+}
+
+.range-modal-field {
+  margin-top: 4px;
+}
+
+.range-modal-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute);
+  margin-bottom: 6px;
+}
+
+.range-modal-date-input {
+  width: 100%;
+  font-size: 14px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.range-modal-date-input:disabled {
+  opacity: 0.5;
+}
+
+.range-modal-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+.range-modal-checklist {
+  margin-top: 14px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 4px 10px;
+}
+
+.range-modal-month + .range-modal-month {
+  border-top: 1px solid var(--line);
+}
+
+.range-modal-month summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 10px 2px;
+  cursor: pointer;
+  list-style: revert;
+}
+
+.range-modal-month-count {
+  font-weight: 400;
+  color: var(--mute);
+}
+
+.range-modal-day-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 6px 2px 6px 18px;
+  cursor: pointer;
+}
+
+.range-modal-day-row input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--ink);
+  flex-shrink: 0;
 }

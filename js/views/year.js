@@ -7,8 +7,12 @@ const YearView = (() => {
   let viewYear = new Date().getFullYear();
   let onDayClick = null;
 
-  function countForDate(checks, habits, key) {
-    return habits.filter(h => checks[h.id] && checks[h.id][key]).length;
+  // scopedHabits = danh sách habit ĐÃ LỌC theo HabitScope cho đúng
+  // ngày `key` (không còn dùng habits.length cố định — xem
+  // js/habit-scope.js để biết vì sao: bug "thêm việc mới làm tụt màu
+  // ngày cũ").
+  function countForDate(checks, scopedHabits, key) {
+    return scopedHabits.filter(h => checks[h.id] && checks[h.id][key]).length;
   }
 
   // true nếu có bất kỳ habit nào mang ghi chú RIÊNG cho đúng ngày này
@@ -43,19 +47,25 @@ const YearView = (() => {
     let lastYearHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế — quan trọng hơn cả ở đây vì draw() build cả lưới 365 ô + vòng lặp đếm mỗi lần gọi, tốn kém hơn hẳn các view khác
 
     function draw() {
-      const { habits, checks, events, habitNotes } = Sync.getData();
+      const data = Sync.getData();
+      const { habits, checks, events, habitNotes } = data;
       const today = new Date();
       const todayKey = DateUtils.dateKeyFromParts(today.getFullYear(), today.getMonth(), today.getDate());
-      const total = habits.length;
+      // hasAnyHabit CHỈ dùng để gác "có việc nào để hiển thị lưới năm
+      // không" (không phụ thuộc ngày) — KHÔNG dùng làm mẫu số cho từng
+      // ô ngày nữa, xem HabitScope.habitsForDate bên dưới cho mẫu số
+      // thật của từng ngày cụ thể.
+      const hasAnyHabit = habits.length > 0;
       const isCurrentYear = viewYear === today.getFullYear();
 
       let fullDays = 0;
-      if (total > 0) {
+      if (hasAnyHabit) {
         const startOfView = new Date(viewYear, 0, 1);
         const endOfView = isCurrentYear ? today : new Date(viewYear, 11, 31);
         for (let d = new Date(startOfView); d <= endOfView; d.setDate(d.getDate() + 1)) {
           const key = DateUtils.dateKeyFromParts(d.getFullYear(), d.getMonth(), d.getDate());
-          if (countForDate(checks, habits, key) === total) fullDays++;
+          const scoped = HabitScope.habitsForDate(key, data);
+          if (scoped.length > 0 && countForDate(checks, scoped, key) === scoped.length) fullDays++;
         }
       }
 
@@ -74,7 +84,7 @@ const YearView = (() => {
               <i class="ti ti-chevron-right" style="font-size:18px;" aria-hidden="true"></i>
             </button>
           </div>
-          <span class="year-count">${total > 0 ? fullDays + ' ngày hoàn thành đủ' : ''}</span>
+          <span class="year-count">${hasAnyHabit ? fullDays + ' ngày hoàn thành đủ' : ''}</span>
         </div>
         <div class="date-jump-row">
           <i class="ti ti-search" style="font-size:14px;color:var(--mute);" aria-hidden="true"></i>
@@ -82,7 +92,7 @@ const YearView = (() => {
         </div>
       `;
 
-      if (total === 0) {
+      if (!hasAnyHabit) {
         html += `<div class="empty-state"><p>Chưa có việc nào để hiển thị.</p></div>`;
         if (html === lastYearHtml) return;
         lastYearHtml = html;
@@ -123,9 +133,11 @@ const YearView = (() => {
             cells += `<div class="day-cell future-day" data-date="${key}">${clipHtml}${noteMarkHtml}<span class="day-number">${day}</span></div>`;
             continue;
           }
-          const count = countForDate(checks, habits, key);
+          const scoped = HabitScope.habitsForDate(key, data);
+          const dayTotal = scoped.length;
+          const count = countForDate(checks, scoped, key);
           const isToday = key === todayKey;
-          cells += `<div class="day-cell ${cellClass(count, total)} ${count === 0 ? 'empty-day' : ''} ${isToday ? 'today' : ''}" data-date="${key}">${clipHtml}${noteMarkHtml}${count > 0 ? `<span class="day-progress">${count}</span>` : ''}<span class="day-number">${day}</span></div>`;
+          cells += `<div class="day-cell ${cellClass(count, dayTotal)} ${count === 0 ? 'empty-day' : ''} ${isToday ? 'today' : ''}" data-date="${key}">${clipHtml}${noteMarkHtml}${count > 0 ? `<span class="day-progress">${count}</span>` : ''}<span class="day-number">${day}</span></div>`;
         }
 
         html += `

@@ -26,6 +26,11 @@ const SyncMutations = (() => {
   // được tự động TÁCH RA thành việc độc lập (không bị archive theo)
   // — tránh trường hợp "con mồ côi" còn parentId trỏ tới 1 habit đã
   // nằm trong thùng rác, gây hiển thị sai hoặc lỗi khi khôi phục.
+  // validFrom được CARRY OVER sang bản ghi archived — cần thiết để
+  // HabitScope.habitsForDate() vẫn tính đúng habit này vào tổng của các
+  // ngày quá khứ mà nó từng còn hoạt động, ngay cả sau khi đã bị xoá
+  // (xem js/habit-scope.js — merge cả habits ĐANG hoạt động lẫn
+  // archivedHabits khi tính tổng của 1 ngày).
   function applyArchiveHabit(habitId) {
     const data = SyncState.getData();
     const habit = data.habits.find(h => h.id === habitId);
@@ -33,7 +38,7 @@ const SyncMutations = (() => {
     data.habits = data.habits
       .filter(h => h.id !== habitId)
       .map(h => h.parentId === habitId ? { ...h, parentId: null } : h);
-    data.archivedHabits.push({ id: habitId, name: habit.name, archivedAt: Date.now() });
+    data.archivedHabits.push({ id: habitId, name: habit.name, archivedAt: Date.now(), validFrom: habit.validFrom || null });
     SyncState.persistLocal();
   }
 
@@ -42,7 +47,7 @@ const SyncMutations = (() => {
     const archived = data.archivedHabits.find(h => h.id === habitId);
     if (!archived) return;
     data.archivedHabits = data.archivedHabits.filter(h => h.id !== habitId);
-    data.habits.push({ id: habitId, name: archived.name, sortOrder: data.habits.length });
+    data.habits.push({ id: habitId, name: archived.name, sortOrder: data.habits.length, parentId: null, validFrom: archived.validFrom || null });
     SyncState.persistLocal();
   }
 
@@ -61,9 +66,17 @@ const SyncMutations = (() => {
     SyncState.persistLocal();
   }
 
+  // Cho phép tick/untick CẢ habit đã archive (không chỉ habit đang hoạt
+  // động) — vì "hoàn thành ở 1 ngày quá khứ" là sự thật lịch sử được
+  // phép sửa bất cứ lúc nào (không giới hạn thời gian, xem
+  // js/habit-scope.js), kể cả sau khi habit đó đã bị chuyển vào thùng
+  // rác. Nếu chỉ cho phép habit đang hoạt động, ngày quá khứ hiện habit
+  // đã archive (qua HabitScope, xem views/day-detail.js) sẽ có nút tick
+  // bấm không phản ứng gì — dead click khó hiểu.
   function applySetCheck(habitId, dateStr, checked) {
     const data = SyncState.getData();
-    if (!data.habits.some(h => h.id === habitId)) return false;
+    const exists = data.habits.some(h => h.id === habitId) || data.archivedHabits.some(h => h.id === habitId);
+    if (!exists) return false;
     if (!data.checks[habitId]) data.checks[habitId] = {};
     if (checked) {
       data.checks[habitId][dateStr] = true;
@@ -181,6 +194,19 @@ const SyncMutations = (() => {
     return true;
   }
 
+  // Sửa "áp dụng từ khi nào" của 1 habit ĐANG hoạt động (không áp dụng
+  // cho habit đã archive — xem giới hạn phạm vi trong
+  // HabitScope.notYetActiveHabits). validFrom = null nghĩa là "không
+  // giới hạn dưới, áp dụng từ trước tới giờ".
+  function applySetHabitValidFrom(habitId, validFrom) {
+    const data = SyncState.getData();
+    const idx = data.habits.findIndex(h => h.id === habitId);
+    if (idx === -1) return false;
+    data.habits[idx] = { ...data.habits[idx], validFrom: validFrom || null };
+    SyncState.persistLocal();
+    return true;
+  }
+
   // ---- Hành động công khai: gọi từ UI ----
   // Mỗi hành động: (1) áp dụng cục bộ ngay, (2) đẩy vào hàng đợi đồng
   // bộ, (3) thử đồng bộ ngay nếu có mạng.
@@ -194,9 +220,14 @@ const SyncMutations = (() => {
     const existing = data.habits.find(h => habitFingerprint(h.name) === key);
     if (existing) return existing;
 
-    const habit = { id: SyncState.tempId(), name, sortOrder: data.habits.length, parentId: null };
+    // validFrom = hôm nay — đây là ĐIỂM MẤU CHỐT sửa bug "thêm việc mới
+    // làm tụt màu ngày cũ" (xem js/habit-scope.js): habit mới chỉ tính
+    // vào tổng của ngày TỪ HÔM NAY TRỞ ĐI, ngày quá khứ không hề bị đụng
+    // tới — không cần hỏi gì thêm, tự động đúng ngay từ lúc tạo.
+    const validFrom = DateUtils.dateKey(new Date());
+    const habit = { id: SyncState.tempId(), name, sortOrder: data.habits.length, parentId: null, validFrom };
     applyAddHabit(habit);
-    LocalStore.enqueue('add_habit', { localId: habit.id, name });
+    LocalStore.enqueue('add_habit', { localId: habit.id, name, validFrom });
     SyncQueue.kickSync();
     return habit;
   }
@@ -304,10 +335,21 @@ const SyncMutations = (() => {
     return true;
   }
 
+  // validFrom = null → không giới hạn dưới ("áp dụng từ trước tới giờ").
+  // Dùng khi sửa "phạm vi áp dụng" của 1 habit đang hoạt động — xem
+  // js/habit-range-modal.js. KHÔNG dùng để tạo habit mới (đã set sẵn
+  // trong addHabit) hay đổi phạm vi habit đã archive.
+  function setHabitValidFrom(habitId, validFrom) {
+    if (!applySetHabitValidFrom(habitId, validFrom)) return false;
+    LocalStore.enqueue('set_habit_valid_from', { habitId, validFrom: validFrom || null });
+    SyncQueue.kickSync();
+    return true;
+  }
+
   return {
     addHabit, removeHabit, restoreHabit, emptyTrash,
     setCheck, addEvent, removeEvent,
     renameHabit, renameEvent, reorderHabits, updateEventNote,
-    setHabitNote, setHabitParent
+    setHabitNote, setHabitParent, setHabitValidFrom
   };
 })();

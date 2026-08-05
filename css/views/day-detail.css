@@ -63,3 +63,22 @@
   padding: 12px 14px;
   margin-bottom: 6px;
 }
+
+/* Habit đã archive nhưng vẫn hiện ở đây vì từng hoạt động vào đúng
+   ngày đang xem (xem HabitScope.habitsForDate) — làm nhạt viền/nền 1
+   chút để phân biệt với habit đang hoạt động, dù vẫn tick được bình
+   thường (lịch sử được phép sửa bất cứ lúc nào). */
+.day-toggle-row-archived {
+  background: var(--paper);
+  border-style: dashed;
+}
+
+/* Khối "Việc khác" — habit CHƯA áp dụng cho ngày đang xem (tạo sau
+   ngày này). Mờ hẳn + không có check-btn/note-btn, chỉ có 1 hành động
+   duy nhất (mở rộng phạm vi), để không bị nhầm là 1 việc đã tồn tại
+   vào đúng ngày này. */
+.day-toggle-row-ghost {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--line);
+}

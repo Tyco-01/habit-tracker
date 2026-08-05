@@ -31,6 +31,9 @@ const SyncQueue = (() => {
       if (entry.type === 'set_habit_note' && entry.payload.habitId === oldId) {
         return { ...entry, payload: { ...entry.payload, habitId: newId } };
       }
+      if (entry.type === 'set_habit_valid_from' && entry.payload.habitId === oldId) {
+        return { ...entry, payload: { ...entry.payload, habitId: newId } };
+      }
       if (entry.type === 'set_habit_parent') {
         const p = { ...entry.payload };
         if (p.habitId === oldId) p.habitId = newId;
@@ -67,8 +70,13 @@ const SyncQueue = (() => {
     const isTemp = SyncState.isTemp;
     switch (entry.type) {
       case 'add_habit': {
+        // p_valid_from: RPC (migration_v6.sql) có default current_date
+        // ở phía server nếu entry cũ (trước bản cập nhật này) không có
+        // field validFrom trong payload — || undefined để field vắng
+        // mặt thay vì gửi null tường minh, tránh ghi đè default server.
         const newId = await SupabaseClient.rpc('add_habit', {
-          p_session_token: token, p_name: entry.payload.name
+          p_session_token: token, p_name: entry.payload.name,
+          p_valid_from: entry.payload.validFrom || undefined
         });
         remapHabitId(entry.payload.localId, newId);
         break;
@@ -152,6 +160,15 @@ const SyncQueue = (() => {
           p_habit_id: entry.payload.habitId,
           p_note_date: entry.payload.date, // null hoặc 'YYYY-MM-DD'
           p_content: entry.payload.content
+        });
+        break;
+      }
+      case 'set_habit_valid_from': {
+        if (isTemp(entry.payload.habitId)) throw new Error('habit_not_synced_yet');
+        await SupabaseClient.rpc('update_habit_valid_from', {
+          p_session_token: token,
+          p_habit_id: entry.payload.habitId,
+          p_valid_from: entry.payload.validFrom // null hoặc 'YYYY-MM-DD'
         });
         break;
       }

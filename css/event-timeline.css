@@ -67,7 +67,7 @@
   padding-left: 18px;
   padding-right: 10px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(32, 42, 51, 0.18) transparent;
+  scrollbar-color: rgba(var(--ink-rgb), 0.18) transparent;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -80,14 +80,14 @@
 }
 
 .event-timeline-track::-webkit-scrollbar-thumb {
-  background: rgba(32, 42, 51, 0.18);
+  background: rgba(var(--ink-rgb), 0.18);
   border-radius: 4px;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
 
 .event-timeline-track::-webkit-scrollbar-thumb:hover {
-  background: rgba(32, 42, 51, 0.32);
+  background: rgba(var(--ink-rgb), 0.32);
 }
 
 /* Đường nối dọc: top/bottom cố định = nửa ITEM_H (19px), để chạm

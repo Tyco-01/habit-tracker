@@ -10,19 +10,51 @@
 
 /* ============================================================
    style.css — Tông kem / đen than, font Manrope.
-   Màu khai báo cứng (không dùng biến theme hệ thống) để không bị
-   ảnh hưởng bởi chế độ sáng/tối của trình duyệt hay hệ điều hành.
+
+   THEME: tự đổi sáng/tối theo prefers-color-scheme của hệ điều hành/
+   trình duyệt — CHỦ ĐÍCH ĐỔI so với bản trước (từng cố định cứng 1
+   bảng màu, không phụ theme hệ thống, vì lo ngại thay đổi ngoài ý
+   muốn). Lý do đổi: mục tiêu bây giờ là "dễ chịu cho mắt ở MỌI môi
+   trường" — 1 bảng màu sáng cố định vẫn chói khi dùng phòng tối/ban
+   đêm dù màu có ấm cỡ nào. Cả 2 bảng (sáng lẫn tối) đều PHẢI tránh
+   cực trị (trắng tinh #FFFFFF / đen tuyền #000000) — 1 khối trắng
+   thuần lơ lửng giữa nền cũng gây chói mắt dù nền không phải trắng,
+   và ngược lại chữ trắng tinh trên nền đen tuyền gây loá vào ban đêm.
+   Mọi màu ở đây vì vậy đều ngả tông ẤM (kem/nâu than thay vì
+   trắng/đen/xám lạnh) và giữ độ tương phản vừa đủ đọc, không kịch
+   trần.
    ============================================================ */
 
 :root {
-  --ink: #202A33;
-  --mute: #71808D;
-  --paper: #F6F8FA;
-  --card: #FFFFFF;
-  --line: #E0E6EB;
-  --full-bg: #293A46;
-  --partial-bg: #E7F3F5;
+  --ink: #2B2622;
+  --ink-rgb: 43, 38, 34;
+  --mute: #8B8171;
+  --paper: #F5F1E8;
+  --card: #FBF9F3;
+  --line: #E6DFD0;
+  --full-bg: #3B3226;
+  --partial-bg: #EDE6D5;
+  --danger: #B5432B;
   --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #EDE6D8;
+    --ink-rgb: 237, 230, 216;
+    --mute: #9C9282;
+    --paper: #1C1917;
+    --card: #262220;
+    --line: #3A342E;
+    /* "full/đã hoàn thành" đổi thành điểm nhấn SÁNG (vàng kem ấm) thay
+       vì tối như bản sáng — trong nền tối, ô "đầy" cần NỔI BẬT LÊN chứ
+       không phải chìm đậm hơn nữa. .day-cell.full dùng var(--card) làm
+       màu chữ (xem css/views/year.css) — --card tối (#262220) đủ tương
+       phản đọc được trên nền vàng kem này, không cần thêm biến riêng. */
+    --full-bg: #E8D9A8;
+    --partial-bg: #322C22;
+    --danger: #E2795F;
+  }
 }
 
 * { box-sizing: border-box; }

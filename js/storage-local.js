@@ -8,10 +8,17 @@
 //
 // Cấu trúc dữ liệu lưu cục bộ (PHẢI khớp với những gì sync.js đọc/ghi
 // qua Sync.getData() — xem sync.js nếu thêm field mới ở đây):
-//   habits: [{ id, name, sortOrder, parentId }]  — parentId: quan hệ cha-con
+//   habits: [{ id, name, sortOrder, parentId, validFrom }]
+//     — parentId: quan hệ cha-con. validFrom ('YYYY-MM-DD' hoặc null):
+//       ngày bắt đầu habit được TÍNH VÀO TỔNG của 1 ngày (xem
+//       js/habit-scope.js) — mặc định = ngày tạo, null/vắng mặt = habit
+//       cũ trước khi có tính năng này, coi là "luôn hợp lệ".
 //   checks: { [habitId]: { [dateStr]: true } }   — chỉ lưu ngày ĐÃ tick
 //   events: { [dateStr]: [{ id, name, note }] }
-//   archivedHabits: [{ id, name, archivedAt }]   — habit trong thùng rác
+//   archivedHabits: [{ id, name, archivedAt, validFrom }]
+//     — habit trong thùng rác; validFrom carry-over từ lúc còn hoạt
+//       động, cần giữ để HabitScope tính đúng tổng cho các ngày quá
+//       khứ khi habit này còn hiệu lực (kể cả sau khi đã bị xoá).
 //   habitNotes: { [habitId]: { general, byDate: { [dateStr]: content } } }
 //
 // LƯU Ý — bug đã sửa: save() luôn lưu NGUYÊN object data (mọi field),

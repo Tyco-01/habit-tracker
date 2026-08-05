@@ -31,7 +31,7 @@ function check(label, condition) {
   console.log(`  OK  ${label}`);
 }
 
-['js/config.js', 'js/storage-local.js', 'js/sync/state.js', 'js/sync/queue.js', 'js/sync/mutations.js', 'js/sync/pull.js', 'js/sync/index.js']
+['js/config.js', 'js/date-utils.js', 'js/storage-local.js', 'js/sync/state.js', 'js/sync/queue.js', 'js/sync/mutations.js', 'js/sync/pull.js', 'js/sync/index.js']
   .forEach(file => vm.runInContext(fs.readFileSync(path.join(__dirname, file), 'utf8'), context, { filename: file }));
 
 const Sync = vm.runInContext('Sync', context);

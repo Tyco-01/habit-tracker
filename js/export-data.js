@@ -3,10 +3,11 @@
 // người dùng tự lưu backup — phòng trường hợp quên mã bí mật hoặc
 // Supabase gặp sự cố (đã bàn khi thảo luận về rủi ro lưu trữ).
 //
-// Bao gồm: habits (kèm parentId — quan hệ cha-con), checks (lịch sử
+// Bao gồm: habits (kèm parentId — quan hệ cha-con, validFrom — ngày
+// bắt đầu tính vào tổng, xem js/habit-scope.js), checks (lịch sử
 // tick từng ngày), habitNotes (ghi chú chung + riêng ngày), events
 // (dấu ấn 1 lần), trash (habit trong thùng rác kèm checks/notes còn
-// sót lại trước khi bị purge hẳn).
+// sót lại trước khi bị purge hẳn, cũng kèm validFrom carry-over).
 //
 // File xuất ra là JSON thuần, có thể đọc bằng mắt hoặc dùng lại
 // sau này (vd để tự viết script khôi phục nếu cần).
@@ -61,7 +62,8 @@ const ExportData = (() => {
         id: h.id,
         name: h.name,
         sortOrder: h.sortOrder,
-        parentId: h.parentId || null
+        parentId: h.parentId || null,
+        validFrom: h.validFrom || null
       })),
       checks: [...allHabitIds].reduce((acc, habitId) => {
         const dates = checks[habitId];
@@ -82,7 +84,7 @@ const ExportData = (() => {
         if (list.length > 0) acc[date] = list.map(e => ({ id: e.id, name: e.name, note: e.note || '' }));
         return acc;
       }, {}),
-      trash: (archivedHabits || []).map(h => ({ id: h.id, name: h.name, archivedAt: new Date(h.archivedAt).toISOString() }))
+      trash: (archivedHabits || []).map(h => ({ id: h.id, name: h.name, archivedAt: new Date(h.archivedAt).toISOString(), validFrom: h.validFrom || null }))
     };
 
     const filename = `habit-tracker-backup-${todayStamp()}.json`;

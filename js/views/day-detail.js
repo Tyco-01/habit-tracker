@@ -1,6 +1,14 @@
 // ============================================================
 // views/day-detail.js — Màn chi tiết 1 ngày: việc lặp lại + dấu ấn 1 lần.
 // Phần "Dấu ấn" dùng chung với màn Hôm nay qua module EventSection.
+//
+// "VIỆC LẶP LẠI" của ngày này giờ lọc qua HabitScope (validFrom/
+// archivedAt) thay vì liệt kê MỌI habit đang hoạt động — nếu không,
+// 1 habit tạo sau ngày đang xem vẫn hiện ra như thể đã tồn tại từ lúc
+// đó, sai lịch sử. Habit CHƯA áp dụng cho ngày này (tạo sau ngày đang
+// xem) hiện ở khối phụ "Việc khác" bên dưới, có thể mở rộng phạm vi
+// ngược về quá khứ qua HabitRangeModal nếu người dùng thật sự muốn
+// tính nó cho ngày này (xem js/habit-range-modal.js).
 // ============================================================
 
 const DayDetailView = (() => {
@@ -8,12 +16,17 @@ const DayDetailView = (() => {
   function render(container, dateStr, onBack) {
     const dObj = DateUtils.parseDateStr(dateStr);
     const label = DateUtils.formatFullLabel(dObj);
-    const { habits } = Sync.getData();
+    const data = Sync.getData();
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const isFutureDate = dObj > today;
-    const total = isFutureDate ? 0 : habits.length;
+    // Ngày tương lai: không có việc lặp lại nào áp dụng được (xem
+    // ARCHITECTURE.md mục 8 — "tick trước ngày chưa tới là vô nghĩa"),
+    // nên bỏ qua HabitScope hoàn toàn, giữ đúng hành vi cũ.
+    const scopedHabits = isFutureDate ? [] : HabitScope.habitsForDate(dateStr, data);
+    const notYetActive = isFutureDate ? [] : HabitScope.notYetActiveHabits(dateStr, data);
+    const total = scopedHabits.length;
 
     container.innerHTML = `
       <div class="day-view">
@@ -28,8 +41,12 @@ const DayDetailView = (() => {
         </div>
 
         ${total > 0 ? `
-        <p class="section-label">VIỆC LẶP LẠI<span class="section-label-count">${habits.length}</span></p>
+        <p class="section-label">VIỆC LẶP LẠI<span class="section-label-count">${total}</span></p>
         <div id="day-habits" style="margin-bottom:20px;"></div>
+        ` : ''}
+
+        ${notYetActive.length > 0 ? `
+        <div id="day-not-yet-active" style="margin-bottom:20px;"></div>
         ` : ''}
 
         <div id="event-section"></div>
@@ -54,26 +71,35 @@ const DayDetailView = (() => {
       let lastHabitsHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế
 
       function drawHabits() {
-        const { habits, checks } = Sync.getData();
-        const doneCount = habits.filter(h => checks[h.id] && checks[h.id][dateStr]).length;
-        titleEl.textContent = `${doneCount}/${habits.length} việc hoàn thành`;
+        const data = Sync.getData();
+        const { checks } = data;
+        const scoped = HabitScope.habitsForDate(dateStr, data);
+        const activeIds = new Set(data.habits.map(h => h.id));
+        const doneCount = scoped.filter(h => checks[h.id] && checks[h.id][dateStr]).length;
+        titleEl.textContent = `${doneCount}/${scoped.length} việc hoàn thành`;
 
-        const html = habits.map(h => {
+        const html = scoped.map(h => {
           const checked = !!(checks[h.id] && checks[h.id][dateStr]);
           const noteActive = HabitNotePanel.hasAnyNote(h.id, dateStr);
+          const isActive = activeIds.has(h.id);
           return `
-            <div class="day-toggle-row">
+            <div class="day-toggle-row ${isActive ? '' : 'day-toggle-row-archived'}">
               <button class="check-btn ${checked ? 'checked' : ''}" data-habit="${h.id}" aria-label="Đánh dấu ${DomUtils.escapeHtml(h.name)}">
                 ${checked ? '<i class="ti ti-check" style="font-size:12px;color:var(--card);" aria-hidden="true"></i>' : ''}
               </button>
-              <span style="font-size:14px;flex:1;${checked ? 'color:var(--mute);text-decoration:line-through;' : ''}">${DomUtils.escapeHtml(h.name)}</span>
+              <span style="font-size:14px;flex:1;${checked ? 'color:var(--mute);text-decoration:line-through;' : ''}">${DomUtils.escapeHtml(h.name)}${isActive ? '' : ' <span style="font-size:11px;color:var(--mute);">(đã xoá)</span>'}</span>
               ${HabitNotePanel.noteHintHtml(h.id, dateStr)}
               <button class="note-btn ${noteActive ? 'note-btn-active' : ''}" data-note="${h.id}" aria-label="Ghi chú cho ${DomUtils.escapeHtml(h.name)}" title="Ghi chú">
                 <i class="ti ti-note" style="font-size:14px;" aria-hidden="true"></i>
               </button>
+              ${isActive ? `
+              <button class="range-btn" data-range="${h.id}" aria-label="Sửa phạm vi áp dụng của ${DomUtils.escapeHtml(h.name)}" title="Sửa phạm vi áp dụng">
+                <i class="ti ti-calendar-time" style="font-size:14px;" aria-hidden="true"></i>
+              </button>
               <button class="remove-btn" data-remove="${h.id}" aria-label="Xoá ${DomUtils.escapeHtml(h.name)}">
                 <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
               </button>
+              ` : ''}
             </div>
             <div class="habit-note-panel" id="day-detail-note-panel-${h.id}"></div>
           `;
@@ -112,6 +138,20 @@ const DayDetailView = (() => {
           });
         });
 
+        habitsEl.querySelectorAll('[data-range]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const { habits } = Sync.getData();
+            const habit = habits.find(h => h.id === btn.dataset.range);
+            // onDone: sau khi modal commit xong (validFrom đổi), render()
+            // lại TOÀN BỘ màn chi tiết ngày — cần thiết vì tổng/scoped
+            // list có thể đổi theo cách drawHabits() bên trong (chỉ gắn
+            // Sync.onChange khi total > 0 lúc render ban đầu) không tự
+            // bắt được, ví dụ khi total đang là 0 (chưa có habit nào áp
+            // dụng ngày này) mà modal vừa làm nó > 0.
+            if (habit) HabitRangeModal.open(habit, dateStr, () => render(container, dateStr, onBack));
+          });
+        });
+
         habitsEl.querySelectorAll('[data-remove]').forEach(btn => {
           btn.addEventListener('click', async () => {
             const { habits } = Sync.getData();
@@ -137,6 +177,31 @@ const DayDetailView = (() => {
           ? 'Ngày này chưa tới'
           : 'Chưa có việc lặp lại nào';
       }
+    }
+
+    // Khối "Việc khác" — habit ĐANG hoạt động nhưng tạo SAU ngày đang
+    // xem, nên chưa được tính vào tổng của ngày này. Hiện mờ/phụ để
+    // không lẫn với danh sách chính, kèm nút mở rộng phạm vi ngược nếu
+    // người dùng thật sự muốn tính nó cho ngày này (vd nhớ ra hôm đó
+    // cũng đã làm việc này, dù lúc đó chưa thêm vào app).
+    if (notYetActive.length > 0) {
+      const notYetEl = container.querySelector('#day-not-yet-active');
+      notYetEl.innerHTML = `
+        <p class="section-label" style="background:transparent;color:var(--mute);border:1px solid var(--line);">VIỆC KHÁC (áp dụng từ ngày sau)<span class="section-label-count" style="background:var(--line);color:var(--mute);">${notYetActive.length}</span></p>
+        ${notYetActive.map(h => `
+          <div class="day-toggle-row day-toggle-row-ghost">
+            <span style="font-size:14px;flex:1;color:var(--mute);">${DomUtils.escapeHtml(h.name)}</span>
+            <button class="pill-btn" data-extend="${h.id}">Áp dụng cho ngày này</button>
+          </div>
+        `).join('')}
+      `;
+      notYetEl.querySelectorAll('[data-extend]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const { habits } = Sync.getData();
+          const habit = habits.find(h => h.id === btn.dataset.extend);
+          if (habit) HabitRangeModal.open(habit, dateStr, () => render(container, dateStr, onBack));
+        });
+      });
     }
 
     EventSection.render(container.querySelector('#event-section'), dateStr, { idPrefix: 'day-detail', showHistory: true });

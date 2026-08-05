@@ -28,7 +28,8 @@ const SyncPull = (() => {
     ]);
 
     const remoteHabits = (snapshot.habits || []).map(h => ({
-      id: h.id, name: h.name, sortOrder: h.sort_order, parentId: h.parent_habit_id || null
+      id: h.id, name: h.name, sortOrder: h.sort_order, parentId: h.parent_habit_id || null,
+      validFrom: h.valid_from || null
     }));
     const remoteChecks = {};
     (snapshot.checks || []).forEach(c => {
@@ -41,7 +42,7 @@ const SyncPull = (() => {
       remoteEvents[e.date].push({ id: e.id, name: e.name, note: e.note || '' });
     });
     const remoteArchived = (trashRows || []).map(t => ({
-      id: t.id, name: t.name, archivedAt: new Date(t.archived_at).getTime()
+      id: t.id, name: t.name, archivedAt: new Date(t.archived_at).getTime(), validFrom: t.valid_from || null
     }));
     const remoteHabitNotes = {};
     (snapshot.habitNotes || []).forEach(n => {

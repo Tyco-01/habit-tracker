@@ -65,7 +65,7 @@
 }
 
 .lock-error {
-  color: #B5432B;
+  color: var(--danger);
   font-size: 13px;
   margin-top: 10px;
   min-height: 18px;

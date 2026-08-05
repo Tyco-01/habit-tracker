@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Thói quen mỗi ngày</title>
   <meta name="description" content="Theo dõi thói quen hằng ngày và sự kiện quan trọng, riêng tư và đồng bộ mọi thiết bị." />
-  <meta name="theme-color" content="#F6F8FA" />
+  <meta name="theme-color" content="#F5F1E8" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1C1917" media="(prefers-color-scheme: dark)" />
 
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icons/icon-192.png" />
@@ -28,12 +29,15 @@
   <div id="app"></div>
 
   <!-- Thứ tự nạp quan trọng: config trước, rồi tiện ích dùng chung
-       (date-utils/dom-utils không phụ thuộc gì, nhưng nhiều module
-       phía sau dùng tới nên phải nạp sớm), rồi tầng dữ liệu, rồi
-       view, rồi app.js -->
+       (date-utils/dom-utils/habit-scope không phụ thuộc gì ngoài
+       chính date-utils, nhưng nhiều module phía sau dùng tới nên phải
+       nạp sớm), rồi tầng dữ liệu, rồi habit-range-modal (cần
+       confirm-modal + Sync + HabitScope đã có sẵn), rồi view, rồi
+       app.js -->
   <script src="js/config.js"></script>
   <script src="js/date-utils.js"></script>
   <script src="js/dom-utils.js"></script>
+  <script src="js/habit-scope.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/storage-local.js"></script>
@@ -44,6 +48,7 @@
   <script src="js/sync/index.js"></script>
   <script src="js/tree-icons.js"></script>
   <script src="js/confirm-modal.js"></script>
+  <script src="js/habit-range-modal.js"></script>
   <script src="js/event-section.js"></script>
   <script src="js/habit-note-panel.js"></script>
   <script src="js/views/today.js"></script>

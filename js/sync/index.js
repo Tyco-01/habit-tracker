@@ -28,6 +28,7 @@ const Sync = {
   updateEventNote: SyncMutations.updateEventNote,
   setHabitNote: SyncMutations.setHabitNote,
   setHabitParent: SyncMutations.setHabitParent,
+  setHabitValidFrom: SyncMutations.setHabitValidFrom,
 
   pullFromServer: SyncPull.pullFromServer,
   flushQueue: SyncQueue.flushQueue,
