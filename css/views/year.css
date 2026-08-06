@@ -4,28 +4,164 @@
    — @import tạo network round-trip tuần tự, chậm hơn tải song song
    qua nhiều <link>). Mỗi file cũng được cache riêng trong
    service-worker.js (CORE_ASSETS).
+
+   Màn "Lịch" — 4 chế độ xem Ngày/Tuần/Tháng/Năm (js/views/year.js).
+   Class .day-cell/.months-grid/.month-block/.weekday-row/.day-grid
+   GIỮ NGUYÊN TÊN từ bản "Cả năm" cũ (mode Năm vẫn dùng lại y hệt) —
+   chỉ thêm class MỚI cho khung bo/segmented control/mode Ngày+Tuần,
+   không đổi tên gì đã có để không phải sửa lại JS tương ứng.
    ============================================================ */
 
-/* Màn "Cả năm" — lưới ngày */
+/* ---- Thanh chuyển chế độ xem (Ngày/Tuần/Tháng/Năm) ---- */
 
-/* ---- Màn "Cả năm" ---- */
+.cal-switcher {
+  display: flex;
+  gap: 3px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 3px;
+  margin-bottom: 18px;
+  width: fit-content;
+}
 
-.year-header {
+.cal-switch-btn {
+  position: relative;
+  border: none;
+  background: transparent;
+  color: var(--mute);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 16px;
+  border-radius: 9px;
+  transition: color 0.2s ease;
+}
+
+.cal-switch-btn.active {
+  background: var(--ink);
+  color: var(--paper);
+  animation: cal-switch-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cal-switch-pop {
+  from { transform: scale(0.92); }
+  to { transform: scale(1); }
+}
+
+/* ---- Khung bao ngoài toàn bộ nội dung lịch — bo tròn, viền mờ, đổ
+   bóng rất nhẹ để tách khỏi nền, đúng yêu cầu "bo trong khung cho đẹp
+   clean". Animation fade+trượt nhẹ mỗi khi đổi mode HOẶC đổi trang
+   (prev/next/hôm nay) — key trên chính innerHTML nên animation CSS tự
+   chạy lại mỗi lần nội dung được thay (giống .view-fade-in ở
+   layout.css, cùng cơ chế "display đổi → animation tự kích hoạt"). ---- */
+
+.cal-pane {
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--card);
+  padding: 20px 22px 22px;
+  animation: cal-pane-in 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cal-pane-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+  .cal-pane { padding: 16px 14px 18px; }
+}
+
+/* ---- Header dùng chung mọi mode: mũi tên trước/sau + tiêu đề + nút
+   Hôm nay ---- */
+
+.cal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cal-nav button {
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  padding: 6px;
+  display: flex;
+  border-radius: 8px;
+  font-size: 18px;
+  transition: background 0.15s ease, transform 0.12s ease, color 0.15s ease;
+}
+
+.cal-nav button:hover {
+  background: var(--partial-bg);
+}
+
+.cal-nav button:active {
+  transform: scale(0.9);
+}
+
+.cal-nav button:disabled {
+  color: var(--line);
+  cursor: default;
+  background: transparent;
+  transform: none;
+}
+
+.cal-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 16px;
+  min-width: 44px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.cal-title-year {
+  min-width: 60px;
+}
+
+.cal-today-btn {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.cal-today-btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.year-count {
+  font-size: 12px;
+  color: var(--mute);
+}
+
+/* ---- Tìm theo ngày (mode Năm) ---- */
 
 .date-jump-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--card);
+  background: var(--paper);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 8px 12px;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
   max-width: 220px;
 }
 
@@ -44,41 +180,13 @@
   opacity: 0.6;
 }
 
-.year-nav {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.year-nav button {
-  border: none;
-  background: transparent;
-  padding: 2px;
-  display: flex;
-}
-
-.year-nav button:disabled {
-  color: var(--line);
-  cursor: default;
-}
-
-.year-label {
-  margin: 0;
-  font-weight: 600;
-  font-size: 16px;
-  min-width: 44px;
-  text-align: center;
-}
-
-.year-count {
-  font-size: 12px;
-  color: var(--mute);
-}
+/* ---- Mode Năm: lưới 12 tháng — giữ nguyên hệ class cũ, chỉ giãn
+   cách thoáng hơn (yêu cầu "giãn cách các tháng ra cho thoáng") ---- */
 
 .months-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px 16px;
+  gap: 32px 22px;
 }
 
 /* Màn hình hẹp (điện thoại): 4 cột tháng quá chật, ô ngày co nhỏ tới
@@ -86,24 +194,30 @@
 @media (max-width: 900px) {
   .months-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 26px 18px;
   }
 }
 
 @media (max-width: 480px) {
   .months-grid {
     grid-template-columns: repeat(1, 1fr);
+    gap: 22px;
   }
 }
 
 .month-block {
   min-width: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 10px 10px;
 }
 
 .month-label {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);
-  margin: 0 0 8px;
+  margin: 0 0 9px;
   white-space: nowrap;
 }
 
@@ -111,7 +225,7 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 3px;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .weekday-row span {
@@ -129,16 +243,18 @@
   grid-template-columns: repeat(7, 1fr);
 }
 
+/* ---- Ô ngày dùng chung mode Năm + mode Tháng ---- */
+
 .day-cell {
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 5px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
   cursor: pointer;
-  transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--mute);
@@ -188,10 +304,25 @@
   color: var(--full-bg);
 }
 
-.day-cell.blank {
+.day-cell.blank,
+.day-cell.blank-adjacent {
   border: none;
   background: transparent;
   cursor: default;
+}
+
+/* blank-adjacent (mode Tháng): ô đệm đầu/cuối tháng thuộc THÁNG KHÁC,
+   khác .blank (mode Năm, hoàn toàn trống) — vẫn hiện SỐ NGÀY mờ để
+   người dùng biết đang nhìn "cuối tháng trước / đầu tháng sau", kiểu
+   lịch để bàn quen thuộc, nhưng mờ hẳn đi và không bấm được (không
+   phải ngày của tháng đang xem). */
+.day-cell.blank-adjacent {
+  color: color-mix(in srgb, var(--mute) 35%, var(--paper));
+  pointer-events: none;
+}
+
+.day-cell.blank-adjacent .day-number {
+  opacity: 1;
 }
 
 .day-cell.future-day {
@@ -226,13 +357,32 @@
   opacity: 0.8;
 }
 
+/* Nhãn âm lịch nhỏ — chỉ dùng ở mode Tháng (lưới lớn hơn, đủ chỗ);
+   mode Năm KHÔNG hiện (365 ô quá nhỏ, thêm chữ sẽ rối, xem
+   js/views/year.js — drawYearMode() cố tình không gọi lunarShort()). */
+.day-lunar {
+  position: absolute;
+  left: 3px;
+  bottom: 2px;
+  font-size: 8px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.55;
+}
+
+.day-cell.full .day-lunar,
+.day-cell.partial .day-lunar {
+  opacity: 0.7;
+}
+
 .day-cell:hover {
-  transform: scale(1.25);
+  transform: scale(1.2);
   z-index: 2;
   position: relative;
 }
 
-.day-cell.blank:hover {
+.day-cell.blank:hover,
+.day-cell.blank-adjacent:hover {
   transform: none;
 }
 
@@ -253,4 +403,239 @@
 .day-cell.today {
   outline: 1.5px solid var(--ink);
   outline-offset: 1.5px;
+}
+
+/* ---- Mode Tháng: lưới lớn hơn 7 cột, ô cao hơn để có chỗ cho số +
+   âm lịch cùng lúc, dễ đọc/dễ bấm hơn hẳn ô nhỏ của mode Năm ---- */
+
+.cal-month-weekday-row {
+  margin-bottom: 8px;
+}
+
+.cal-month-weekday-row span {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.cal-month-grid {
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.cal-month-grid .day-cell {
+  border-radius: 10px;
+  font-size: 14px;
+  aspect-ratio: 1.05;
+}
+
+.cal-month-grid .day-number {
+  font-size: 11px;
+  right: 6px;
+  bottom: 5px;
+}
+
+.cal-month-grid .day-lunar {
+  left: 6px;
+  bottom: 5px;
+  font-size: 9.5px;
+}
+
+.cal-month-grid .day-progress {
+  font-size: 15px;
+}
+
+/* ---- Mode Ngày: 1 khối lớn duy nhất, tương tự "hôm nay" nhưng cho
+   phép lật qua ngày khác ---- */
+
+.cal-day-focus {
+  text-align: center;
+  padding: 28px 16px 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.cal-day-focus:hover {
+  border-color: var(--mute);
+}
+
+.cal-day-focus.is-today {
+  border-color: var(--ink);
+  border-width: 1.5px;
+}
+
+.cal-day-focus-weekday {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--mute);
+  font-weight: 500;
+}
+
+.cal-day-focus-date {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cal-day-focus-lunar {
+  margin: 0 0 16px;
+  font-size: 12.5px;
+  color: var(--mute);
+}
+
+.cal-day-focus-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.cal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: var(--partial-bg);
+  color: var(--ink);
+}
+
+.cal-badge.full {
+  background: var(--full-bg);
+  color: var(--card);
+}
+
+.cal-badge-empty {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--mute);
+  font-weight: 500;
+}
+
+.cal-badge-muted {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--mute);
+  font-weight: 500;
+}
+
+.cal-day-focus-open {
+  border: none;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 18px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
+}
+
+.cal-day-focus-open:hover {
+  opacity: 0.85;
+}
+
+.cal-day-focus-open:active {
+  transform: scale(0.96);
+}
+
+/* ---- Mode Tuần: danh sách 7 hàng dọc ---- */
+
+.cal-week-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cal-week-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+}
+
+.cal-week-row:hover {
+  border-color: var(--mute);
+  transform: translateX(2px);
+}
+
+.cal-week-row.is-today {
+  border-color: var(--ink);
+  border-width: 1.5px;
+  background: var(--card);
+}
+
+.cal-week-row-date {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cal-week-row-dow {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mute);
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.cal-week-row-num {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 22px;
+}
+
+.cal-week-row-lunar {
+  font-size: 11.5px;
+  color: var(--mute);
+}
+
+.cal-week-row-marks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--mute);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.cal-week-row-status {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 4px 11px;
+  border-radius: 20px;
+  background: var(--partial-bg);
+  color: var(--ink);
+  flex-shrink: 0;
+  min-width: 44px;
+  text-align: center;
+}
+
+.cal-week-row-status.full {
+  background: var(--full-bg);
+  color: var(--card);
+}
+
+.cal-week-row-status.cal-badge-muted {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--mute);
+  font-weight: 500;
 }

@@ -1,11 +1,35 @@
 // ============================================================
-// views/year.js — Màn "Cả năm": lưới theo tháng, chuyển qua lại năm.
+// views/year.js — Màn lịch: 4 chế độ xem Ngày / Tuần / Tháng / Năm,
+// chuyển đổi qua thanh segmented control (giống macOS Calendar).
+//
+// Vẫn giữ tên global YearView (không đổi tên module) để app.js và
+// day-detail.js không phải sửa lại lời gọi — chỉ nội dung bên trong
+// giờ tự vẽ đúng theo `mode` đang chọn. Cả 4 chế độ dùng chung 1 mốc
+// điều hướng `anchor` (Date đang neo):
+//   - "day"   → đúng ngày anchor
+//   - "week"  → tuần chứa anchor (bắt đầu Chủ nhật, khớp cột CN..T7
+//     đã dùng ở view Năm cũ)
+//   - "month" → tháng chứa anchor (lưới 7 cột, có ô mờ đệm đầu/cuối
+//     tháng để giữ đúng cột thứ — quen thuộc kiểu lịch để bàn)
+//   - "year"  → năm chứa anchor (12 khối tháng, giữ nguyên hành vi cũ)
+//
+// Âm lịch: LunarCalendar.fromSolar(Date) → {day, month, leap,
+// shortLabel, fullLabel, canChiYear} (xem js/lunar-calendar.js).
+// Ở lưới (Tuần/Tháng/Năm) chỉ hiện shortLabel (gọn, không rối mắt);
+// khi mở chi tiết 1 ngày cụ thể hiện fullLabel + canChiYear (đầy đủ).
 // ============================================================
 
 const YearView = (() => {
 
-  let viewYear = new Date().getFullYear();
+  const MODES = ['day', 'week', 'month', 'year'];
+  const MODE_LABEL = { day: 'Ngày', week: 'Tuần', month: 'Tháng', year: 'Năm' };
+
+  let mode = 'month';
+  let anchor = new Date(); // mốc ngày đang neo cho mode day/week/month
+  let viewYear = new Date().getFullYear(); // mốc năm riêng cho mode year (giữ hành vi cũ: chỉ đi lùi tới năm có dữ liệu, không đi tới tương lai)
   let onDayClick = null;
+
+  // ---------- Helpers dữ liệu (dùng chung mọi mode) ----------
 
   // scopedHabits = danh sách habit ĐÃ LỌC theo HabitScope cho đúng
   // ngày `key` (không còn dùng habits.length cố định — xem
@@ -38,16 +62,321 @@ const YearView = (() => {
     return 'partial';
   }
 
+  // Nhãn âm lịch gọn cho 1 ô ngày trong lưới — trả về chuỗi rỗng nếu
+  // vì lý do nào đó tính toán lỗi (không để crash cả lưới vì 1 ngày lỗi).
+  function lunarShort(dateObj) {
+    try {
+      return LunarCalendar.fromSolar(dateObj).shortLabel;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  // Chủ nhật của tuần chứa dateObj (không sửa dateObj gốc).
+  function startOfWeek(dateObj) {
+    const d = new Date(dateObj);
+    d.setDate(d.getDate() - d.getDay());
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function sameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  // ---------- Render chính ----------
+
   function render(container, dayClickHandler, { focusToday = false } = {}) {
     onDayClick = dayClickHandler;
-    if (focusToday) viewYear = new Date().getFullYear();
+    // pendingScrollToToday: cờ DÙNG 1 LẦN RỒI TẮT — khác focusToday (tham
+    // số đầu vào cố định của lần gọi render() này). Nếu dùng thẳng
+    // focusToday để quyết định "có nên scroll ở lần draw() này không",
+    // mọi lần draw() sau (đổi mode qua lại, tick 1 habit khác khiến
+    // Sync.onChange bắn) đều bị coi là "vẫn cần scroll" vì focusToday
+    // không tự tắt — cuộn lại về hôm nay ngoài ý muốn người dùng mỗi khi
+    // có bất kỳ thay đổi dữ liệu nào. Bật lại đúng 1 lần nữa khi bấm nút
+    // "Hôm nay" (xem bindNavCommon).
+    let pendingScrollToToday = focusToday;
+    if (focusToday) {
+      anchor = new Date();
+      viewYear = new Date().getFullYear();
+    }
 
-    container.innerHTML = `<div id="year-content"></div>`;
+    container.innerHTML = `
+      <div class="cal-switcher" role="tablist" aria-label="Chọn chế độ xem lịch">
+        ${MODES.map(m => `<button class="cal-switch-btn ${m === mode ? 'active' : ''}" data-mode="${m}" role="tab" aria-selected="${m === mode}">${MODE_LABEL[m]}</button>`).join('')}
+      </div>
+      <div id="year-content"></div>
+    `;
+    const switcher = container.querySelector('.cal-switcher');
     const content = container.querySelector('#year-content');
-    let lastYearHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế — quan trọng hơn cả ở đây vì draw() build cả lưới 365 ô + vòng lặp đếm mỗi lần gọi, tốn kém hơn hẳn các view khác
+    let lastHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế — quan trọng hơn cả ở đây vì mode "year" build cả lưới 365 ô + vòng lặp đếm mỗi lần gọi, tốn kém hơn hẳn mode khác
+
+    switcher.querySelectorAll('.cal-switch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.mode === mode) return;
+        mode = btn.dataset.mode;
+        switcher.querySelectorAll('.cal-switch-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.mode === mode);
+          b.setAttribute('aria-selected', b.dataset.mode === mode ? 'true' : 'false');
+        });
+        lastHtml = null; // đổi mode luôn phải vẽ lại, kể cả nếu HTML mode mới trùng tình cờ với mode cũ
+        draw();
+      });
+    });
 
     function draw() {
       const data = Sync.getData();
+      let html;
+      if (mode === 'day') html = drawDay(data);
+      else if (mode === 'week') html = drawWeek(data);
+      else if (mode === 'month') html = drawMonth(data);
+      else html = drawYearMode(data);
+
+      // Bỏ qua ghi lại nếu không đổi gì — build lưới lặp lại + vòng lặp
+      // đếm ở trên chạy MỖI KHI Sync.onChange bắn, kể cả khi đang xem
+      // tab khác hoặc thay đổi không liên quan gì tới lịch (vd gõ note
+      // 1 event ở tab "Hôm nay"). So sánh HTML trước khi ghi tránh lãng
+      // phí, và tránh mất giá trị đang gõ dở trong ô tìm ngày nếu người
+      // dùng đang thao tác đúng lúc có thay đổi khác xảy ra.
+      if (html === lastHtml) return;
+      lastHtml = html;
+
+      content.innerHTML = `<div class="cal-pane" id="cal-pane">${html}</div>`;
+
+      content.querySelectorAll('.day-cell[data-date]').forEach(cell => {
+        cell.addEventListener('click', () => {
+          if (onDayClick) onDayClick(cell.dataset.date);
+        });
+      });
+
+      bindNavCommon();
+
+      if (mode === 'year') {
+        bindDateJump();
+        if (pendingScrollToToday && viewYear === new Date().getFullYear()) {
+          pendingScrollToToday = false;
+          const todayKey = DateUtils.dateKey(new Date());
+          requestAnimationFrame(() => {
+            const todayCell = content.querySelector(`[data-date="${todayKey}"]`);
+            todayCell?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+          });
+        }
+      }
+    }
+
+    // Nav prev/next/today dùng CHUNG 1 id cho mọi mode (#cal-prev/
+    // #cal-next/#cal-today) — mỗi mode tự quyết định bước nhảy đúng
+    // đơn vị của mình (ngày/tuần/tháng/năm).
+    function bindNavCommon() {
+      const prevBtn = content.querySelector('#cal-prev');
+      const nextBtn = content.querySelector('#cal-next');
+      const todayBtn = content.querySelector('#cal-today');
+      if (prevBtn) prevBtn.addEventListener('click', () => { if (!prevBtn.disabled) { step(-1); draw(); } });
+      if (nextBtn) nextBtn.addEventListener('click', () => { if (!nextBtn.disabled) { step(1); draw(); } });
+      if (todayBtn) todayBtn.addEventListener('click', () => {
+        anchor = new Date();
+        viewYear = new Date().getFullYear();
+        if (mode === 'year') pendingScrollToToday = true;
+        draw();
+      });
+    }
+
+    function step(dir) {
+      if (mode === 'day') { const d = new Date(anchor); d.setDate(d.getDate() + dir); anchor = d; }
+      else if (mode === 'week') { const d = new Date(anchor); d.setDate(d.getDate() + dir * 7); anchor = d; }
+      else if (mode === 'month') { const d = new Date(anchor); d.setMonth(d.getMonth() + dir, 1); anchor = d; }
+      else { viewYear += dir; }
+    }
+
+    // Cho phép gõ (hoặc chọn từ bộ lịch gốc của trình duyệt/hệ điều
+    // hành) 1 ngày bất kỳ để nhảy thẳng tới đó — kể cả khác năm đang
+    // xem. Chỉ có ở mode "year" (giữ đúng vị trí/hành vi cũ).
+    function bindDateJump() {
+      const input = content.querySelector('#date-jump-input');
+      if (!input) return;
+      input.addEventListener('change', () => {
+        const value = input.value; // dạng "YYYY-MM-DD" chuẩn của input[type=date]
+        if (!value) return;
+        const [y] = value.split('-').map(Number);
+        viewYear = y;
+        draw();
+        if (onDayClick) onDayClick(value);
+      });
+    }
+
+    // ---------- Mode: Ngày ----------
+    function drawDay(data) {
+      const { checks, events, habitNotes } = data;
+      const today = new Date();
+      const todayKey = DateUtils.dateKey(today);
+      const key = DateUtils.dateKey(anchor);
+      const lunar = (() => { try { return LunarCalendar.fromSolar(anchor); } catch (e) { return null; } })();
+      const isFuture = DateUtils.parseDateStr(key) > new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const scoped = isFuture ? [] : HabitScope.habitsForDate(key, data);
+      const count = countForDate(checks, scoped, key);
+      const total = scoped.length;
+      const hasEvent = !!(events[key] && events[key].length > 0);
+      const hasNote = hasNoteForDate(habitNotes, key);
+
+      const header = `
+        <div class="cal-header">
+          <div class="cal-nav">
+            <button id="cal-prev" aria-label="Ngày trước"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+            <h3 class="cal-title">${DateUtils.DAYS_VN[anchor.getDay()]}, ${anchor.getDate()}/${anchor.getMonth() + 1}</h3>
+            <button id="cal-next" aria-label="Ngày sau"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+          </div>
+          <button id="cal-today" class="cal-today-btn">Hôm nay</button>
+        </div>
+      `;
+
+      return `
+        ${header}
+        <div class="cal-day-focus ${key === todayKey ? 'is-today' : ''}" data-date="${key}">
+          <p class="cal-day-focus-weekday">${DateUtils.DAYS_VN[anchor.getDay()]}</p>
+          <p class="cal-day-focus-date">${anchor.getDate()} ${DateUtils.MONTH_NAMES_FULL[anchor.getMonth()]}, ${anchor.getFullYear()}</p>
+          ${lunar ? `<p class="cal-day-focus-lunar">Âm lịch: ${lunar.fullLabel} · năm ${lunar.canChiYear}</p>` : ''}
+          <div class="cal-day-focus-badges">
+            ${total > 0 ? `<span class="cal-badge ${cellClass(count, total) || 'cal-badge-empty'}">${count}/${total} việc</span>` : (isFuture ? `<span class="cal-badge cal-badge-muted">Ngày chưa tới</span>` : `<span class="cal-badge cal-badge-muted">Không có việc lặp lại</span>`)}
+            ${hasEvent ? `<span class="cal-badge cal-badge-muted"><i class="ti ti-paperclip" aria-hidden="true"></i> Có dấu ấn</span>` : ''}
+            ${hasNote ? `<span class="cal-badge cal-badge-muted"><i class="ti ti-note" aria-hidden="true"></i> Có ghi chú</span>` : ''}
+          </div>
+          <button class="cal-day-focus-open" data-date="${key}">Xem chi tiết ngày này <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+        </div>
+      `;
+    }
+
+    // ---------- Mode: Tuần ----------
+    function drawWeek(data) {
+      const { checks, events, habitNotes } = data;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayKey = DateUtils.dateKey(today);
+      const weekStart = startOfWeek(anchor);
+      const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+
+      const rangeLabel = weekStart.getMonth() === weekEnd.getMonth()
+        ? `${weekStart.getDate()} - ${weekEnd.getDate()} ${DateUtils.MONTH_NAMES_FULL[weekStart.getMonth()]}, ${weekStart.getFullYear()}`
+        : `${weekStart.getDate()} ${DateUtils.MONTH_NAMES_FULL[weekStart.getMonth()]} - ${weekEnd.getDate()} ${DateUtils.MONTH_NAMES_FULL[weekEnd.getMonth()]}, ${weekEnd.getFullYear()}`;
+
+      const header = `
+        <div class="cal-header">
+          <div class="cal-nav">
+            <button id="cal-prev" aria-label="Tuần trước"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+            <h3 class="cal-title">${rangeLabel}</h3>
+            <button id="cal-next" aria-label="Tuần sau"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+          </div>
+          <button id="cal-today" class="cal-today-btn">Hôm nay</button>
+        </div>
+      `;
+
+      let rows = '';
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(weekStart); d.setDate(d.getDate() + i);
+        const key = DateUtils.dateKey(d);
+        const isFuture = d > today;
+        const isToday = key === todayKey;
+        const lunar = lunarShort(d);
+        const hasEvent = !!(events[key] && events[key].length > 0);
+        const hasNote = hasNoteForDate(habitNotes, key);
+
+        let bodyHtml;
+        if (isFuture) {
+          bodyHtml = `<span class="cal-week-row-status cal-badge-muted">Chưa tới</span>`;
+        } else {
+          const scoped = HabitScope.habitsForDate(key, data);
+          const count = countForDate(checks, scoped, key);
+          const total = scoped.length;
+          bodyHtml = total > 0
+            ? `<span class="cal-week-row-status ${cellClass(count, total)}">${count}/${total}</span>`
+            : `<span class="cal-week-row-status cal-badge-muted">—</span>`;
+        }
+
+        rows += `
+          <div class="cal-week-row ${isToday ? 'is-today' : ''}" data-date="${key}">
+            <div class="cal-week-row-date">
+              <span class="cal-week-row-dow">${DateUtils.DAYS_VN[d.getDay()]}</span>
+              <span class="cal-week-row-num">${d.getDate()}</span>
+              <span class="cal-week-row-lunar">${lunar}</span>
+            </div>
+            <div class="cal-week-row-marks">
+              ${hasEvent ? `<i class="ti ti-paperclip" aria-hidden="true"></i>` : ''}
+              ${hasNote ? `<i class="ti ti-note" aria-hidden="true"></i>` : ''}
+            </div>
+            ${bodyHtml}
+          </div>
+        `;
+      }
+
+      return `${header}<div class="cal-week-list">${rows}</div>`;
+    }
+
+    // ---------- Mode: Tháng ----------
+    function drawMonth(data) {
+      const { checks, events, habitNotes } = data;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayKey = DateUtils.dateKey(today);
+      const y = anchor.getFullYear();
+      const m = anchor.getMonth();
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const firstWeekday = new Date(y, m, 1).getDay();
+
+      const header = `
+        <div class="cal-header">
+          <div class="cal-nav">
+            <button id="cal-prev" aria-label="Tháng trước"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+            <h3 class="cal-title">${DateUtils.MONTH_NAMES_FULL[m][0].toUpperCase() + DateUtils.MONTH_NAMES_FULL[m].slice(1)}, ${y}</h3>
+            <button id="cal-next" aria-label="Tháng sau"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+          </div>
+          <button id="cal-today" class="cal-today-btn">Hôm nay</button>
+        </div>
+        <div class="weekday-row cal-month-weekday-row">
+          <span>CN</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span>
+        </div>
+      `;
+
+      let cells = '';
+      // Ô đệm đầu tháng — lấy từ tháng trước để lấp đầy hàng đầu tiên,
+      // giữ đúng cột thứ (kiểu lịch để bàn quen thuộc) thay vì để trống.
+      const prevMonthDays = new Date(y, m, 0).getDate();
+      for (let i = 0; i < firstWeekday; i++) {
+        const dayNum = prevMonthDays - firstWeekday + 1 + i;
+        cells += `<div class="day-cell blank-adjacent"><span class="day-number">${dayNum}</span></div>`;
+      }
+      for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(y, m, day);
+        const key = DateUtils.dateKeyFromParts(y, m, day);
+        const isFuture = d > today;
+        const isToday = key === todayKey;
+        const lunar = lunarShort(d);
+        const hasEvent = !!(events[key] && events[key].length > 0);
+        const hasNote = hasNoteForDate(habitNotes, key);
+        const clipHtml = hasEvent ? `<i class="ti ti-paperclip event-clip" aria-hidden="true"></i>` : '';
+        const noteMarkHtml = hasNote ? `<i class="ti ti-note note-mark" aria-hidden="true"></i>` : '';
+        const lunarHtml = `<span class="day-lunar">${lunar}</span>`;
+
+        if (isFuture) {
+          cells += `<div class="day-cell future-day" data-date="${key}">${clipHtml}${noteMarkHtml}<span class="day-number">${day}</span>${lunarHtml}</div>`;
+          continue;
+        }
+        const scoped = HabitScope.habitsForDate(key, data);
+        const dayTotal = scoped.length;
+        const count = countForDate(checks, scoped, key);
+        cells += `<div class="day-cell ${cellClass(count, dayTotal)} ${count === 0 ? 'empty-day' : ''} ${isToday ? 'today' : ''}" data-date="${key}">${clipHtml}${noteMarkHtml}${count > 0 ? `<span class="day-progress">${count}</span>` : ''}<span class="day-number">${day}</span>${lunarHtml}</div>`;
+      }
+      // Ô đệm cuối tháng — lấp nốt hàng cuối cho đều lưới 7 cột.
+      const totalCells = firstWeekday + daysInMonth;
+      const trailing = (7 - (totalCells % 7)) % 7;
+      for (let i = 1; i <= trailing; i++) {
+        cells += `<div class="day-cell blank-adjacent"><span class="day-number">${i}</span></div>`;
+      }
+
+      return `${header}<div class="day-grid cal-month-grid">${cells}</div>`;
+    }
+
+    // ---------- Mode: Năm (hành vi gốc, giữ nguyên) ----------
+    function drawYearMode(data) {
       const { habits, checks, events, habitNotes } = data;
       const today = new Date();
       const todayKey = DateUtils.dateKeyFromParts(today.getFullYear(), today.getMonth(), today.getDate());
@@ -74,32 +403,27 @@ const YearView = (() => {
       const canGoForward = viewYear < today.getFullYear();
 
       let html = `
-        <div class="year-header">
-          <div class="year-nav">
-            <button id="year-prev" aria-label="Năm trước" ${canGoBack ? '' : 'disabled'}>
-              <i class="ti ti-chevron-left" style="font-size:18px;" aria-hidden="true"></i>
+        <div class="cal-header">
+          <div class="cal-nav">
+            <button id="cal-prev" aria-label="Năm trước" ${canGoBack ? '' : 'disabled'}>
+              <i class="ti ti-chevron-left" aria-hidden="true"></i>
             </button>
-            <h3 class="year-label">${viewYear}</h3>
-            <button id="year-next" aria-label="Năm sau" ${canGoForward ? '' : 'disabled'}>
-              <i class="ti ti-chevron-right" style="font-size:18px;" aria-hidden="true"></i>
+            <h3 class="cal-title cal-title-year">${viewYear}</h3>
+            <button id="cal-next" aria-label="Năm sau" ${canGoForward ? '' : 'disabled'}>
+              <i class="ti ti-chevron-right" aria-hidden="true"></i>
             </button>
           </div>
           <span class="year-count">${hasAnyHabit ? fullDays + ' ngày hoàn thành đủ' : ''}</span>
         </div>
         <div class="date-jump-row">
-          <i class="ti ti-search" style="font-size:14px;color:var(--mute);" aria-hidden="true"></i>
+          <i class="ti ti-search" aria-hidden="true"></i>
           <input type="date" id="date-jump-input" class="date-jump-input" aria-label="Tìm đến ngày cụ thể" />
         </div>
       `;
 
       if (!hasAnyHabit) {
         html += `<div class="empty-state"><p>Chưa có việc nào để hiển thị.</p></div>`;
-        if (html === lastYearHtml) return;
-        lastYearHtml = html;
-        content.innerHTML = html;
-        bindNav();
-        bindDateJump();
-        return;
+        return html;
       }
 
       // Luôn vẽ đủ 12 tháng — tháng chưa tới (của năm hiện tại) sẽ tự
@@ -151,73 +475,25 @@ const YearView = (() => {
         `;
       }
       html += `</div>`;
-
-      // Bỏ qua ghi lại nếu không đổi gì — build lưới 365 ô + vòng lặp
-      // đếm fullDays ở trên chạy MỖI KHI Sync.onChange bắn, kể cả khi
-      // đang xem tab khác hoặc thay đổi không liên quan gì tới lưới
-      // ngày (vd gõ note 1 event ở tab "Hôm nay"). So sánh HTML trước
-      // khi ghi tránh lãng phí, và tránh mất giá trị đang gõ dở trong
-      // #date-jump-input nếu người dùng đang thao tác đúng lúc có thay
-      // đổi khác xảy ra.
-      if (html === lastYearHtml) return;
-      lastYearHtml = html;
-      content.innerHTML = html;
-
-      content.querySelectorAll('.day-cell[data-date]').forEach(cell => {
-        cell.addEventListener('click', () => {
-          if (onDayClick) onDayClick(cell.dataset.date);
-        });
-      });
-
-      bindNav();
-      bindDateJump();
-
-      if (focusToday && isCurrentYear) {
-        requestAnimationFrame(() => {
-          const todayCell = content.querySelector(`[data-date="${todayKey}"]`);
-          todayCell?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-        });
-      }
-    }
-
-    // Cho phép gõ (hoặc chọn từ bộ lịch gốc của trình duyệt/hệ điều hành)
-    // 1 ngày bất kỳ để nhảy thẳng tới đó — kể cả khác năm đang xem.
-    function bindDateJump() {
-      const input = content.querySelector('#date-jump-input');
-      if (!input) return;
-      input.addEventListener('change', () => {
-        const value = input.value; // dạng "YYYY-MM-DD" chuẩn của input[type=date]
-        if (!value) return;
-        const [y] = value.split('-').map(Number);
-        viewYear = y;
-        draw();
-        if (onDayClick) onDayClick(value);
-      });
-    }
-
-    function bindNav() {
-      const prevBtn = content.querySelector('#year-prev');
-      const nextBtn = content.querySelector('#year-next');
-      if (prevBtn) prevBtn.addEventListener('click', () => {
-        if (prevBtn.disabled) return;
-        viewYear--;
-        draw();
-      });
-      if (nextBtn) nextBtn.addEventListener('click', () => {
-        if (nextBtn.disabled) return;
-        viewYear++;
-        draw();
-      });
+      return html;
     }
 
     // Gỡ listener của lần render() trước (nếu có) trước khi đăng ký cái
     // mới — render() được gọi lại mỗi khi người dùng chuyển sang tab
-    // "Cả năm", nếu không gỡ thì listener cũ (trỏ DOM đã bị thay thế)
+    // "Lịch", nếu không gỡ thì listener cũ (trỏ DOM đã bị thay thế)
     // sẽ cộng dồn mãi, chạy draw() thừa nhiều lần mỗi khi data đổi.
     if (container.__yearOnChange) Sync.offChange(container.__yearOnChange);
     container.__yearOnChange = draw;
     Sync.onChange(draw);
     draw();
+
+    // Nút "Xem chi tiết ngày này" ở mode Ngày — gắn qua delegation trên
+    // content vì #cal-pane bị vẽ lại (innerHTML) mỗi lần draw(), không
+    // gắn trực tiếp lên nút được (mất listener sau lần vẽ đầu).
+    content.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cal-day-focus-open');
+      if (btn && onDayClick) onDayClick(btn.dataset.date);
+    });
   }
 
   return { render };

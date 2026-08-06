@@ -57,16 +57,17 @@
   <div id="app"></div>
 
   <!-- Thứ tự nạp quan trọng: config trước, rồi tiện ích dùng chung
-       (date-utils/dom-utils/habit-scope/theme-toggle không phụ thuộc
-       gì ngoài chính date-utils, nhưng nhiều module phía sau dùng tới
-       nên phải nạp sớm), rồi tầng dữ liệu, rồi habit-range-modal/
-       theme-editor-modal (cần confirm-modal + DomUtils đã có sẵn; chỉ
-       habit-range-modal cần thêm Sync + HabitScope), rồi view, rồi
-       app.js -->
+       (date-utils/dom-utils/habit-scope/lunar-calendar/theme-toggle
+       không phụ thuộc gì ngoài chính date-utils, nhưng nhiều module
+       phía sau dùng tới nên phải nạp sớm), rồi tầng dữ liệu, rồi
+       habit-range-modal/theme-editor-modal (cần confirm-modal +
+       DomUtils đã có sẵn; chỉ habit-range-modal cần thêm Sync +
+       HabitScope), rồi view, rồi app.js -->
   <script src="js/config.js"></script>
   <script src="js/date-utils.js"></script>
   <script src="js/dom-utils.js"></script>
   <script src="js/habit-scope.js"></script>
+  <script src="js/lunar-calendar.js"></script>
   <script src="js/theme-toggle.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
