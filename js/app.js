@@ -100,18 +100,28 @@
     const navExport = root.querySelector('#nav-export');
     const navTheme = root.querySelector('#nav-theme');
 
-    // Nút đổi giao diện — xoay vòng Theo hệ thống → Sáng → Tối, xem
-    // js/theme-toggle.js. Icon/title luôn phản ánh chế độ ĐANG chọn
-    // (không phải chế độ sẽ chuyển tới), khớp quy ước nav-refresh/
-    // nav-export ở trên (title mô tả trạng thái, không phải hành động).
-    function syncThemeButton(mode) {
+    // Nút đổi giao diện — mở ThemeEditorModal (3 chế độ có sẵn + bộ
+    // sưu tập theme tuỳ chỉnh, xem js/theme-editor-modal.js). Icon
+    // phản ánh chế độ ĐANG chọn — dùng ti-palette riêng cho theme tuỳ
+    // chỉnh (không có icon cố định như 3 chế độ có sẵn).
+    function syncThemeButton() {
+      const mode = ThemeToggle.get();
       const icon = navTheme.querySelector('i');
-      icon.className = `ti ${ThemeToggle.ICON[mode]}`;
-      navTheme.title = ThemeToggle.LABEL[mode];
+      if (ThemeToggle.isCustomMode(mode)) {
+        const theme = ThemeToggle.listCustomThemes().find(t => t.id === ThemeToggle.customIdOf(mode));
+        icon.className = 'ti ti-palette';
+        navTheme.title = theme ? theme.name : 'Giao diện';
+      } else {
+        icon.className = `ti ${ThemeToggle.ICON[mode]}`;
+        navTheme.title = ThemeToggle.LABEL[mode];
+      }
     }
-    syncThemeButton(ThemeToggle.get());
+    syncThemeButton();
+    // onChange: ThemeEditorModal gọi lại MỖI KHI theme thật sự đổi
+    // (chọn chế độ có sẵn, áp/sửa/xoá theme tuỳ chỉnh) — để icon nút
+    // này cập nhật ngay, không cần đợi đóng modal hay poll định kỳ.
     navTheme.addEventListener('click', () => {
-      syncThemeButton(ThemeToggle.cycle());
+      ThemeEditorModal.open(syncThemeButton);
     });
 
     // "Làm tươi" — vừa dọn trạng thái JS tạm thời (reload trang) VỪA

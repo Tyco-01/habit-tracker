@@ -3,16 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <!-- Chặn render, chạy TRƯỚC mọi <link> CSS — áp data-theme (nếu
-       người dùng đã chọn tay Sáng/Tối) lên <html> ngay từ đầu, tránh
-       "nháy" 1 khắc theo theme mặc định rồi mới đổi lại. Bản RÚT GỌN
-       có chủ đích của js/theme-toggle.js — xem comment đầu file đó,
-       ĐỔI STORAGE_KEY hoặc logic áp dụng thì PHẢI sửa cả 2 chỗ. -->
+  <!-- Chặn render, chạy TRƯỚC mọi <link> CSS — áp theme đã chọn tay
+       (light/dark HOẶC 1 theme tuỳ chỉnh trong bộ sưu tập) lên <html>
+       ngay từ đầu, tránh "nháy" 1 khắc theo theme mặc định rồi mới đổi
+       lại. Bản RÚT GỌN có chủ đích của js/theme-toggle.js (apply() +
+       applyCustomTheme() + hexToRgbTriplet()) — xem comment đầu file
+       đó, ĐỔI STORAGE_KEY/CUSTOM_KEY hoặc logic áp dụng thì PHẢI sửa
+       cả 2 chỗ. -->
   <script>
     (function () {
       try {
         var m = localStorage.getItem('habit-tracker-theme');
-        if (m === 'light' || m === 'dark') document.documentElement.setAttribute('data-theme', m);
+        if (m === 'light' || m === 'dark') {
+          document.documentElement.setAttribute('data-theme', m);
+        } else if (m && m.indexOf('custom:') === 0) {
+          var list = JSON.parse(localStorage.getItem('habit-tracker-custom-themes') || '[]');
+          var theme = list.find(function (t) { return t.id === m.slice(7); });
+          if (theme && theme.vars) {
+            var style = document.documentElement.style;
+            var map = { ink: '--ink', mute: '--mute', paper: '--paper', card: '--card', line: '--line', fullBg: '--full-bg', partialBg: '--partial-bg', danger: '--danger' };
+            Object.keys(map).forEach(function (k) { if (theme.vars[k]) style.setProperty(map[k], theme.vars[k]); });
+            var hex = theme.vars.ink;
+            var mm = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+            if (mm) style.setProperty('--ink-rgb', parseInt(mm[1], 16) + ', ' + parseInt(mm[2], 16) + ', ' + parseInt(mm[3], 16));
+          }
+        }
       } catch (e) {}
     })();
   </script>
@@ -44,8 +59,9 @@
   <!-- Thứ tự nạp quan trọng: config trước, rồi tiện ích dùng chung
        (date-utils/dom-utils/habit-scope/theme-toggle không phụ thuộc
        gì ngoài chính date-utils, nhưng nhiều module phía sau dùng tới
-       nên phải nạp sớm), rồi tầng dữ liệu, rồi habit-range-modal (cần
-       confirm-modal + Sync + HabitScope đã có sẵn), rồi view, rồi
+       nên phải nạp sớm), rồi tầng dữ liệu, rồi habit-range-modal/
+       theme-editor-modal (cần confirm-modal + DomUtils đã có sẵn; chỉ
+       habit-range-modal cần thêm Sync + HabitScope), rồi view, rồi
        app.js -->
   <script src="js/config.js"></script>
   <script src="js/date-utils.js"></script>
@@ -63,6 +79,7 @@
   <script src="js/tree-icons.js"></script>
   <script src="js/confirm-modal.js"></script>
   <script src="js/habit-range-modal.js"></script>
+  <script src="js/theme-editor-modal.js"></script>
   <script src="js/event-section.js"></script>
   <script src="js/habit-note-panel.js"></script>
   <script src="js/views/today.js"></script>
