@@ -48,9 +48,19 @@ const SyncQueue = (() => {
     LocalStore.saveQueue(updated);
   }
 
+  // remapHabitId cũng phải cập nhật archivedHabits, không chỉ habits —
+  // PHÁT HIỆN qua smoke-test-valid-from.js (mục 9): nếu 1 habit được
+  // thêm rồi XOÁ NGAY (cả 2 khi còn offline, trước khi add_habit kịp
+  // đồng bộ để có id thật), habit đó nằm trong archivedHabits với ID
+  // TẠM — nếu không remap ở đây, archivedHabits sẽ giữ ID TẠM (đã hết
+  // hạn dùng) MÃI MÃI trong dữ liệu cục bộ, dù hàng đợi/server đều đã
+  // dùng đúng id thật. Bug này tồn tại từ trước (không phải do
+  // validFrom/validTo mới thêm), chỉ là trước đây không có test nào
+  // lộ ra combo "add + archive cùng lúc offline".
   function remapHabitId(oldId, newId) {
     const data = SyncState.getData();
     data.habits = data.habits.map(h => h.id === oldId ? { ...h, id: newId } : h);
+    data.archivedHabits = data.archivedHabits.map(h => h.id === oldId ? { ...h, id: newId } : h);
     if (data.checks[oldId]) {
       data.checks[newId] = data.checks[oldId];
       delete data.checks[oldId];
@@ -83,8 +93,13 @@ const SyncQueue = (() => {
       }
       case 'archive_habit': {
         if (isTemp(entry.payload.habitId)) throw new Error('habit_not_synced_yet');
+        // p_valid_to: RPC (migration_v7.sql) có default current_date ở
+        // phía server nếu entry cũ (trước bản cập nhật này) không có
+        // field validTo trong payload — || undefined để field vắng mặt
+        // thay vì gửi null tường minh, tránh ghi đè default server.
         await SupabaseClient.rpc('remove_habit', {
-          p_session_token: token, p_habit_id: entry.payload.habitId
+          p_session_token: token, p_habit_id: entry.payload.habitId,
+          p_valid_to: entry.payload.validTo || undefined
         });
         break;
       }

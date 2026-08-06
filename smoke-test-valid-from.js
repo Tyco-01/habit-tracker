@@ -1,8 +1,8 @@
 // ============================================================
-// Test tính năng "phạm vi áp dụng" (validFrom) — xem js/habit-scope.js
-// và ARCHITECTURE.md mục "9. Nếu muốn nhờ người khác sửa tiếp": mọi
-// thay đổi trong js/sync/ đều PHẢI có test xác minh, không chỉ đọc
-// code bằng mắt. Bài test này bao phủ:
+// Test tính năng "phạm vi áp dụng" (validFrom/validTo) — xem
+// js/habit-scope.js và ARCHITECTURE.md mục "9. Nếu muốn nhờ người
+// khác sửa tiếp": mọi thay đổi trong js/sync/ đều PHẢI có test xác
+// minh, không chỉ đọc code bằng mắt. Bài test này bao phủ:
 //   1. addHabit() tự gán validFrom = hôm nay (fix bug gốc — habit mới
 //      không ảnh hưởng ngày quá khứ).
 //   2. HabitScope.habitsForDate() loại đúng habit theo validFrom, và
@@ -10,9 +10,17 @@
 //      với dữ liệu cũ trước khi tính năng này tồn tại).
 //   3. archive/restore CARRY OVER validFrom đúng cả 2 chiều.
 //   4. applySetCheck cho phép tick CẢ habit đã archive.
-//   5. setHabitValidFrom() cập nhật đúng + queue đúng payload (kể cả
+//   5. removeHabit() mặc định validTo = hôm nay khi không truyền gì
+//      (không đụng lịch sử — tương đương hành vi archive cũ).
+//   6. removeHabit(id, ngày quá khứ) — "Xoá cả quá khứ": validTo lùi
+//      về quá khứ, HabitScope tính đúng mốc CUỐI CÙNG còn hoạt động,
+//      loại đúng những ngày SAU mốc đó (kể cả hôm nay).
+//   7. Habit archive TỪ TRƯỚC khi có validTo (dữ liệu cũ, chỉ có
+//      archivedAt) — HabitScope dùng archivedAt làm mốc thay thế,
+//      giữ nguyên hành vi cũ.
+//   8. setHabitValidFrom() cập nhật đúng + queue đúng payload (kể cả
 //      null = "không giới hạn").
-//   6. Hàng đợi đồng bộ: add_habit gửi kèm p_valid_from lên RPC; sau
+//   9. Hàng đợi đồng bộ: add_habit gửi kèm p_valid_from lên RPC; sau
 //      khi remap id tạm → id thật, entry set_habit_valid_from CHƯA
 //      gửi vẫn được cập nhật đúng habitId (đúng bug lớp
 //      remapHabitIdInQueue đã có từ trước — set_habit_valid_from là
@@ -107,7 +115,39 @@ check('setCheck() trả về true (KHÔNG bị chặn) cho habit đã archive', 
 check('Check thật sự được ghi lại', !!(Sync.getData().checks[habit.id] && Sync.getData().checks[habit.id][todayKey]));
 Sync.restoreHabit(habit.id);
 
-console.log('=== 5. setHabitValidFrom() ===');
+console.log('=== 5. removeHabit() mặc định validTo = hôm nay (không đụng lịch sử) ===');
+Sync.removeHabit(habit.id); // không truyền validTo — phải tự mặc định hôm nay
+const afterArchiveDefault = Sync.getData().archivedHabits.find(h => h.id === habit.id);
+check('archivedHabits có validTo = hôm nay khi không truyền gì', !!afterArchiveDefault && afterArchiveDefault.validTo === todayKey);
+Sync.restoreHabit(habit.id);
+
+console.log('=== 6. removeHabit(id, ngày quá khứ) — "Xoá cả quá khứ" ===');
+// Đặt validFrom lùi hẳn về quá khứ TRƯỚC, để có "khoảng trống" giữa
+// validFrom và hôm nay cho stopKey nằm vào giữa (nếu không, validFrom
+// mặc định = hôm nay sẽ khiến mọi stopKey trong quá khứ trở thành
+// khoảng RỖNG — validFrom > validTo — vô nghĩa để kiểm tra).
+Sync.setHabitValidFrom(habit.id, pastKey);
+const stopKey = '2020-06-15'; // nằm giữa pastKey (2000) và hôm nay
+Sync.removeHabit(habit.id, stopKey);
+const afterArchivePast = Sync.getData().archivedHabits.find(h => h.id === habit.id);
+check('archivedHabits.validTo = đúng ngày đã chọn (không phải hôm nay)', !!afterArchivePast && afterArchivePast.validTo === stopKey);
+const dataAfterPastArchive = Sync.getData();
+check('HabitScope VẪN tính habit vào đúng ngày ngừng (validTo là ngày CUỐI CÙNG còn tính)',
+  HabitScope.habitsForDate(stopKey, dataAfterPastArchive).some(h => h.id === habit.id));
+check('HabitScope KHÔNG còn tính habit vào ngày NGAY SAU mốc ngừng',
+  !HabitScope.habitsForDate(DateUtils.addDays(stopKey, 1), dataAfterPastArchive).some(h => h.id === habit.id));
+check('HabitScope KHÔNG tính habit vào HÔM NAY nữa (đã ngừng từ lâu — khác hẳn hành vi archivedAt cũ, vốn vẫn tính tới lúc bấm xoá)',
+  !HabitScope.habitsForDate(todayKey, dataAfterPastArchive).some(h => h.id === habit.id));
+
+Sync.restoreHabit(habit.id);
+Sync.setHabitValidFrom(habit.id, null); // dọn lại "không giới hạn" cho gọn trước khi qua test khác
+
+console.log('=== 7. Habit archive TỪ TRƯỚC khi có validTo (dữ liệu cũ) — dùng archivedAt làm mốc thay thế ===');
+const legacyArchived = { id: 'legacy-archived-1', name: 'Habit đã archive trước khi có validTo', archivedAt: new Date('2024-03-10').getTime() };
+check('Không có validTo → habit vẫn tính tới ĐÚNG ngày archivedAt', HabitScope.isActiveOn('2024-03-10', legacyArchived) === true);
+check('Không có validTo → habit KHÔNG còn tính vào ngày sau archivedAt', HabitScope.isActiveOn('2024-03-11', legacyArchived) === false);
+
+console.log('=== 8. setHabitValidFrom() ===');
 const changed = Sync.setHabitValidFrom(habit.id, pastKey);
 check('setHabitValidFrom trả về true', changed === true);
 check('validFrom đã đổi trong data cục bộ', Sync.getData().habits.find(h => h.id === habit.id).validFrom === pastKey);
@@ -117,7 +157,7 @@ check('Hàng đợi có entry set_habit_valid_from đúng payload', !!queueEntry
 const unlimitedOk = Sync.setHabitValidFrom(habit.id, null);
 check('setHabitValidFrom(null) = "không giới hạn" hoạt động đúng', unlimitedOk === true && Sync.getData().habits.find(h => h.id === habit.id).validFrom === null);
 
-console.log('=== 6. Hàng đợi đồng bộ: add_habit gửi p_valid_from + remap id tạm đúng cho entry gửi liền sau ===');
+console.log('=== 9. Hàng đợi đồng bộ: add_habit/archive_habit gửi đúng payload + remap id tạm ===');
 LocalStore.clearQueue();
 callLog.length = 0;
 const habit2 = Sync.addHabit('Việc thứ 2 (test remap)');
@@ -128,6 +168,11 @@ const tempId2 = habit2.id; // giữ lại id TẠM để so sánh — sau flush,
 // trong queue.js) — set_habit_valid_from là loại entry MỚI thêm vào
 // đó, đây chính là điều bài test này xác minh.
 Sync.setHabitValidFrom(tempId2, pastKey);
+// Cũng enqueue archive_habit NGAY sau đó (vẫn còn id tạm) — kiểm tra
+// remapHabitIdInQueue không bỏ sót loại entry này (archive_habit vốn
+// đã tồn tại từ trước, nhưng payload giờ có thêm field validTo — xác
+// nhận field đó cũng sống sót qua remap, không bị rớt mất).
+Sync.removeHabit(tempId2, stopKey);
 
 dom.window.dispatchEvent(new dom.window.Event('online'));
 
@@ -143,7 +188,19 @@ setTimeout(() => {
   const validFromCall = callLog.find(c => c.fnName === 'update_habit_valid_from');
   check('update_habit_valid_from ĐÃ được gọi (không bị treo chờ mãi vì tưởng habit chưa sync)', !!validFromCall);
   check('update_habit_valid_from gửi ĐÚNG id thật sau remap (server-id-1), KHÔNG còn id tạm', !!validFromCall && validFromCall.params.p_habit_id === 'server-id-1');
+
+  const archiveCall = callLog.find(c => c.fnName === 'remove_habit');
+  check('remove_habit ĐÃ được gọi (cùng lý do remap ở trên)', !!archiveCall);
+  check('remove_habit gửi ĐÚNG id thật sau remap', !!archiveCall && archiveCall.params.p_habit_id === 'server-id-1');
+  check('remove_habit gửi kèm p_valid_to đúng ngày đã chọn', !!archiveCall && archiveCall.params.p_valid_to === stopKey);
+
   check('id tạm cũ không còn xuất hiện trong bất kỳ lời gọi nào', !callLog.some(c => JSON.stringify(c.params).includes(tempId2)));
+
+  // Xác nhận fix remapHabitId (phát hiện lúc viết test này): dữ liệu
+  // CỤC BỘ (archivedHabits) cũng phải đổi sang id thật, không chỉ
+  // payload gửi lên server.
+  const localArchived = Sync.getData().archivedHabits.find(h => h.name === 'Việc thứ 2 (test remap)');
+  check('archivedHabits cục bộ cũng đổi sang id thật (không còn kẹt id tạm)', !!localArchived && localArchived.id === 'server-id-1');
 
   console.log('');
   console.log(`========== KẾT QUẢ: ${pass} PASS, ${fail} FAIL ==========`);

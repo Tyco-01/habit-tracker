@@ -202,16 +202,13 @@ const TodayView = (() => {
       });
 
       listEl.querySelectorAll('[data-remove]').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', () => {
           const habit = habits.find(h => h.id === btn.dataset.remove);
-          const name = habit ? habit.name : 'việc này';
-          const ok = await ConfirmModal.show({
-            title: `Chuyển "${name}" vào thùng rác?`,
-            body: 'Việc sẽ được giữ 30 ngày trong thùng rác trước khi xoá hẳn. Nếu đây là việc cha, các việc con của nó sẽ được tách ra thành việc độc lập.',
-            confirmLabel: 'Chuyển vào thùng rác'
-          });
-          if (!ok) return;
-          Sync.removeHabit(btn.dataset.remove);
+          if (!habit) return;
+          // Xoá "thông minh": cho chọn "Từ hôm nay" (mặc định, không
+          // đụng lịch sử) hoặc "Cả quá khứ" (lùi mốc ngừng về 1 ngày đã
+          // qua) — xem js/habit-range-modal.js: confirmDelete().
+          HabitRangeModal.confirmDelete(habit);
         });
       });
 

@@ -42,7 +42,7 @@ const SyncPull = (() => {
       remoteEvents[e.date].push({ id: e.id, name: e.name, note: e.note || '' });
     });
     const remoteArchived = (trashRows || []).map(t => ({
-      id: t.id, name: t.name, archivedAt: new Date(t.archived_at).getTime(), validFrom: t.valid_from || null
+      id: t.id, name: t.name, archivedAt: new Date(t.archived_at).getTime(), validFrom: t.valid_from || null, validTo: t.valid_to || null
     }));
     const remoteHabitNotes = {};
     (snapshot.habitNotes || []).forEach(n => {

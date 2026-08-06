@@ -31,14 +31,23 @@ const SyncMutations = (() => {
   // ngày quá khứ mà nó từng còn hoạt động, ngay cả sau khi đã bị xoá
   // (xem js/habit-scope.js — merge cả habits ĐANG hoạt động lẫn
   // archivedHabits khi tính tổng của 1 ngày).
-  function applyArchiveHabit(habitId) {
+  // validTo = ngày CUỐI CÙNG còn tính vào tổng — mặc định hôm nay
+  // ("Xoá từ hôm nay"), nhưng có thể lùi về quá khứ nếu người dùng chọn
+  // "Xoá cả quá khứ" ở habit-range-modal.js. KHÁC archivedAt (luôn =
+  // lúc bấm xoá thật, dùng riêng cho đếm ngược 30 ngày thùng rác) — xem
+  // giải thích đầy đủ trong js/habit-scope.js, đừng gộp 2 khái niệm.
+  function applyArchiveHabit(habitId, validTo) {
     const data = SyncState.getData();
     const habit = data.habits.find(h => h.id === habitId);
     if (!habit) return;
     data.habits = data.habits
       .filter(h => h.id !== habitId)
       .map(h => h.parentId === habitId ? { ...h, parentId: null } : h);
-    data.archivedHabits.push({ id: habitId, name: habit.name, archivedAt: Date.now(), validFrom: habit.validFrom || null });
+    data.archivedHabits.push({
+      id: habitId, name: habit.name, archivedAt: Date.now(),
+      validFrom: habit.validFrom || null,
+      validTo: validTo || DateUtils.dateKey(new Date())
+    });
     SyncState.persistLocal();
   }
 
@@ -232,10 +241,15 @@ const SyncMutations = (() => {
     return habit;
   }
 
-  // Xoá = chuyển vào thùng rác (archive), không xoá cứng ngay
-  function removeHabit(habitId) {
-    applyArchiveHabit(habitId);
-    LocalStore.enqueue('archive_habit', { habitId });
+  // Xoá = chuyển vào thùng rác (archive), không xoá cứng ngay.
+  // validTo (tuỳ chọn): ngày cuối cùng còn tính vào tổng — mặc định
+  // hôm nay nếu không truyền (giữ nguyên hành vi cũ với mọi lời gọi
+  // chưa cập nhật), có thể lùi về quá khứ khi người dùng chọn "Xoá cả
+  // quá khứ" ở habit-range-modal.js.
+  function removeHabit(habitId, validTo) {
+    const resolvedValidTo = validTo || DateUtils.dateKey(new Date());
+    applyArchiveHabit(habitId, resolvedValidTo);
+    LocalStore.enqueue('archive_habit', { habitId, validTo: resolvedValidTo });
     SyncQueue.kickSync();
   }
 

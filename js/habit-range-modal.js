@@ -85,6 +85,31 @@ const HabitRangeModal = (() => {
     return `${d.getDate()} ${DateUtils.MONTHS_SHORT_GRID[d.getMonth()]}, ${d.getFullYear()}`;
   }
 
+  // Ngược lại countImpact() ở trên: đây là XOÁ BỚT phạm vi (validTo lùi
+  // về quá khứ), nên % của những ngày bị ảnh hưởng chỉ có thể TĂNG
+  // hoặc giữ nguyên, không bao giờ giảm — không cần cảnh báo "tụt %"
+  // như khi mở rộng validFrom, thay vào đó báo tin vui "sẽ tăng lên
+  // 100%" nếu có.
+  function countRemovalImpact(rangeStart, rangeEnd, habitId, data) {
+    let affected = 0;
+    let newlyFull = 0;
+    const checks = data.checks || {};
+    for (let d = rangeStart; d <= rangeEnd; d = DateUtils.addDays(d, 1)) {
+      const scopedBefore = HabitScope.habitsForDate(d, data); // habit VẪN đang tính (validTo chưa đổi)
+      const totalBefore = scopedBefore.length;
+      const doneBefore = scopedBefore.filter(h => checks[h.id] && checks[h.id][d]).length;
+      const wasFull = totalBefore > 0 && doneBefore === totalBefore;
+
+      const totalAfter = totalBefore - 1;
+      const doneAfter = doneBefore - (checks[habitId] && checks[habitId][d] ? 1 : 0);
+      const willBeFull = totalAfter > 0 && doneAfter === totalAfter;
+
+      affected++;
+      if (!wasFull && willBeFull) newlyFull++;
+    }
+    return { affected, newlyFull };
+  }
+
   // Bước 2: checklist tick hồi tố, nhóm theo tháng qua <details> (native,
   // không cần JS riêng để mở/đóng) — tháng gần nhất mở sẵn, tháng cũ hơn
   // thu gọn, tránh cuộn dài vô tận khi khoảng ngày lớn (đã bàn — UI list
@@ -267,6 +292,103 @@ const HabitRangeModal = (() => {
     });
   }
 
+  // "Xoá thông minh" — thay cho ConfirmModal.show() đơn giản trước đây
+  // ở today.js/day-detail.js. Cho chọn 2 chế độ:
+  //   "Từ hôm nay"  — hành vi CŨ (validTo = hôm nay, không đụng lịch sử)
+  //   "Cả quá khứ"  — chọn ngày ĐÃ NGỪNG THẬT, các ngày sau đó tới hôm
+  //     nay được TÍNH LẠI (habit này không còn kéo tổng lên nữa) —
+  //     không cần checklist bước 2 như luồng mở rộng validFrom, vì đây
+  //     là XOÁ BỚT yêu cầu chứ không phải THÊM sự kiện cần khai báo lại.
+  function renderDeleteChoiceStep(overlay, { habit, onDone }) {
+    const todayKey = DateUtils.dateKey(new Date());
+    const defaultPastDate = habit.validFrom && habit.validFrom > DateUtils.addDays(todayKey, -1)
+      ? habit.validFrom
+      : DateUtils.addDays(todayKey, -1);
+
+    overlay.innerHTML = `
+      <div class="range-modal-card" role="dialog" aria-modal="true" aria-labelledby="range-modal-title">
+        <p class="confirm-modal-title" id="range-modal-title">Chuyển "${DomUtils.escapeHtml(habit.name)}" vào thùng rác?</p>
+        <p class="confirm-modal-body">Việc sẽ được giữ 30 ngày trong thùng rác trước khi xoá hẳn. Nếu đây là việc cha, các việc con của nó sẽ được tách ra thành việc độc lập.</p>
+        <div class="range-modal-choice">
+          <label class="range-modal-choice-row">
+            <input type="radio" name="range-modal-delete-mode" value="today" checked />
+            <span><strong>Từ hôm nay</strong> — vẫn tính vào tổng của mọi ngày tới hôm nay, chỉ ngừng từ mai</span>
+          </label>
+          <label class="range-modal-choice-row">
+            <input type="radio" name="range-modal-delete-mode" value="past" />
+            <span><strong>Cả quá khứ</strong> — chọn ngày đã thực sự ngừng, các ngày sau đó được tính lại</span>
+          </label>
+        </div>
+        <div class="range-modal-field" id="range-modal-delete-date-field" style="display:none;">
+          <label class="range-modal-label" for="range-modal-delete-date">Vẫn tính tới hết ngày</label>
+          <input type="date" id="range-modal-delete-date" class="range-modal-date-input" value="${defaultPastDate}" max="${todayKey}" ${habit.validFrom ? `min="${habit.validFrom}"` : ''} />
+        </div>
+        <div class="confirm-modal-actions" style="margin-top:16px;">
+          <button class="confirm-modal-btn confirm-modal-btn-cancel" id="range-modal-cancel">Huỷ</button>
+          <button class="confirm-modal-btn confirm-modal-btn-ok" id="range-modal-continue">Chuyển vào thùng rác</button>
+        </div>
+      </div>
+    `;
+
+    const dateField = overlay.querySelector('#range-modal-delete-date-field');
+    const continueBtn = overlay.querySelector('#range-modal-continue');
+    const modeRadios = overlay.querySelectorAll('input[name="range-modal-delete-mode"]');
+
+    function syncMode() {
+      const mode = overlay.querySelector('input[name="range-modal-delete-mode"]:checked').value;
+      dateField.style.display = mode === 'past' ? 'block' : 'none';
+      // "past" cần thêm 1 bước cảnh báo tác động trước khi thực sự xoá
+      // (xem nhánh continue bên dưới) — đổi chữ nút để không hứa hẹn
+      // "xoá ngay" trong khi thực ra còn 1 bước nữa.
+      continueBtn.textContent = mode === 'past' ? 'Tiếp tục' : 'Chuyển vào thùng rác';
+    }
+    modeRadios.forEach(r => r.addEventListener('change', syncMode));
+
+    function close() { closeOverlay(overlay); }
+    currentCloseHandler = close;
+    overlay.querySelector('#range-modal-cancel').addEventListener('click', close);
+
+    continueBtn.addEventListener('click', async () => {
+      const mode = overlay.querySelector('input[name="range-modal-delete-mode"]:checked').value;
+
+      if (mode === 'today') {
+        Sync.removeHabit(habit.id, todayKey);
+        close();
+        if (onDone) onDone();
+        return;
+      }
+
+      const validTo = overlay.querySelector('#range-modal-delete-date').value;
+      if (!validTo) return;
+
+      const rangeStart = DateUtils.addDays(validTo, 1);
+      const rangeEnd = todayKey;
+      if (rangeStart > rangeEnd) {
+        // Chọn đúng hôm nay (hoặc sau) — không có ngày quá khứ nào bị
+        // ảnh hưởng, y hệt chế độ "Từ hôm nay". Xoá thẳng, khỏi hỏi
+        // thêm cảnh báo cho 1 thay đổi rỗng.
+        Sync.removeHabit(habit.id, validTo);
+        close();
+        if (onDone) onDone();
+        return;
+      }
+
+      const data = Sync.getData();
+      const { affected, newlyFull } = countRemovalImpact(rangeStart, rangeEnd, habit.id, data);
+      const ok = await ConfirmModal.show({
+        title: `Xoá "${habit.name}" kể từ sau ${formatShort(validTo)}?`,
+        body: `${affected} ngày sau đó sẽ không còn tính việc này vào tổng nữa.` +
+          (newlyFull > 0 ? ` Trong đó ${newlyFull} ngày sẽ tăng lên 100% hoàn thành.` : ''),
+        confirmLabel: 'Xoá'
+      });
+      if (!ok) return;
+
+      Sync.removeHabit(habit.id, validTo);
+      close();
+      if (onDone) onDone();
+    });
+  }
+
   // habit: object habit ĐANG hoạt động (data.habits, không phải
   // archivedHabits — xem giới hạn phạm vi trong HabitScope).
   // contextDateStr: ngày đang xem lúc mở modal (dùng làm gợi ý mặc định
@@ -279,5 +401,14 @@ const HabitRangeModal = (() => {
     renderDatePickerStep(overlay, { habit, contextDateStr, onDone });
   }
 
-  return { open };
+  // Thay cho ConfirmModal.show() đơn giản khi bấm nút xoá 1 habit —
+  // gọi từ views/today.js và views/day-detail.js. onDone gọi lại sau
+  // khi THẬT SỰ xoá (bất kể chế độ nào), không gọi nếu người dùng huỷ.
+  function confirmDelete(habit, onDone) {
+    const overlay = ensureOverlay();
+    openOverlay(overlay);
+    renderDeleteChoiceStep(overlay, { habit, onDone });
+  }
+
+  return { open, confirmDelete };
 })();

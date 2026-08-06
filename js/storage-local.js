@@ -15,10 +15,13 @@
 //       cũ trước khi có tính năng này, coi là "luôn hợp lệ".
 //   checks: { [habitId]: { [dateStr]: true } }   — chỉ lưu ngày ĐÃ tick
 //   events: { [dateStr]: [{ id, name, note }] }
-//   archivedHabits: [{ id, name, archivedAt, validFrom }]
+//   archivedHabits: [{ id, name, archivedAt, validFrom, validTo }]
 //     — habit trong thùng rác; validFrom carry-over từ lúc còn hoạt
 //       động, cần giữ để HabitScope tính đúng tổng cho các ngày quá
 //       khứ khi habit này còn hiệu lực (kể cả sau khi đã bị xoá).
+//       validTo = ngày cuối cùng còn tính vào tổng (mặc định ngày xoá,
+//       có thể lùi về quá khứ) — KHÁC archivedAt (luôn = lúc bấm xoá
+//       thật, chỉ dùng đếm 30 ngày thùng rác), xem js/habit-scope.js.
 //   habitNotes: { [habitId]: { general, byDate: { [dateStr]: content } } }
 //
 // LƯU Ý — bug đã sửa: save() luôn lưu NGUYÊN object data (mọi field),

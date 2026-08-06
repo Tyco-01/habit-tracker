@@ -11,11 +11,24 @@
 //
 // GIẢI PHÁP: mỗi habit mang 1 mốc "validFrom" (ngày bắt đầu được
 // tính vào tổng — mặc định = ngày habit được tạo, xem
-// SyncMutations.addHabit). Việc bị xoá (chuyển vào thùng rác) vẫn
-// giữ nguyên validFrom, cộng thêm mốc "archivedAt" (đã có sẵn từ
-// trước) làm điểm NGỪNG tính. Tổng của 1 ngày D = đếm số habit
-// (đang hoạt động HOẶC đã archive) mà validFrom <= D <= (ngày
-// archive, nếu có).
+// SyncMutations.addHabit) và 1 mốc "validTo" (ngày CUỐI CÙNG còn được
+// tính — mặc định = hôm nay lúc xoá, nhưng có thể LÙI VỀ QUÁ KHỨ nếu
+// người dùng chọn "Xoá cả quá khứ", xem js/habit-range-modal.js). Tổng
+// của 1 ngày D = đếm số habit (đang hoạt động HOẶC đã archive) mà
+// validFrom <= D <= validTo (nếu có).
+//
+// validTo KHÁC archivedAt — CỐ Ý TÁCH RIÊNG, đừng gộp lại:
+//   archivedAt = thời điểm THẬT SỰ bấm nút xoá (luôn = lúc đó, không
+//     bao giờ lùi được) — chỉ dùng để đếm "còn N ngày trong thùng rác"
+//     (xem trash.js/purge_expired_trash trên Supabase).
+//   validTo = ngày habit NGỪNG được tính vào tổng — có thể lùi về quá
+//     khứ (vd "thực ra đã nghỉ từ 2 tuần trước"), không liên quan gì
+//     tới đồng hồ đếm ngược thùng rác. Nếu gộp 2 khái niệm này làm 1,
+//     lùi validTo sẽ vô tình rút ngắn luôn thời gian còn lại trong
+//     thùng rác — tác dụng phụ người dùng không hề muốn.
+//
+// TƯƠNG THÍCH NGƯỢC: habit archive TRƯỚC khi có validTo (undefined/
+// null) → dùng archivedAt làm mốc ngừng thay thế (đúng hành vi cũ).
 //
 // TƯƠNG THÍCH NGƯỢC: habit tạo TRƯỚC khi tính năng này tồn tại
 // không có validFrom (undefined/null) — coi là "luôn hợp lệ, không
@@ -39,11 +52,19 @@ const HabitScope = (() => {
   }
 
   // true nếu habit h (đang hoạt động HOẶC đã archive, hình dạng gộp
-  // {id, name, validFrom, archivedAt?}) được tính vào tổng của dateStr.
+  // {id, name, validFrom, validTo?, archivedAt?}) được tính vào tổng
+  // của dateStr.
   function isActiveOn(dateStr, h) {
     if (h.validFrom && dateStr < h.validFrom) return false;
-    const archived = archivedDateKey(h);
-    if (archived && dateStr > archived) return false;
+    if (h.validTo) {
+      if (dateStr > h.validTo) return false;
+    } else {
+      // Chưa có validTo tường minh (habit archive từ TRƯỚC khi tính
+      // năng "xoá cả quá khứ" tồn tại) — dùng archivedAt làm mốc
+      // ngừng thay thế, giữ nguyên hành vi cũ.
+      const archived = archivedDateKey(h);
+      if (archived && dateStr > archived) return false;
+    }
     return true;
   }
 

@@ -153,17 +153,15 @@ const DayDetailView = (() => {
         });
 
         habitsEl.querySelectorAll('[data-remove]').forEach(btn => {
-          btn.addEventListener('click', async () => {
+          btn.addEventListener('click', () => {
             const { habits } = Sync.getData();
             const habit = habits.find(h => h.id === btn.dataset.remove);
-            const name = habit ? habit.name : 'việc này';
-            const ok = await ConfirmModal.show({
-              title: `Chuyển "${name}" vào thùng rác?`,
-              body: 'Việc sẽ được giữ 30 ngày trong thùng rác trước khi xoá hẳn. Nếu đây là việc cha, các việc con của nó sẽ được tách ra thành việc độc lập.',
-              confirmLabel: 'Chuyển vào thùng rác'
-            });
-            if (!ok) return;
-            Sync.removeHabit(btn.dataset.remove);
+            if (!habit) return;
+            // onDone: render() lại toàn bộ màn (cùng lý do đã giải
+            // thích ở nút [data-range] phía trên — total/scoped có thể
+            // đổi theo cách drawHabits() không tự bắt được hết, ví dụ
+            // xoá NỐT habit cuối cùng của ngày này).
+            HabitRangeModal.confirmDelete(habit, () => render(container, dateStr, onBack));
           });
         });
       }

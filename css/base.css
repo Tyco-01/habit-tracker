@@ -11,18 +11,27 @@
 /* ============================================================
    style.css — Tông kem / đen than, font Manrope.
 
-   THEME: tự đổi sáng/tối theo prefers-color-scheme của hệ điều hành/
-   trình duyệt — CHỦ ĐÍCH ĐỔI so với bản trước (từng cố định cứng 1
-   bảng màu, không phụ theme hệ thống, vì lo ngại thay đổi ngoài ý
-   muốn). Lý do đổi: mục tiêu bây giờ là "dễ chịu cho mắt ở MỌI môi
-   trường" — 1 bảng màu sáng cố định vẫn chói khi dùng phòng tối/ban
-   đêm dù màu có ấm cỡ nào. Cả 2 bảng (sáng lẫn tối) đều PHẢI tránh
-   cực trị (trắng tinh #FFFFFF / đen tuyền #000000) — 1 khối trắng
-   thuần lơ lửng giữa nền cũng gây chói mắt dù nền không phải trắng,
-   và ngược lại chữ trắng tinh trên nền đen tuyền gây loá vào ban đêm.
-   Mọi màu ở đây vì vậy đều ngả tông ẤM (kem/nâu than thay vì
-   trắng/đen/xám lạnh) và giữ độ tương phản vừa đủ đọc, không kịch
-   trần.
+   THEME: 3 chế độ — "Theo hệ thống" (mặc định, tự đổi theo
+   prefers-color-scheme), "Sáng", "Tối" (ép cứng, chọn tay qua nút
+   trên thanh điều hướng — xem js/theme-toggle.js). Lựa chọn tay lưu ở
+   localStorage, áp qua thuộc tính data-theme trên <html>:
+     - Không có data-theme (mặc định = "theo hệ thống") → khối
+       @media (prefers-color-scheme: dark) bên dưới quyết định.
+     - data-theme="light" → LUÔN sáng, kể cả khi hệ thống đang tối
+       (chặn khối @media qua :not([data-theme="light"])).
+     - data-theme="dark" → LUÔN tối, kể cả khi hệ thống đang sáng.
+
+   Khối biến TỐI xuất hiện 2 LẦN có chủ đích (1 trong @media, 1 ở
+   [data-theme="dark"]) — CSS thuần không có cách gộp "OR" giữa 1 media
+   feature và 1 attribute selector mà không lặp lại thuộc tính. SỬA MÀU
+   TỐI Ở ĐÂU THÌ NHỚ SỬA CẢ 2 CHỖ, không chỉ 1.
+
+   Cả 2 bảng (sáng lẫn tối) đều PHẢI tránh cực trị (trắng tinh #FFFFFF
+   / đen tuyền #000000) — 1 khối trắng thuần lơ lửng giữa nền cũng gây
+   chói mắt dù nền không phải trắng, và ngược lại chữ trắng tinh trên
+   nền đen tuyền gây loá vào ban đêm. Mọi màu ở đây vì vậy đều ngả tông
+   ẤM (kem/nâu than thay vì trắng/đen/xám lạnh) và giữ độ tương phản
+   vừa đủ đọc, không kịch trần.
    ============================================================ */
 
 :root {
@@ -39,7 +48,9 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  /* :not([data-theme="light"]) — nếu người dùng đã ép "Sáng" thủ công,
+     giữ nguyên bảng sáng ở :root dù hệ thống đang tối. */
+  :root:not([data-theme="light"]) {
     --ink: #EDE6D8;
     --ink-rgb: 237, 230, 216;
     --mute: #9C9282;
@@ -55,6 +66,22 @@
     --partial-bg: #322C22;
     --danger: #E2795F;
   }
+}
+
+/* data-theme="dark" ép cứng — áp dụng bất kể hệ thống đang sáng hay
+   tối (vd hệ thống sáng nhưng người dùng chọn tay "Tối"). Giá trị
+   TRÙNG HỆT khối @media ở trên — xem giải thích "vì sao lặp lại" trong
+   comment lớn phía trên :root. */
+:root[data-theme="dark"] {
+  --ink: #EDE6D8;
+  --ink-rgb: 237, 230, 216;
+  --mute: #9C9282;
+  --paper: #1C1917;
+  --card: #262220;
+  --line: #3A342E;
+  --full-bg: #E8D9A8;
+  --partial-bg: #322C22;
+  --danger: #E2795F;
 }
 
 * { box-sizing: border-box; }

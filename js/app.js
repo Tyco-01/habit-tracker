@@ -64,6 +64,9 @@
           </button>
         </div>
         <div style="display:flex;align-items:center;gap:4px;">
+          <button id="nav-theme" aria-label="Đổi giao diện" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
+            <i class="ti" style="font-size:16px;" aria-hidden="true"></i>
+          </button>
           <button id="nav-refresh" aria-label="Làm tươi" title="Tải lại app — dùng khi giao diện bị lỗi hoặc hiển thị sai" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
             <i class="ti ti-refresh" style="font-size:16px;" aria-hidden="true"></i>
           </button>
@@ -95,6 +98,21 @@
     const navRefresh = root.querySelector('#nav-refresh');
     const navLogout = root.querySelector('#nav-logout');
     const navExport = root.querySelector('#nav-export');
+    const navTheme = root.querySelector('#nav-theme');
+
+    // Nút đổi giao diện — xoay vòng Theo hệ thống → Sáng → Tối, xem
+    // js/theme-toggle.js. Icon/title luôn phản ánh chế độ ĐANG chọn
+    // (không phải chế độ sẽ chuyển tới), khớp quy ước nav-refresh/
+    // nav-export ở trên (title mô tả trạng thái, không phải hành động).
+    function syncThemeButton(mode) {
+      const icon = navTheme.querySelector('i');
+      icon.className = `ti ${ThemeToggle.ICON[mode]}`;
+      navTheme.title = ThemeToggle.LABEL[mode];
+    }
+    syncThemeButton(ThemeToggle.get());
+    navTheme.addEventListener('click', () => {
+      syncThemeButton(ThemeToggle.cycle());
+    });
 
     // "Làm tươi" — vừa dọn trạng thái JS tạm thời (reload trang) VỪA
     // tự dò-sửa lỗi CẤU TRÚC DỮ LIỆU thật đã biết (vd vòng lặp cha-con
