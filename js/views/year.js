@@ -144,46 +144,48 @@ const YearView = (() => {
 
       content.innerHTML = `<div class="cal-pane" id="cal-pane">${html}</div>`;
 
-      content.querySelectorAll('.day-cell[data-date]').forEach(cell => {
+      // Gắn click cho MỌI phần tử có data-date (không phụ thuộc class
+      // cụ thể — .day-cell ở Tháng/Năm, .cal-week-row ở Tuần,
+      // .cal-day-focus ở Ngày...) trừ .cal-day-focus-open, vì nút đó
+      // ĐÃ có listener riêng qua delegation ở cuối render() (dòng dưới
+      // cùng) — gắn thêm ở đây sẽ gọi onDayClick 2 lần mỗi cú bấm.
+      content.querySelectorAll('[data-date]:not(.cal-day-focus-open)').forEach(cell => {
         cell.addEventListener('click', () => {
           if (onDayClick) onDayClick(cell.dataset.date);
         });
       });
 
       bindNavCommon();
+      bindDateJump();
 
-      if (mode === 'year') {
-        bindDateJump();
-        if (pendingScrollToToday && viewYear === new Date().getFullYear()) {
-          pendingScrollToToday = false;
-          const todayKey = DateUtils.dateKey(new Date());
-          requestAnimationFrame(() => {
-            const todayCell = content.querySelector(`[data-date="${todayKey}"]`);
-            todayCell?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-          });
-        }
+      if (mode === 'year' && pendingScrollToToday && viewYear === new Date().getFullYear()) {
+        pendingScrollToToday = false;
+        const todayKey = DateUtils.dateKey(new Date());
+        requestAnimationFrame(() => {
+          const todayCell = content.querySelector(`[data-date="${todayKey}"]`);
+          todayCell?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        });
       }
     }
 
     // Nav prev/next dùng CHUNG 1 id cho mọi mode (#cal-prev/#cal-next)
     // — mỗi mode tự quyết định bước nhảy đúng đơn vị của mình (ngày/
-    // tuần/tháng/năm). Không mode nào còn nút "Hôm nay" riêng nữa —
-    // Ngày/Tuần/Tháng luôn mở sẵn đúng hôm nay nên nút đó thực sự
-    // thừa; mode Năm cũng không cần vì đã tự cuộn về đúng ô hôm nay
-    // ngay khi mở tab (xem pendingScrollToToday bên dưới, kích hoạt
-    // qua { focusToday: true } app.js truyền vào render(), không qua
-    // nút bấm nào). #cal-today vẫn được xử lý ở đây để không crash
-    // nếu 1 mode nào đó trong tương lai thêm lại nút này.
+    // tuần/tháng/năm). #cal-title-jump (bấm dòng tiêu đề) đưa NGAY về
+    // hôm nay — hành động nhanh, hay dùng nhất, không cần thao tác
+    // phụ. Muốn nhảy tới 1 ngày/tháng/năm CỤ THỂ xa hơn thì dùng
+    // #cal-jump-btn (icon lịch nhỏ cạnh đó) để mở bộ chọn của trình
+    // duyệt — tách 2 nút riêng theo tần suất dùng, không gộp chung 1
+    // nút đa chức năng (dễ bấm nhầm, khó đoán hành vi).
     function bindNavCommon() {
       const prevBtn = content.querySelector('#cal-prev');
       const nextBtn = content.querySelector('#cal-next');
-      const todayBtn = content.querySelector('#cal-today');
+      const titleBtn = content.querySelector('#cal-title-jump');
       if (prevBtn) prevBtn.addEventListener('click', () => { if (!prevBtn.disabled) { step(-1); draw(); } });
       if (nextBtn) nextBtn.addEventListener('click', () => { if (!nextBtn.disabled) { step(1); draw(); } });
-      if (todayBtn) todayBtn.addEventListener('click', () => {
+      if (titleBtn) titleBtn.addEventListener('click', () => {
         anchor = new Date();
         viewYear = new Date().getFullYear();
-        pendingScrollToToday = true;
+        if (mode === 'year') pendingScrollToToday = true;
         draw();
       });
     }
@@ -195,19 +197,36 @@ const YearView = (() => {
       else { viewYear += dir; }
     }
 
-    // Cho phép gõ (hoặc chọn từ bộ lịch gốc của trình duyệt/hệ điều
-    // hành) 1 ngày bất kỳ để nhảy thẳng tới đó — kể cả khác năm đang
-    // xem. Chỉ có ở mode "year" (giữ đúng vị trí/hành vi cũ).
+    // Icon lịch cạnh tiêu đề mở bộ chọn NGÀY/THÁNG/NĂM gốc của trình
+    // duyệt (input ẩn, kích hoạt bằng showPicker() — Baseline widely
+    // available từ 09/2022 nên dùng an toàn không cần fallback) để
+    // nhảy thẳng tới bất kỳ đâu, không giới hạn trong tuần/tháng/năm
+    // đang xem. #cal-jump-input đổi type theo mode ngay từ lúc build
+    // HTML (date cho Ngày/Tuần/Năm, month cho Tháng — xem draw*() ở
+    // trên) nên ở đây chỉ cần đọc value và tính lại anchor/viewYear
+    // đúng theo mode hiện tại.
     function bindDateJump() {
-      const input = content.querySelector('#date-jump-input');
-      if (!input) return;
+      const jumpBtn = content.querySelector('#cal-jump-btn');
+      const input = content.querySelector('#cal-jump-input');
+      if (!jumpBtn || !input) return;
+      jumpBtn.addEventListener('click', () => {
+        try { input.showPicker(); } catch (e) { input.focus(); }
+      });
       input.addEventListener('change', () => {
-        const value = input.value; // dạng "YYYY-MM-DD" chuẩn của input[type=date]
+        const value = input.value; // "YYYY-MM-DD" (type=date) hoặc "YYYY-MM" (type=month)
         if (!value) return;
-        const [y] = value.split('-').map(Number);
-        viewYear = y;
+        const parts = value.split('-').map(Number);
+        const y = parts[0];
+        const mo = parts[1] - 1; // 0-based
+        const d = parts[2] || 1;
+        if (mode === 'year') {
+          viewYear = y;
+          draw();
+          if (onDayClick) onDayClick(value);
+          return;
+        }
+        anchor = new Date(y, mo, d);
         draw();
-        if (onDayClick) onDayClick(value);
       });
     }
 
@@ -229,10 +248,12 @@ const YearView = (() => {
         <div class="cal-header">
           <div class="cal-nav">
             <button id="cal-prev" aria-label="Ngày trước"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-            <h3 class="cal-title">${DateUtils.DAYS_VN[anchor.getDay()]}, ${anchor.getDate()}/${anchor.getMonth() + 1}</h3>
+            <button id="cal-title-jump" class="cal-title cal-title-btn" aria-label="Về hôm nay">${DateUtils.DAYS_VN[anchor.getDay()]}, ${anchor.getDate()}/${anchor.getMonth() + 1}</button>
             <button id="cal-next" aria-label="Ngày sau"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
           </div>
+          <button id="cal-jump-btn" class="cal-jump-btn" aria-label="Chọn ngày khác"><i class="ti ti-calendar" aria-hidden="true"></i></button>
         </div>
+        <input type="date" id="cal-jump-input" class="cal-jump-input-hidden" aria-hidden="true" tabindex="-1" />
       `;
 
       return `
@@ -268,10 +289,12 @@ const YearView = (() => {
         <div class="cal-header">
           <div class="cal-nav">
             <button id="cal-prev" aria-label="Tuần trước"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-            <h3 class="cal-title">${rangeLabel}</h3>
+            <button id="cal-title-jump" class="cal-title cal-title-btn" aria-label="Về hôm nay">${rangeLabel}</button>
             <button id="cal-next" aria-label="Tuần sau"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
           </div>
+          <button id="cal-jump-btn" class="cal-jump-btn" aria-label="Chọn tuần khác"><i class="ti ti-calendar" aria-hidden="true"></i></button>
         </div>
+        <input type="date" id="cal-jump-input" class="cal-jump-input-hidden" aria-hidden="true" tabindex="-1" />
       `;
 
       let rows = '';
@@ -330,10 +353,12 @@ const YearView = (() => {
         <div class="cal-header">
           <div class="cal-nav">
             <button id="cal-prev" aria-label="Tháng trước"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-            <h3 class="cal-title">${DateUtils.MONTH_NAMES_FULL[m][0].toUpperCase() + DateUtils.MONTH_NAMES_FULL[m].slice(1)}, ${y}</h3>
+            <button id="cal-title-jump" class="cal-title cal-title-btn" aria-label="Về hôm nay">${DateUtils.MONTH_NAMES_FULL[m][0].toUpperCase() + DateUtils.MONTH_NAMES_FULL[m].slice(1)}, ${y}</button>
             <button id="cal-next" aria-label="Tháng sau"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
           </div>
+          <button id="cal-jump-btn" class="cal-jump-btn" aria-label="Chọn tháng khác"><i class="ti ti-calendar" aria-hidden="true"></i></button>
         </div>
+        <input type="month" id="cal-jump-input" class="cal-jump-input-hidden" aria-hidden="true" tabindex="-1" />
         <div class="weekday-row cal-month-weekday-row">
           <span>CN</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span>
         </div>
@@ -423,17 +448,17 @@ const YearView = (() => {
             <button id="cal-prev" aria-label="Năm trước" ${canGoBack ? '' : 'disabled'}>
               <i class="ti ti-chevron-left" aria-hidden="true"></i>
             </button>
-            <h3 class="cal-title cal-title-year">${viewYear}</h3>
+            <button id="cal-title-jump" class="cal-title cal-title-year cal-title-btn" aria-label="Về hôm nay">${viewYear}</button>
             <button id="cal-next" aria-label="Năm sau" ${canGoForward ? '' : 'disabled'}>
               <i class="ti ti-chevron-right" aria-hidden="true"></i>
             </button>
           </div>
-          <span class="year-count">${hasAnyHabit ? fullDays + ' ngày hoàn thành đủ' : ''}</span>
+          <div class="cal-header-right">
+            <span class="year-count">${hasAnyHabit ? fullDays + ' ngày hoàn thành đủ' : ''}</span>
+            <button id="cal-jump-btn" class="cal-jump-btn" aria-label="Chọn ngày để nhảy tới"><i class="ti ti-calendar" aria-hidden="true"></i></button>
+          </div>
         </div>
-        <div class="date-jump-row">
-          <i class="ti ti-search" aria-hidden="true"></i>
-          <input type="date" id="date-jump-input" class="date-jump-input" aria-label="Tìm đến ngày cụ thể" />
-        </div>
+        <input type="date" id="cal-jump-input" class="cal-jump-input-hidden" aria-hidden="true" tabindex="-1" />
       `;
 
       if (!hasAnyHabit) {

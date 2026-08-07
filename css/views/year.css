@@ -129,21 +129,31 @@
   min-width: 60px;
 }
 
-.cal-today-btn {
-  border: 1px solid var(--line);
+/* Tiêu đề giờ là 1 <button> — bấm để nhảy về hôm nay ngay lập tức
+   (xem bindNavCommon() trong year.js). Giữ đúng hình thức chữ như
+   trước (không trông như nút bấm thông thường), chỉ thêm phản hồi
+   nhẹ khi hover/active để gợi ý nó bấm được. */
+.cal-title-btn {
+  border: none;
   background: transparent;
-  color: var(--ink);
-  font-size: 12.5px;
-  font-weight: 500;
-  padding: 6px 14px;
-  border-radius: 20px;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 4px 8px;
+  transition: background 0.15s ease, transform 0.12s ease;
 }
 
-.cal-today-btn:hover {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
+.cal-title-btn:hover {
+  background: var(--partial-bg);
+}
+
+.cal-title-btn:active {
+  transform: scale(0.97);
+}
+
+.cal-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .year-count {
@@ -151,33 +161,42 @@
   color: var(--mute);
 }
 
-/* ---- Tìm theo ngày (mode Năm) ---- */
-
-.date-jump-row {
+/* Icon lịch nhỏ cạnh tiêu đề — mở bộ chọn ngày/tháng/năm gốc của
+   trình duyệt để nhảy tới 1 mốc bất kỳ (xem bindDateJump() trong
+   year.js). Tách khỏi .cal-title-btn vì 2 hành vi khác nhau: bấm tiêu
+   đề = về hôm nay ngay; bấm icon này = mở picker chọn nơi khác. */
+.cal-jump-btn {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--mute);
+  padding: 7px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 8px 12px;
-  margin-bottom: 22px;
-  max-width: 220px;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.date-jump-input {
-  border: none;
-  background: transparent;
-  font-family: 'Manrope', sans-serif;
-  font-size: 13px;
+.cal-jump-btn:hover {
+  background: var(--partial-bg);
   color: var(--ink);
-  flex: 1;
-  min-width: 0;
+  border-color: var(--mute);
 }
 
-.date-jump-input::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  opacity: 0.6;
+/* input thật (type=date hoặc type=month tuỳ mode) — ẩn hoàn toàn khỏi
+   luồng hiển thị, chỉ tồn tại để .cal-jump-btn gọi showPicker() lên
+   nó. Không dùng display:none vì 1 số trình duyệt từ chối mở picker
+   trên phần tử không hiển thị — thu về 0 kích thước nhưng vẫn "có
+   mặt" trong layout là cách an toàn hơn. */
+.cal-jump-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ---- Mode Năm: lưới 12 tháng — giữ nguyên hệ class cũ, chỉ giãn
@@ -604,21 +623,27 @@
   transform: scale(0.96);
 }
 
-/* ---- Mode Tuần: danh sách 7 hàng dọc ---- */
+/* ---- Mode Tuần: danh sách 7 hàng dọc.
+
+   Bố cục ngày âm/dương ĐỒNG BỘ với mode Tháng: ngày dương là số to,
+   đậm, đứng riêng; ngày âm nằm trong 1 khung nhỏ bo tròn tách biệt
+   (không còn xếp chung 1 hàng ngang sát nhau như "Thứ 6  7  25" gây
+   rối — đây chính là phản hồi đã nhận về mode Tuần). Padding hàng và
+   khoảng cách giữa các hàng cũng tăng lên để đỡ khít. ---- */
 
 .cal-week-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .cal-week-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 16px;
+  padding: 14px 18px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--paper);
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
@@ -637,8 +662,8 @@
 
 .cal-week-row-date {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
   min-width: 0;
   flex: 1;
 }
@@ -647,40 +672,52 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--mute);
-  width: 60px;
+  width: 68px;
   flex-shrink: 0;
 }
 
 .cal-week-row-num {
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--ink);
-  min-width: 22px;
+  min-width: 26px;
 }
 
+/* Ngày âm: cùng kiểu "nhãn dán" nhỏ bo tròn như mode Tháng — tách
+   biệt hẳn khỏi số dương bằng khung riêng, không phải chữ trần cạnh
+   nhau nữa. */
 .cal-week-row-lunar {
-  font-size: 11.5px;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--mute);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  padding: 3px 8px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+.cal-week-row.is-today .cal-week-row-lunar {
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
 .cal-week-row-marks {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   color: var(--mute);
-  font-size: 13px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
 .cal-week-row-status {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 4px 11px;
+  padding: 6px 13px;
   border-radius: 20px;
   background: var(--partial-bg);
   color: var(--ink);
   flex-shrink: 0;
-  min-width: 44px;
+  min-width: 48px;
   text-align: center;
 }
 
