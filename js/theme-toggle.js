@@ -36,7 +36,8 @@ const ThemeToggle = (() => {
     { key: 'line', cssVar: '--line', label: 'Viền' },
     { key: 'fullBg', cssVar: '--full-bg', label: 'Ô "hoàn thành đủ"' },
     { key: 'partialBg', cssVar: '--partial-bg', label: 'Ô "hoàn thành 1 phần"' },
-    { key: 'danger', cssVar: '--danger', label: 'Màu cảnh báo/lỗi' }
+    { key: 'danger', cssVar: '--danger', label: 'Màu cảnh báo/lỗi' },
+    { key: 'lunar', cssVar: '--lunar', label: 'Số ngày âm lịch' }
   ];
 
   // Khớp đúng giá trị meta theme-color trong index.html/manifest.json —
