@@ -26,8 +26,11 @@ const DateUtils = (() => {
   // cần gộp) — dùng cho 2 ngữ cảnh hiển thị khác nhau:
   //   MONTHS_SHORT_BAR ('T1'..'T12')  — nhãn dưới cột biểu đồ (stats.js),
   //     cần ngắn nhất có thể vì cột rất hẹp.
-  //   MONTHS_SHORT_GRID ('Th1'..'Th12') — nhãn đầu mỗi khối tháng trong
-  //     lưới "Cả năm" (year.js), có đủ chỗ rộng hơn nên rõ nghĩa hơn 1 chút.
+  //   MONTHS_SHORT_GRID ('Th1'..'Th12') — nhãn ngày rút gọn dùng ở
+  //     habit-range-modal.js (vd "30 Th7, 2026"), có đủ chỗ rộng hơn
+  //     MONTHS_SHORT_BAR nên rõ nghĩa hơn 1 chút. KHÔNG còn dùng ở
+  //     views/year.js — lưới "Cả năm" giờ dùng MONTH_NAMES_FULL đầy
+  //     đủ ("Tháng 1"..."Tháng 12") theo yêu cầu hiển thị rõ ràng hơn.
   const MONTHS_SHORT_BAR = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
   const MONTHS_SHORT_GRID = ['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12'];
 

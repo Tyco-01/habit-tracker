@@ -32,30 +32,12 @@
   padding: 4px;
   color: var(--ink);
   display: flex;
-  border-radius: 8px;
-  transition: background 0.15s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.back-btn:hover {
-  background: var(--line);
-}
-
-.back-btn:active {
-  transform: scale(0.88);
 }
 
 .day-detail-heading-row {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.day-detail-title-row {
-  display: flex;
   align-items: baseline;
   gap: 10px;
-  flex-wrap: wrap;
 }
 
 .day-detail-date {
@@ -69,26 +51,6 @@
   margin: 0;
   font-size: 17px;
   font-weight: 600;
-}
-
-/* Ngày ÂM lịch đầy đủ — "rõ ngày tháng năm luôn" (không rút gọn như ở
-   lưới năm, đủ chỗ để ghi hẳn "Ngày X tháng Y âm lịch, năm <Can Chi>",
-   xem js/lunar-calendar.js: formatFull()). Dùng màu --lunar riêng biệt
-   với chữ dương lịch phía trên (--mute) — cùng quy ước phân biệt
-   "âm/dương bằng màu" đã dùng ở lưới năm (css/views/year.css), không
-   phải màu ngẫu nhiên chỉ riêng ở đây. */
-.day-detail-lunar {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--lunar);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.day-detail-lunar i {
-  font-size: 12px;
 }
 
 .day-toggle-row {

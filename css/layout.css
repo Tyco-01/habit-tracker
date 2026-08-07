@@ -38,11 +38,7 @@
   border: none;
   background: transparent;
   color: var(--mute);
-  transition: background 0.2s ease, color 0.2s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.tab-btn:active {
-  transform: scale(0.94);
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .tab-btn.active {
@@ -56,19 +52,16 @@
   align-items: center;
 }
 
-/* Chuyển tab chính (Hôm nay/Cả năm/Thống kê/Thùng rác) — fade nhẹ kèm
-   trôi lên 1 chút (khác .day-view ở trên, dành riêng cho "đi sâu vào
-   chi tiết 1 ngày" nên có cảm giác tiến-tới rõ hơn). CSS animation tự
-   chạy lại mỗi khi display đổi từ none sang khác none, không cần thêm
-   cơ chế JS nào khác ngoài việc gán class này 1 lần lúc tạo HTML.
-   Cùng 1 đường cong easing (cubic-bezier) với day-cell/month-block ở
-   css/views/year.css — mọi chuyển động trong app dùng CHUNG 1 "cảm
-   giác" thay vì mỗi chỗ 1 kiểu dừng/nảy khác nhau. */
+/* Chuyển tab chính (Hôm nay/Cả năm/Thống kê/Thùng rác) — fade nhẹ,
+   không trượt ngang (khác .day-view ở trên, dành riêng cho "đi sâu
+   vào chi tiết 1 ngày" nên có cảm giác tiến-tới rõ hơn). CSS animation
+   tự chạy lại mỗi khi display đổi từ none sang khác none, không cần
+   thêm cơ chế JS nào khác ngoài việc gán class này 1 lần lúc tạo HTML. */
 .view-fade-in {
-  animation: view-fade-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: view-fade-in 0.18s ease;
 }
 
 @keyframes view-fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

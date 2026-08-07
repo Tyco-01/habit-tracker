@@ -16,7 +16,6 @@ const DayDetailView = (() => {
   function render(container, dateStr, onBack) {
     const dObj = DateUtils.parseDateStr(dateStr);
     const label = DateUtils.formatFullLabel(dObj);
-    const lunarLabel = LunarCalendar.formatFull(LunarCalendar.fromDateStr(dateStr));
     const data = Sync.getData();
 
     const today = new Date();
@@ -36,11 +35,8 @@ const DayDetailView = (() => {
             <i class="ti ti-arrow-left" style="font-size:20px;" aria-hidden="true"></i>
           </button>
           <div class="day-detail-heading-row">
-            <div class="day-detail-title-row">
-              <h3 class="day-detail-title" id="day-title"></h3>
-              <p class="day-detail-date">${label}</p>
-            </div>
-            <p class="day-detail-lunar"><i class="ti ti-moon-stars" aria-hidden="true"></i>${lunarLabel}</p>
+            <h3 class="day-detail-title" id="day-title"></h3>
+            <p class="day-detail-date">${label}</p>
           </div>
         </div>
 

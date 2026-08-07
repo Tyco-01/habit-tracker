@@ -21,7 +21,7 @@
           var theme = list.find(function (t) { return t.id === m.slice(7); });
           if (theme && theme.vars) {
             var style = document.documentElement.style;
-            var map = { ink: '--ink', mute: '--mute', paper: '--paper', card: '--card', line: '--line', fullBg: '--full-bg', partialBg: '--partial-bg', danger: '--danger', lunar: '--lunar' };
+            var map = { ink: '--ink', mute: '--mute', paper: '--paper', card: '--card', line: '--line', fullBg: '--full-bg', partialBg: '--partial-bg', danger: '--danger' };
             Object.keys(map).forEach(function (k) { if (theme.vars[k]) style.setProperty(map[k], theme.vars[k]); });
             var hex = theme.vars.ink;
             var mm = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
