@@ -129,10 +129,11 @@
   min-width: 60px;
 }
 
-/* Tiêu đề giờ là 1 <button> — bấm để nhảy về hôm nay ngay lập tức
-   (xem bindNavCommon() trong year.js). Giữ đúng hình thức chữ như
-   trước (không trông như nút bấm thông thường), chỉ thêm phản hồi
-   nhẹ khi hover/active để gợi ý nó bấm được. */
+/* Tiêu đề giờ là 1 <button> — bấm để mở popup chọn ngày/tháng tự vẽ
+   (MiniCalendarPicker, xem bindDateJump() trong year.js và
+   mini-calendar-picker.css cho style của popup). Giữ đúng hình thức
+   chữ như trước (không trông như nút bấm thông thường), chỉ thêm phản
+   hồi nhẹ khi hover/active để gợi ý nó bấm được. */
 .cal-title-btn {
   border: none;
   background: transparent;
@@ -150,53 +151,9 @@
   transform: scale(0.97);
 }
 
-.cal-header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .year-count {
   font-size: 12px;
   color: var(--mute);
-}
-
-/* Icon lịch nhỏ cạnh tiêu đề — mở bộ chọn ngày/tháng/năm gốc của
-   trình duyệt để nhảy tới 1 mốc bất kỳ (xem bindDateJump() trong
-   year.js). Tách khỏi .cal-title-btn vì 2 hành vi khác nhau: bấm tiêu
-   đề = về hôm nay ngay; bấm icon này = mở picker chọn nơi khác. */
-.cal-jump-btn {
-  border: 1px solid var(--line);
-  background: transparent;
-  color: var(--mute);
-  padding: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  font-size: 15px;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.cal-jump-btn:hover {
-  background: var(--partial-bg);
-  color: var(--ink);
-  border-color: var(--mute);
-}
-
-/* input thật (type=date hoặc type=month tuỳ mode) — ẩn hoàn toàn khỏi
-   luồng hiển thị, chỉ tồn tại để .cal-jump-btn gọi showPicker() lên
-   nó. Không dùng display:none vì 1 số trình duyệt từ chối mở picker
-   trên phần tử không hiển thị — thu về 0 kích thước nhưng vẫn "có
-   mặt" trong layout là cách an toàn hơn. */
-.cal-jump-input-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  border: none;
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* ---- Mode Năm: lưới 12 tháng — giữ nguyên hệ class cũ, chỉ giãn
@@ -207,7 +164,6 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 32px 22px;
 }
-
 /* Màn hình hẹp (điện thoại): 4 cột tháng quá chật, ô ngày co nhỏ tới
    mức số bị ép mất — chuyển dần về ít cột hơn theo độ rộng thực tế. */
 @media (max-width: 900px) {
@@ -255,7 +211,7 @@
 
 .day-grid {
   display: grid;
-  gap: 3px;
+  gap: 5px;
 }
 
 .day-grid.month-grid {
@@ -348,6 +304,13 @@
   opacity: 1;
 }
 
+/* Nhãn âm lịch ở ô đệm cũng mờ nhẹ theo, đồng bộ với số dương của
+   chính ô đó — không hiện đậm ngang bằng ô trong tháng đang xem, vẫn
+   giữ đúng ý "ô đệm chỉ mang tính tham khảo, không phải trọng tâm". */
+.day-cell.blank-adjacent .day-lunar {
+  opacity: 0.6;
+}
+
 .day-cell.blank-adjacent:hover {
   border-color: var(--line);
   background: var(--paper);
@@ -403,8 +366,13 @@
   opacity: 0.7;
 }
 
+/* scale nhỏ (1.08) làm mặc định vì .day-cell dùng chung cho mode Năm
+   — lưới rất dày đặc (365 ô, gap chỉ 5px), phóng to 1.2 như trước dễ
+   tràn đè lên ô lân cận (đúng phản hồi "chồng lấn không gian"). Mode
+   Tháng có ô to hơn hẳn và gap rộng hơn nên override scale lớn hơn ở
+   dưới (.cal-month-grid .day-cell:hover), không ảnh hưởng gì ở đây. */
 .day-cell:hover {
-  transform: scale(1.2);
+  transform: scale(1.08);
   z-index: 2;
   position: relative;
 }
@@ -463,6 +431,13 @@
   aspect-ratio: 1.05;
   align-items: center;
   justify-content: center;
+}
+
+/* Ô mode Tháng to hơn hẳn mode Năm và gap cũng rộng hơn (6px so với
+   5px) nên chịu được scale lớn hơn khi hover mà không tràn đè ô lân
+   cận — override lại mức 1.08 mặc định dùng chung ở trên. */
+.cal-month-grid .day-cell:hover {
+  transform: scale(1.06);
 }
 
 /* Số dương giờ là NỘI DUNG CHÍNH giữa ô (không còn ghim góc dưới-phải

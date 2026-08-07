@@ -170,24 +170,12 @@ const YearView = (() => {
 
     // Nav prev/next dùng CHUNG 1 id cho mọi mode (#cal-prev/#cal-next)
     // — mỗi mode tự quyết định bước nhảy đúng đơn vị của mình (ngày/
-    // tuần/tháng/năm). #cal-title-jump (bấm dòng tiêu đề) đưa NGAY về
-    // hôm nay — hành động nhanh, hay dùng nhất, không cần thao tác
-    // phụ. Muốn nhảy tới 1 ngày/tháng/năm CỤ THỂ xa hơn thì dùng
-    // #cal-jump-btn (icon lịch nhỏ cạnh đó) để mở bộ chọn của trình
-    // duyệt — tách 2 nút riêng theo tần suất dùng, không gộp chung 1
-    // nút đa chức năng (dễ bấm nhầm, khó đoán hành vi).
+    // tuần/tháng/năm).
     function bindNavCommon() {
       const prevBtn = content.querySelector('#cal-prev');
       const nextBtn = content.querySelector('#cal-next');
-      const titleBtn = content.querySelector('#cal-title-jump');
       if (prevBtn) prevBtn.addEventListener('click', () => { if (!prevBtn.disabled) { step(-1); draw(); } });
       if (nextBtn) nextBtn.addEventListener('click', () => { if (!nextBtn.disabled) { step(1); draw(); } });
-      if (titleBtn) titleBtn.addEventListener('click', () => {
-        anchor = new Date();
-        viewYear = new Date().getFullYear();
-        if (mode === 'year') pendingScrollToToday = true;
-        draw();
-      });
     }
 
     function step(dir) {
@@ -197,36 +185,31 @@ const YearView = (() => {
       else { viewYear += dir; }
     }
 
-    // Icon lịch cạnh tiêu đề mở bộ chọn NGÀY/THÁNG/NĂM gốc của trình
-    // duyệt (input ẩn, kích hoạt bằng showPicker() — Baseline widely
-    // available từ 09/2022 nên dùng an toàn không cần fallback) để
-    // nhảy thẳng tới bất kỳ đâu, không giới hạn trong tuần/tháng/năm
-    // đang xem. #cal-jump-input đổi type theo mode ngay từ lúc build
-    // HTML (date cho Ngày/Tuần/Năm, month cho Tháng — xem draw*() ở
-    // trên) nên ở đây chỉ cần đọc value và tính lại anchor/viewYear
-    // đúng theo mode hiện tại.
+    // Bấm THẲNG vào dòng tiêu đề (#cal-title-jump) mở popup chọn ngày/
+    // tháng TỰ VẼ (MiniCalendarPicker — không dùng input gốc của
+    // trình duyệt nữa, vì input gốc không set được màu/kiểu và không
+    // chèn được âm lịch vào bên trong). Popup tự có sẵn nút "Hôm nay"
+    // nên không cần thêm nút riêng ở ngoài.
     function bindDateJump() {
-      const jumpBtn = content.querySelector('#cal-jump-btn');
-      const input = content.querySelector('#cal-jump-input');
-      if (!jumpBtn || !input) return;
-      jumpBtn.addEventListener('click', () => {
-        try { input.showPicker(); } catch (e) { input.focus(); }
-      });
-      input.addEventListener('change', () => {
-        const value = input.value; // "YYYY-MM-DD" (type=date) hoặc "YYYY-MM" (type=month)
-        if (!value) return;
-        const parts = value.split('-').map(Number);
-        const y = parts[0];
-        const mo = parts[1] - 1; // 0-based
-        const d = parts[2] || 1;
-        if (mode === 'year') {
-          viewYear = y;
-          draw();
-          if (onDayClick) onDayClick(value);
-          return;
-        }
-        anchor = new Date(y, mo, d);
-        draw();
+      const titleBtn = content.querySelector('#cal-title-jump');
+      if (!titleBtn) return;
+      titleBtn.addEventListener('click', () => {
+        MiniCalendarPicker.open({
+          anchorEl: titleBtn,
+          initialDate: mode === 'year' ? new Date(viewYear, 0, 1) : anchor,
+          mode: mode === 'week' ? 'week' : 'day',
+          onSelect: (d) => {
+            if (mode === 'year') {
+              viewYear = d.getFullYear();
+              if (viewYear === new Date().getFullYear()) pendingScrollToToday = true;
+              draw();
+              if (onDayClick) onDayClick(DateUtils.dateKey(d));
+              return;
+            }
+            anchor = d;
+            draw();
+          }
+        });
       });
     }
 
@@ -248,12 +231,10 @@ const YearView = (() => {
         <div class="cal-header">
           <div class="cal-nav">
             <button id="cal-prev" aria-label="Ngày trước"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-            <button id="cal-title-jump" class="cal-title cal-title-btn" aria-label="Về hôm nay">${DateUtils.DAYS_VN[anchor.getDay()]}, ${anchor.getDate()}/${anchor.getMonth() + 1}</button>
+            <button id="cal-title-jump" class="cal-title cal-title-btn" aria-label="Chọn ngày khác">${DateUtils.DAYS_VN[anchor.getDay()]}, ${anchor.getDate()}/${anchor.getMonth() + 1}</button>
             <button id="cal-next" aria-label="Ngày sau"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
           </div>
-          <button id="cal-jump-btn" class="cal-jump-btn" aria-label="Chọn ngày khác"><i class="ti ti-calendar" aria-hidden="true"></i></button>
         </div>
-        <input type="date" id="cal-jump-input" class="cal-jump-input-hidden" aria-hidden="true" tabindex="-1" />
       `;
 
       return `
@@ -289,12 +270,10 @@ const YearView = (() => {
         <div class="cal-header">
           <div class="cal-nav">
             <button id="cal-prev" aria-label="Tuần trước"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-            <button id="cal-title-jump" class="cal-title cal-title-btn" aria-label="Về hôm nay">${rangeLabel}</button>
+            <button id="cal-title-jump" class="cal-title cal-title-btn" aria-label="Chọn tuần khác">${rangeLabel}</button>
             <button id="cal-next" aria-label="Tuần sau"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
           </div>
-          <button id="cal-jump-btn" class="cal-jump-btn" aria-label="Chọn tuần khác"><i class="ti ti-calendar" aria-hidden="true"></i></button>
         </div>
-        <input type="date" id="cal-jump-input" class="cal-jump-input-hidden" aria-hidden="true" tabindex="-1" />
       `;
 
       let rows = '';
@@ -353,12 +332,10 @@ const YearView = (() => {
         <div class="cal-header">
           <div class="cal-nav">
             <button id="cal-prev" aria-label="Tháng trước"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
-            <button id="cal-title-jump" class="cal-title cal-title-btn" aria-label="Về hôm nay">${DateUtils.MONTH_NAMES_FULL[m][0].toUpperCase() + DateUtils.MONTH_NAMES_FULL[m].slice(1)}, ${y}</button>
+            <button id="cal-title-jump" class="cal-title cal-title-btn" aria-label="Chọn tháng khác">${DateUtils.MONTH_NAMES_FULL[m][0].toUpperCase() + DateUtils.MONTH_NAMES_FULL[m].slice(1)}, ${y}</button>
             <button id="cal-next" aria-label="Tháng sau"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
           </div>
-          <button id="cal-jump-btn" class="cal-jump-btn" aria-label="Chọn tháng khác"><i class="ti ti-calendar" aria-hidden="true"></i></button>
         </div>
-        <input type="month" id="cal-jump-input" class="cal-jump-input-hidden" aria-hidden="true" tabindex="-1" />
         <div class="weekday-row cal-month-weekday-row">
           <span>CN</span><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span>
         </div>
@@ -377,7 +354,8 @@ const YearView = (() => {
       for (let i = 0; i < firstWeekday; i++) {
         const dayNum = prevMonthDays - firstWeekday + 1 + i;
         const adjKey = DateUtils.dateKeyFromParts(prevY, prevM, dayNum);
-        cells += `<div class="day-cell blank-adjacent" data-date="${adjKey}"><span class="day-number">${dayNum}</span></div>`;
+        const adjLunar = lunarShort(new Date(prevY, prevM, dayNum));
+        cells += `<div class="day-cell blank-adjacent" data-date="${adjKey}"><span class="day-number">${dayNum}</span><span class="day-lunar">${adjLunar}</span></div>`;
       }
       for (let day = 1; day <= daysInMonth; day++) {
         const d = new Date(y, m, day);
@@ -409,7 +387,8 @@ const YearView = (() => {
       const nextM = nextMonthDate.getMonth();
       for (let i = 1; i <= trailing; i++) {
         const adjKey = DateUtils.dateKeyFromParts(nextY, nextM, i);
-        cells += `<div class="day-cell blank-adjacent" data-date="${adjKey}"><span class="day-number">${i}</span></div>`;
+        const adjLunar = lunarShort(new Date(nextY, nextM, i));
+        cells += `<div class="day-cell blank-adjacent" data-date="${adjKey}"><span class="day-number">${i}</span><span class="day-lunar">${adjLunar}</span></div>`;
       }
 
       return `${header}<div class="day-grid cal-month-grid">${cells}</div>`;
@@ -448,17 +427,13 @@ const YearView = (() => {
             <button id="cal-prev" aria-label="Năm trước" ${canGoBack ? '' : 'disabled'}>
               <i class="ti ti-chevron-left" aria-hidden="true"></i>
             </button>
-            <button id="cal-title-jump" class="cal-title cal-title-year cal-title-btn" aria-label="Về hôm nay">${viewYear}</button>
+            <button id="cal-title-jump" class="cal-title cal-title-year cal-title-btn" aria-label="Chọn năm khác">${viewYear}</button>
             <button id="cal-next" aria-label="Năm sau" ${canGoForward ? '' : 'disabled'}>
               <i class="ti ti-chevron-right" aria-hidden="true"></i>
             </button>
           </div>
-          <div class="cal-header-right">
-            <span class="year-count">${hasAnyHabit ? fullDays + ' ngày hoàn thành đủ' : ''}</span>
-            <button id="cal-jump-btn" class="cal-jump-btn" aria-label="Chọn ngày để nhảy tới"><i class="ti ti-calendar" aria-hidden="true"></i></button>
-          </div>
+          <span class="year-count">${hasAnyHabit ? fullDays + ' ngày hoàn thành đủ' : ''}</span>
         </div>
-        <input type="date" id="cal-jump-input" class="cal-jump-input-hidden" aria-hidden="true" tabindex="-1" />
       `;
 
       if (!hasAnyHabit) {

@@ -1,0 +1,149 @@
+/* ============================================================
+   css/views/mini-calendar-picker.css — Popup chọn ngày/tháng tự vẽ
+   (js/views/mini-calendar-picker.js), thay thế input date/month gốc
+   của trình duyệt để đồng bộ màu/kiểu với theme app + hiện được âm
+   lịch trong từng ô (điều input gốc không làm được).
+   ============================================================ */
+
+.mcp-popup {
+  position: absolute;
+  z-index: 200;
+  width: 300px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(var(--ink-rgb), 0.18);
+  padding: 14px;
+  animation: mcp-pop-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mcp-pop-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mcp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.mcp-month-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mcp-nav-btn {
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  padding: 5px;
+  display: flex;
+  border-radius: 7px;
+  font-size: 15px;
+  transition: background 0.15s ease;
+}
+
+.mcp-nav-btn:hover {
+  background: var(--partial-bg);
+}
+
+.mcp-weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.mcp-weekday-row span {
+  font-size: 10px;
+  color: var(--mute);
+  text-align: center;
+}
+
+.mcp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.mcp-cell {
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 5px 0 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.mcp-cell:hover {
+  background: var(--partial-bg);
+}
+
+.mcp-cell-num {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.mcp-cell-lunar {
+  font-size: 8.5px;
+  color: var(--mute);
+  line-height: 1;
+}
+
+.mcp-cell-adjacent .mcp-cell-num,
+.mcp-cell-adjacent .mcp-cell-lunar {
+  opacity: 0.4;
+}
+
+.mcp-cell-today .mcp-cell-num {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.mcp-cell-selected {
+  background: var(--ink);
+}
+
+.mcp-cell-selected .mcp-cell-num {
+  color: var(--card);
+  font-weight: 700;
+}
+
+.mcp-cell-selected .mcp-cell-lunar {
+  color: var(--card);
+  opacity: 0.7;
+}
+
+/* Bôi đậm cả hàng khi picker đang ở mode "week" (chọn nguyên 1 tuần
+   để nhảy tới, không phải 1 ngày lẻ) — người dùng hover vào bất kỳ ô
+   nào trong hàng, cả 7 ô cùng sáng lên để thấy rõ phạm vi sẽ chọn. */
+.mcp-cell.mcp-week-hover {
+  background: var(--partial-bg);
+}
+
+.mcp-today-btn {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px;
+  border-radius: 9px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.mcp-today-btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}

@@ -16,6 +16,7 @@ const DayDetailView = (() => {
   function render(container, dateStr, onBack) {
     const dObj = DateUtils.parseDateStr(dateStr);
     const label = DateUtils.formatFullLabel(dObj);
+    const lunar = (() => { try { return LunarCalendar.fromSolar(dObj); } catch (e) { return null; } })();
     const data = Sync.getData();
 
     const today = new Date();
@@ -34,9 +35,12 @@ const DayDetailView = (() => {
           <button class="back-btn" id="day-back" aria-label="Quay lại">
             <i class="ti ti-arrow-left" style="font-size:20px;" aria-hidden="true"></i>
           </button>
-          <div class="day-detail-heading-row">
-            <h3 class="day-detail-title" id="day-title"></h3>
-            <p class="day-detail-date">${label}</p>
+          <div class="day-detail-heading-col">
+            <div class="day-detail-heading-row">
+              <h3 class="day-detail-title" id="day-title"></h3>
+              <p class="day-detail-date">${label}</p>
+            </div>
+            ${lunar ? `<p class="day-detail-lunar">Âm lịch: ${lunar.fullLabel} · năm ${lunar.canChiYear}</p>` : ''}
           </div>
         </div>
 

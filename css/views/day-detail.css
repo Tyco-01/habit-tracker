@@ -34,16 +34,34 @@
   display: flex;
 }
 
+/* Cột dọc bọc heading-row + dòng âm lịch — trước đây .day-detail-header
+   chỉ có 1 hàng ngang duy nhất (nút back + tiêu đề), giờ thêm dòng âm
+   lịch nên cần 1 cột riêng để 2 dòng xếp chồng đúng, không bị đẩy
+   thành cột ngang thứ 3 cạnh nút back. */
+.day-detail-heading-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
 .day-detail-heading-row {
   display: flex;
   align-items: baseline;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .day-detail-date {
   margin: 0;
   font-size: 13px;
   font-weight: 500;
+  color: var(--mute);
+}
+
+.day-detail-lunar {
+  margin: 0;
+  font-size: 12px;
   color: var(--mute);
 }
 
