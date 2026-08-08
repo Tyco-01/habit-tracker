@@ -44,17 +44,13 @@
   async function bootAfterLogin() {
     root.innerHTML = `
       <div class="tabs sticky-tabs" style="justify-content:space-between;">
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;align-items:center;">
           <button class="tab-btn tab-btn-icon active" id="nav-today" aria-label="Hôm nay" title="Hôm nay">
             <i class="ti ti-home" style="font-size:16px;" aria-hidden="true"></i>
           </button>
-          <button class="tab-btn tab-btn-icon" id="nav-year" aria-label="Cả năm" title="Cả năm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="5" width="18" height="16" rx="3"/>
-              <path d="M3 9.5h18"/>
-              <path d="M8 3v3M16 3v3"/>
-              <text x="12" y="16.8" text-anchor="middle" font-size="${new Date().getDate() >= 10 ? 7.5 : 9}" font-weight="700" fill="currentColor" stroke="none" font-family="Manrope, sans-serif">${new Date().getDate()}</text>
-            </svg>
+          <button class="tab-btn tab-btn-icon tab-btn-calendar-icon" id="nav-year" aria-label="Lịch" title="Lịch">
+            <span class="cal-icon-weekday" id="nav-cal-weekday"></span>
+            <span class="cal-icon-daynum" id="nav-cal-daynum"></span>
           </button>
           <button class="tab-btn tab-btn-icon" id="nav-stats" aria-label="Thống kê" title="Thống kê">
             <i class="ti ti-chart-bar" style="font-size:16px;" aria-hidden="true"></i>
@@ -99,6 +95,23 @@
     const navLogout = root.querySelector('#nav-logout');
     const navExport = root.querySelector('#nav-export');
     const navTheme = root.querySelector('#nav-theme');
+
+    // Icon tab "Lịch" hiển thị kiểu "T2 21": thứ trong tuần + số ngày
+    // nằm ngang cạnh nhau — thay cho icon lịch tĩnh cũ. "Chủ nhật" rút
+    // gọn riêng thành "CN" (khác DateUtils.DAYS_VN vốn dùng "Chủ nhật"
+    // đầy đủ cho những chỗ khác cần văn phong trang trọng hơn); các
+    // ngày còn lại giữ nguyên "Thứ 2".."Thứ 7" đã có sẵn dạng số,
+    // không cần đổi. Chỉ tính 1 lần lúc mount — đủ dùng vì hiếm khi 1
+    // phiên làm việc kéo dài qua nửa đêm để lệch ngày.
+    function syncCalendarIcon() {
+      const now = new Date();
+      const weekdayEl = root.querySelector('#nav-cal-weekday');
+      const daynumEl = root.querySelector('#nav-cal-daynum');
+      if (!weekdayEl || !daynumEl) return;
+      weekdayEl.textContent = now.getDay() === 0 ? 'CN' : DateUtils.DAYS_VN[now.getDay()];
+      daynumEl.textContent = String(now.getDate()).padStart(2, '0'); // luôn 2 chữ số ("08" thay vì "8") để độ rộng icon ổn định mọi ngày trong tháng, không co giãn theo 1 hay 2 chữ số
+    }
+    syncCalendarIcon();
 
     // Nút đổi giao diện — mở ThemeEditorModal (3 chế độ có sẵn + bộ
     // sưu tập theme tuỳ chỉnh, xem js/theme-editor-modal.js). Icon

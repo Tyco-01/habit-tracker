@@ -25,6 +25,21 @@
   width: fit-content;
 }
 
+/* Dính lại ngay dưới thanh tab chính khi cuộn — "top" lấy từ biến CSS
+   --cal-switcher-top, được year.js đo và set tự động bằng chiều cao
+   thật của .sticky-tabs (ResizeObserver, tự cập nhật nếu thanh tab
+   đổi cao). Nền đục + viền mờ để phân biệt rõ với nội dung cuộn qua
+   bên dưới, giống hệt tinh thần của .sticky-tabs. */
+.cal-switcher-sticky {
+  position: sticky;
+  top: var(--cal-switcher-top, 0px);
+  z-index: 19; /* thấp hơn .sticky-tabs (20) 1 bậc — .sticky-tabs luôn nổi trên cùng khi cả 2 cùng dính */
+  background: var(--paper);
+  padding-top: 8px;
+  margin-top: -8px;
+  padding-bottom: 4px;
+}
+
 .cal-switch-btn {
   position: relative;
   border: none;
@@ -421,6 +436,7 @@
 }
 
 .cal-month-grid {
+  container-type: inline-size; /* bật container query — .day-cell bên trong dùng đơn vị cqw để tự co giãn theo độ rộng THẬT của ô, không phải đoán breakpoint màn hình */
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
 }
@@ -430,7 +446,8 @@
   font-size: 20px;
   aspect-ratio: 1.05;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  padding-bottom: clamp(12px, 22cqw, 20px); /* chừa đủ chỗ cho .day-progress (dòng phụ) ghim ở đáy ô, không đè lên số dương ngay phía trên nó */
 }
 
 /* Ô mode Tháng to hơn hẳn mode Năm và gap cũng rộng hơn (6px so với
@@ -440,11 +457,23 @@
   transform: scale(1.06);
 }
 
-/* Số dương giờ là NỘI DUNG CHÍNH giữa ô (không còn ghim góc dưới-phải
-   như bản trước) — đây là con số người dùng cần đọc trước tiên. */
+/* Số dương là NỘI DUNG CHÍNH của ô, nhưng đặt LỆCH XUỐNG DƯỚI (không
+   phải chính giữa tuyệt đối — .day-cell dùng justify-content: flex-end
+   + padding-bottom ở trên) để CHỦ ĐỘNG nhường hẳn góc trên-trái cho
+   nhãn âm lịch, không tranh chấp không gian với nhau.
+
+   BUG ĐÃ GẶP trên mobile: ban đầu số dương căn giữa ô tuyệt đối
+   (justify-content: center). Trên desktop ô đủ rộng (~70-80px) nên
+   không sao, nhưng lưới 7 cột trên màn hình hẹp (~380px) co ô xuống
+   chỉ còn ~48px — dù đã dùng cqw để tự co nhỏ font, số vẫn nằm ngay
+   giữa ô nên mép trên của nó vẫn chạm/đè vào nhãn âm lịch ở góc trên-
+   trái. Chỉ co nhỏ chữ (clamp/cqw) là chưa đủ khi 2 phần tử cùng
+   tranh chấp 1 vùng không gian ở TÂM ô — cần tách hẳn vùng hiển thị
+   của chúng (nhãn âm lịch chiếm phần trên, số dương chiếm phần dưới)
+   thay vì chỉ thu nhỏ kích thước. */
 .cal-month-grid .day-number {
   position: static;
-  font-size: 20px;
+  font-size: clamp(14px, 24cqw, 22px);
   font-weight: 700;
   opacity: 1;
   line-height: 1;
@@ -460,20 +489,23 @@
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 10px;
+  font-size: clamp(8px, 13cqw, 10px);
   font-weight: 600;
   opacity: 0.75;
 }
 
 /* Ngày âm: khung nhỏ bo tròn riêng biệt ở góc trên-trái, xa hẳn số
    dương ở giữa — dùng nền/viền để trông như 1 "nhãn dán" tách bạch,
-   không phải chữ trần cùng kiểu với ngày dương. */
+   không phải chữ trần cùng kiểu với ngày dương. Cùng lý do trên: dùng
+   cqw cho cả font-size lẫn khoảng cách top/left để nhãn này co đúng tỉ
+   lệ theo ô, không còn là điểm cố định dễ bị số dương (giờ cũng co
+   giãn) đè lên trên màn hình hẹp. */
 .cal-month-grid .day-lunar {
   position: absolute;
-  top: 5px;
-  left: 5px;
+  top: clamp(3px, 7cqw, 5px);
+  left: clamp(3px, 7cqw, 5px);
   bottom: auto;
-  font-size: 9px;
+  font-size: clamp(7px, 11.5cqw, 9px);
   font-weight: 600;
   line-height: 1;
   padding: 2px 5px;

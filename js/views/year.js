@@ -112,6 +112,27 @@ const YearView = (() => {
     const content = container.querySelector('#year-content');
     let lastHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế — quan trọng hơn cả ở đây vì mode "year" build cả lưới 365 ô + vòng lặp đếm mỗi lần gọi, tốn kém hơn hẳn mode khác
 
+    // Cụm Ngày/Tuần/Tháng/Năm dính lại NGAY DƯỚI thanh tab chính
+    // (Home/Lịch/Thống kê/Thùng rác, đã sticky sẵn ở top:0 — xem
+    // .sticky-tabs trong layout.css) khi cuộn trang, để luôn bấm đổi
+    // chế độ xem được mà không cần cuộn ngược lên đầu. "top" của
+    // switcher phải bằng ĐÚNG chiều cao thật của .sticky-tabs — không
+    // hardcode 1 số px cố định vì chiều cao đó có thể đổi (ví dụ icon
+    // tab lịch to/nhỏ khác đi sau này), dùng ResizeObserver để luôn
+    // đo lại đúng thực tế và tự cập nhật biến CSS tương ứng.
+    const stickyTabs = document.querySelector('.sticky-tabs');
+    if (stickyTabs) {
+      const syncStickyOffset = () => {
+        container.style.setProperty('--cal-switcher-top', `${stickyTabs.offsetHeight}px`);
+      };
+      syncStickyOffset();
+      if (!container.__stickyObserver) {
+        container.__stickyObserver = new ResizeObserver(syncStickyOffset);
+        container.__stickyObserver.observe(stickyTabs);
+      }
+    }
+    switcher.classList.add('cal-switcher-sticky');
+
     switcher.querySelectorAll('.cal-switch-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         if (btn.dataset.mode === mode) return;
