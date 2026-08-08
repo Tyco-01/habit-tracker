@@ -441,10 +441,20 @@
   gap: 6px;
 }
 
+/* BUG ĐÃ GẶP: .day-cell gốc là display:flex mặc định flex-direction:
+   row, nên "justify-content: flex-end" ở đây thực chất đẩy nội dung
+   sang PHẢI (main-axis của row là trục ngang), không phải xuống dưới
+   như ý đồ ban đầu — khiến số ngày 2 chữ số (như "14") bị đẩy sát mép
+   phải, đè lên .event-clip/.note-mark cũng đóng ở góc trên-phải.
+   Thêm flex-direction: column để justify-content (giờ đúng là trục
+   dọc) đẩy xuống dưới, align-items (giờ đúng là trục ngang) giữ giữa
+   — đúng ý đồ "số dương lệch xuống dưới, canh giữa theo chiều ngang"
+   đã đặt ra từ đầu. */
 .cal-month-grid .day-cell {
   border-radius: 10px;
   font-size: 20px;
   aspect-ratio: 1.05;
+  flex-direction: column;
   align-items: center;
   justify-content: flex-end;
   padding-bottom: clamp(12px, 22cqw, 20px); /* chừa đủ chỗ cho .day-progress (dòng phụ) ghim ở đáy ô, không đè lên số dương ngay phía trên nó */
@@ -519,11 +529,39 @@
   background: color-mix(in srgb, var(--card) 22%, transparent);
   color: var(--card);
 }
-
 .cal-month-grid .day-cell.partial .day-lunar {
   background: color-mix(in srgb, var(--ink) 10%, transparent);
   color: var(--ink);
   opacity: 0.8;
+}
+
+/* .event-clip (ghim sự kiện) và .note-mark (có ghi chú riêng) mặc
+   định neo 2 góc trên TRÁI/PHẢI đối xứng (xem rule gốc phía trên) —
+   thiết kế đó dành cho mode Năm, ô rất nhỏ nên .day-lunar không tồn
+   tại ở đó (xem comment "mode Năm KHÔNG hiện" gần .day-lunar gốc).
+   Ở MODE THÁNG thì .day-lunar cũng chiếm đúng góc trên-trái — nếu giữ
+   nguyên vị trí gốc, .note-mark (trên-trái) sẽ ĐÈ THẲNG lên
+   .day-lunar khi 1 ngày vừa có ghi chú riêng vừa hiển thị âm lịch.
+   Dời cả 2 dấu hiệu sự kiện/ghi chú riêng sang chung góc TRÊN-PHẢI,
+   xếp cạnh nhau theo chiều ngang (không phải trái/phải đối xứng nữa)
+   — nhường trọn góc trên-trái cho âm lịch, không tranh chấp. Kích
+   thước cũng tăng nhẹ và dùng cqw để nhất quán co giãn với các phần
+   tử khác trong ô lớn hơn hẳn mode Năm. */
+.cal-month-grid .event-clip {
+  top: clamp(3px, 6cqw, 5px);
+  right: clamp(3px, 6cqw, 5px);
+  width: clamp(13px, 20cqw, 16px);
+  height: clamp(13px, 20cqw, 16px);
+  font-size: clamp(8px, 13cqw, 10px) !important;
+}
+
+.cal-month-grid .note-mark {
+  top: clamp(3px, 6cqw, 5px);
+  left: auto;
+  right: clamp(20px, 30cqw, 24px); /* ngay bên trái .event-clip, cách đủ để 2 vòng tròn không dính nhau */
+  width: clamp(13px, 20cqw, 16px);
+  height: clamp(13px, 20cqw, 16px);
+  font-size: clamp(8px, 13cqw, 10px) !important;
 }
 
 /* ---- Mode Ngày: 1 khối lớn duy nhất, tương tự "hôm nay" nhưng cho

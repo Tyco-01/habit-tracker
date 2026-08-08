@@ -70,12 +70,16 @@ const TodayView = (() => {
     const today = new Date();
     const todayKey = DateUtils.dateKey(today);
     const label = `${DateUtils.DAYS_VN[today.getDay()]}, ${today.getDate()} tháng ${today.getMonth() + 1}`;
+    const lunar = (() => { try { return LunarCalendar.fromSolar(today); } catch (e) { return null; } })();
 
     container.innerHTML = `
       <div class="today-header">
-        <div class="today-heading-row">
-          <h3 class="today-title">Hôm nay</h3>
-          <p class="today-date">${label}</p>
+        <div class="today-heading-col">
+          <div class="today-heading-row">
+            <h3 class="today-title">Hôm nay</h3>
+            <p class="today-date">${label}</p>
+          </div>
+          ${lunar ? `<p class="today-lunar">Âm lịch: ${lunar.fullLabel} · năm ${lunar.canChiYear}</p>` : ''}
         </div>
         <button class="icon-btn-round" id="add-habit-btn" aria-label="Thêm việc mới">
           <i class="ti ti-plus" style="font-size:15px;" aria-hidden="true"></i>
