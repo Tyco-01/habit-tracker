@@ -69,7 +69,7 @@ const TodayView = (() => {
   function render(container) {
     const today = new Date();
     const todayKey = DateUtils.dateKey(today);
-    const label = `${DateUtils.DAYS_VN[today.getDay()]}, ${today.getDate()} tháng ${today.getMonth() + 1}`;
+    const label = `${DateUtils.DAYS_VN[today.getDay()]}, ${today.getDate()} tháng ${today.getMonth() + 1}, ${today.getFullYear()}`;
     const lunar = (() => { try { return LunarCalendar.fromSolar(today); } catch (e) { return null; } })();
 
     container.innerHTML = `

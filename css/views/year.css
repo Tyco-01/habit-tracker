@@ -177,30 +177,27 @@
 .months-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 32px 22px;
+  gap: 40px 26px;
 }
 /* Màn hình hẹp (điện thoại): 4 cột tháng quá chật, ô ngày co nhỏ tới
    mức số bị ép mất — chuyển dần về ít cột hơn theo độ rộng thực tế. */
 @media (max-width: 900px) {
   .months-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 26px 18px;
+    gap: 30px 20px;
   }
 }
 
 @media (max-width: 480px) {
   .months-grid {
     grid-template-columns: repeat(1, 1fr);
-    gap: 22px;
+    gap: 26px;
   }
 }
 
 .month-block {
   min-width: 0;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px 10px 10px;
+  padding: 4px 2px 2px;
 }
 
 .month-label {
@@ -332,14 +329,23 @@
 }
 
 .day-cell.future-day {
-  border: 1px solid var(--line);
+  border-color: transparent;
   background: transparent;
   color: color-mix(in srgb, var(--mute) 45%, var(--paper));
 }
 
-/* Ngày đã qua nhưng chưa có hoạt động vẫn hiện số ngày; nền trắng giữ
-   nó tách biệt rõ với ngày tương lai dùng nền trong suốt, màu nhạt hơn. */
+/* Ngày đã qua nhưng chưa có hoạt động: TRƯỚC ĐÂY luôn có viền + nền
+   --card như ô full/partial, tạo cảm giác lưới đặc kín — cả 365 ô
+   trong 1 năm gần như đều có khung dày, kể cả những ô rỗng hoàn toàn.
+   Đúng phản hồi "chật chội hơn cả bản trước" và đúng tinh thần ảnh
+   mẫu macOS Calendar ban đầu (chỉ số ngày trần, không khung) — giờ bỏ
+   hẳn viền/nền, chỉ còn số ngày với màu --mute, y hệt .future-day.
+   Chỉ những ô THỰC SỰ có dữ liệu (.full/.partial, xem 2 rule bên
+   dưới) mới còn nền màu — mắt sẽ tự nhiên dồn vào đúng chỗ có hoạt
+   động thay vì bị lưới khung dày phân tán sự chú ý khắp nơi. */
 .day-cell.empty-day {
+  border-color: transparent;
+  background: transparent;
   color: var(--mute);
 }
 
@@ -394,6 +400,18 @@
 
 .day-cell.blank:hover {
   transform: none;
+}
+
+/* Ô rỗng (không viền/nền mặc định — xem .empty-day/.future-day ở
+   trên) vẫn cần phản hồi thị giác rõ ràng khi hover/di chuột qua,
+   không thì bấm vào mà chẳng biết đang trỏ đúng ô nào giữa 1 vùng
+   trống hoàn toàn. Thêm nền+viền TẠM THỜI chỉ lúc hover, biến mất
+   ngay khi rời chuột — không phá vỡ cảm giác "thoáng" lúc bình
+   thường, chỉ hiện đúng lúc cần tương tác. */
+.day-cell.empty-day:hover,
+.day-cell.future-day:hover {
+  background: var(--card);
+  border-color: var(--line);
 }
 
 .day-cell.partial {
