@@ -197,7 +197,10 @@
 
 .month-block {
   min-width: 0;
-  padding: 4px 2px 2px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 10px 10px;
 }
 
 .month-label {
@@ -329,23 +332,19 @@
 }
 
 .day-cell.future-day {
-  border-color: transparent;
+  border: 1px solid var(--line);
   background: transparent;
   color: color-mix(in srgb, var(--mute) 45%, var(--paper));
 }
 
-/* Ngày đã qua nhưng chưa có hoạt động: TRƯỚC ĐÂY luôn có viền + nền
-   --card như ô full/partial, tạo cảm giác lưới đặc kín — cả 365 ô
-   trong 1 năm gần như đều có khung dày, kể cả những ô rỗng hoàn toàn.
-   Đúng phản hồi "chật chội hơn cả bản trước" và đúng tinh thần ảnh
-   mẫu macOS Calendar ban đầu (chỉ số ngày trần, không khung) — giờ bỏ
-   hẳn viền/nền, chỉ còn số ngày với màu --mute, y hệt .future-day.
-   Chỉ những ô THỰC SỰ có dữ liệu (.full/.partial, xem 2 rule bên
-   dưới) mới còn nền màu — mắt sẽ tự nhiên dồn vào đúng chỗ có hoạt
-   động thay vì bị lưới khung dày phân tán sự chú ý khắp nơi. */
+/* Ngày đã qua nhưng chưa có hoạt động vẫn hiện số ngày; nền --card giữ
+   nó tách biệt rõ với ngày tương lai dùng nền trong suốt, màu nhạt hơn.
+   ĐÃ THỬ bỏ khung/nền của ô rỗng để "thoáng" hơn (xem lịch sử sửa ở
+   trên) nhưng bị phản hồi ngược lại: khung ở MỌI ô mới là thứ tạo cảm
+   giác "clean, tối giản, mạnh mẽ, rõ ràng, ngay ngắn" mà người dùng
+   thực sự muốn — số trần không khung lại bị coi là rời rạc, lộn xộn.
+   Khôi phục về có khung/nền như bản gốc. */
 .day-cell.empty-day {
-  border-color: transparent;
-  background: transparent;
   color: var(--mute);
 }
 
@@ -400,18 +399,6 @@
 
 .day-cell.blank:hover {
   transform: none;
-}
-
-/* Ô rỗng (không viền/nền mặc định — xem .empty-day/.future-day ở
-   trên) vẫn cần phản hồi thị giác rõ ràng khi hover/di chuột qua,
-   không thì bấm vào mà chẳng biết đang trỏ đúng ô nào giữa 1 vùng
-   trống hoàn toàn. Thêm nền+viền TẠM THỜI chỉ lúc hover, biến mất
-   ngay khi rời chuột — không phá vỡ cảm giác "thoáng" lúc bình
-   thường, chỉ hiện đúng lúc cần tương tác. */
-.day-cell.empty-day:hover,
-.day-cell.future-day:hover {
-  background: var(--card);
-  border-color: var(--line);
 }
 
 .day-cell.partial {
@@ -475,7 +462,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  padding-bottom: clamp(12px, 22cqw, 20px); /* chừa đủ chỗ cho .day-progress (dòng phụ) ghim ở đáy ô, không đè lên số dương ngay phía trên nó */
+  padding-bottom: clamp(16px, 28cqw, 26px); /* chừa đủ chỗ cho .day-progress (dòng phụ) ghim ở đáy ô, CÁCH RÕ khỏi số dương ngay phía trên nó — trước đây chỉ 12-20px khiến 2 con số gần như dính nhau, xem giải thích ở .day-progress bên dưới */
 }
 
 /* Ô mode Tháng to hơn hẳn mode Năm và gap cũng rộng hơn (6px so với
@@ -509,11 +496,19 @@
 
 /* day-progress (số việc đã hoàn thành) trước đây đè giữa ô cùng chỗ
    với ngày dương khi ô "full/partial" — giờ ngày dương đã chiếm giữa
-   ô, day-progress lùi xuống thành 1 dòng phụ nhỏ NGAY DƯỚI số ngày,
-   để không tranh chỗ / không bị đọc nhầm thành ngày. */
+   ô, day-progress lùi xuống thành 1 dòng phụ nhỏ NGAY DƯỚI số ngày.
+
+   BUG ĐÃ GẶP: "bottom: 6px" trước đây đặt quá gần đáy trong khi
+   .day-cell chỉ chừa padding-bottom 12-20px — khoảng trống thực tế
+   giữa đáy số ngày to (20-22px, line-height 1) và đỉnh day-progress
+   chỉ còn vài px, nhìn như 2 con số dính vào nhau (đúng phản hồi "số
+   trong ô chồng lấn"). Tăng khoảng cách dứt khoát hơn: bottom lớn hơn
+   + padding-bottom của .day-cell cũng tăng tương ứng ở rule trên, để
+   luôn có 1 khoảng trắng rõ ràng ngăn cách 2 con số dù ở kích thước ô
+   nào (cqw tự co theo, nhưng tỉ lệ đủ lớn để không bao giờ sát nhau). */
 .cal-month-grid .day-progress {
   position: absolute;
-  bottom: 6px;
+  bottom: clamp(6px, 10cqw, 9px);
   left: 0;
   right: 0;
   text-align: center;
