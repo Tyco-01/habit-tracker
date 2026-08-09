@@ -376,7 +376,7 @@ const YearView = (() => {
         const dayNum = prevMonthDays - firstWeekday + 1 + i;
         const adjKey = DateUtils.dateKeyFromParts(prevY, prevM, dayNum);
         const adjLunar = lunarShort(new Date(prevY, prevM, dayNum));
-        cells += `<div class="day-cell blank-adjacent" data-date="${adjKey}"><span class="day-number">${dayNum}</span><span class="day-lunar">${adjLunar}</span></div>`;
+        cells += `<div class="day-cell blank-adjacent" data-date="${adjKey}"><div class="day-cell-top"><span class="day-lunar">${adjLunar}</span></div><span class="day-number">${dayNum}</span></div>`;
       }
       for (let day = 1; day <= daysInMonth; day++) {
         const d = new Date(y, m, day);
@@ -388,16 +388,19 @@ const YearView = (() => {
         const hasNote = hasNoteForDate(habitNotes, key);
         const clipHtml = hasEvent ? `<i class="ti ti-paperclip event-clip" aria-hidden="true"></i>` : '';
         const noteMarkHtml = hasNote ? `<i class="ti ti-note note-mark" aria-hidden="true"></i>` : '';
-        const lunarHtml = `<span class="day-lunar">${lunar}</span>`;
+        // Hàng 1 (day-cell-top): âm lịch bên trái, icon event/note bên
+        // phải — 1 hàng grid duy nhất thay vì các phần tử absolute rời
+        // rạc, xem giải thích chi tiết ở CSS .cal-month-grid .day-cell.
+        const topRowHtml = `<div class="day-cell-top"><span class="day-lunar">${lunar}</span><span class="day-cell-icons">${clipHtml}${noteMarkHtml}</span></div>`;
 
         if (isFuture) {
-          cells += `<div class="day-cell future-day" data-date="${key}">${clipHtml}${noteMarkHtml}<span class="day-number">${day}</span>${lunarHtml}</div>`;
+          cells += `<div class="day-cell future-day" data-date="${key}">${topRowHtml}<span class="day-number">${day}</span></div>`;
           continue;
         }
         const scoped = HabitScope.habitsForDate(key, data);
         const dayTotal = scoped.length;
         const count = countForDate(checks, scoped, key);
-        cells += `<div class="day-cell ${cellClass(count, dayTotal)} ${count === 0 ? 'empty-day' : ''} ${isToday ? 'today' : ''}" data-date="${key}">${clipHtml}${noteMarkHtml}${count > 0 ? `<span class="day-progress">${count}</span>` : ''}<span class="day-number">${day}</span>${lunarHtml}</div>`;
+        cells += `<div class="day-cell ${cellClass(count, dayTotal)} ${count === 0 ? 'empty-day' : ''} ${isToday ? 'today' : ''}" data-date="${key}">${topRowHtml}<span class="day-number">${day}</span>${count > 0 ? `<span class="day-progress">${count}</span>` : ''}</div>`;
       }
       // Ô đệm cuối tháng — thuộc THÁNG SAU, lấp nốt hàng cuối cho đều
       // lưới 7 cột. Cùng lý do trên: gắn data-date + bấm mở được.
@@ -409,7 +412,7 @@ const YearView = (() => {
       for (let i = 1; i <= trailing; i++) {
         const adjKey = DateUtils.dateKeyFromParts(nextY, nextM, i);
         const adjLunar = lunarShort(new Date(nextY, nextM, i));
-        cells += `<div class="day-cell blank-adjacent" data-date="${adjKey}"><span class="day-number">${i}</span><span class="day-lunar">${adjLunar}</span></div>`;
+        cells += `<div class="day-cell blank-adjacent" data-date="${adjKey}"><div class="day-cell-top"><span class="day-lunar">${adjLunar}</span></div><span class="day-number">${i}</span></div>`;
       }
 
       return `${header}<div class="day-grid cal-month-grid">${cells}</div>`;

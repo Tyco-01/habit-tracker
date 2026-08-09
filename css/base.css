@@ -118,7 +118,10 @@ button {
   padding: 1.5rem 1.25rem 3rem;
 }
 
-/* Màn "Cả năm" cần rộng hơn để chứa lưới 4 cột tháng thoải mái */
+/* Màn "Cả năm" cần rộng hơn để tận dụng auto-fit — càng rộng càng xếp
+   được nhiều tháng/hàng hơn (xem .months-grid trong year.css), không
+   giới hạn cứng như 3 view kia vì bản chất lưới 12 tháng cần nhiều
+   không gian ngang hơn hẳn 1 form/list thông thường. */
 #app:has(.months-grid) {
-  width: min(100%, 880px);
+  width: min(100%, 1400px);
 }

@@ -174,25 +174,19 @@
 /* ---- Mode Năm: lưới 12 tháng — giữ nguyên hệ class cũ, chỉ giãn
    cách thoáng hơn (yêu cầu "giãn cách các tháng ra cho thoáng") ---- */
 
+/* auto-fit thay cho repeat(4, 1fr) cố định cứng: trình duyệt TỰ TÍNH
+   số cột vừa khít độ rộng thực tế, mỗi khối tháng không bao giờ nhỏ
+   hơn minmax() — màn rộng xếp được nhiều tháng/hàng hơn, màn hẹp co
+   lại còn 1-2 tháng/hàng, nhưng LUÔN cùng 1 kiểu UI (ô to, đọc rõ)
+   thay vì bị ép nhỏ dần theo breakpoint cứng như bản trước (4 cột ở
+   desktop bất kể màn rộng bao nhiêu, dễ khiến ô nhỏ hơn mức cần thiết
+   khi màn không đủ rộng cho đúng 4 cột). 260px là độ rộng tối thiểu
+   để 1 khối tháng vẫn đọc thoải mái (đủ chỗ cho số 2 chữ số + âm lịch
+   nếu có, xem .month-block bên dưới). */
 .months-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 40px 26px;
-}
-/* Màn hình hẹp (điện thoại): 4 cột tháng quá chật, ô ngày co nhỏ tới
-   mức số bị ép mất — chuyển dần về ít cột hơn theo độ rộng thực tế. */
-@media (max-width: 900px) {
-  .months-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 30px 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .months-grid {
-    grid-template-columns: repeat(1, 1fr);
-    gap: 26px;
-  }
 }
 
 .month-block {
@@ -423,13 +417,19 @@
 /* ---- Mode Tháng: lưới lớn hơn 7 cột, ô cao hơn để có chỗ cho số +
    âm lịch cùng lúc, dễ đọc/dễ bấm hơn hẳn ô nhỏ của mode Năm.
 
-   Bố cục lấy cảm hứng từ lịch bàn giấy VN truyền thống: NGÀY DƯƠNG là
-   thông tin chính — to, đậm, nằm GIỮA ô. NGÀY ÂM là thông tin phụ —
-   nhỏ hơn hẳn, tách hẳn khỏi số dương bằng vị trí (góc trên-trái, xa
-   hẳn số dương ở giữa) LẪN kiểu dáng (đặt trong khung nhỏ bo tròn,
-   không phải chữ trần) để không bị nhầm là "1 số ngày thứ 2" khi liếc
-   nhanh — đây chính là phản hồi đã nhận: 2 con số nằm cùng hàng, cùng
-   cỡ gần nhau (11px/9.5px) trước đây rất dễ gây nhầm lẫn. ---- */
+   THIẾT KẾ LẠI HOÀN TOÀN bằng CSS Grid 3 HÀNG bên trong mỗi ô, thay
+   cho cách cũ dùng position:absolute rời rạc cho từng phần tử (âm
+   lịch, progress đều tự định vị theo toạ độ riêng, không liên kết gì
+   với nhau) — cách cũ khiến các phần tử dễ lệch nhau, không thẳng
+   hàng giữa các ô khác nhau, và cực khó tinh chỉnh vì mỗi khi đổi 1
+   thứ phải tính lại toạ độ của thứ khác. Grid 3 hàng rõ ràng:
+     Hàng 1 (đầu ô):  âm lịch (trái)  ---  event/note icon (phải)
+     Hàng 2 (giữa ô): số ngày — CHIẾM PHẦN LỚN, canh giữa tuyệt đối
+     Hàng 3 (đáy ô):  số việc hoàn thành — canh giữa
+   Mọi phần tử giờ là grid item thay vì absolute, nên luôn thẳng hàng
+   nhất quán giữa mọi ô, không phụ thuộc ô đó có bao nhiêu phần tử con
+   (ô không có âm lịch/event vẫn giữ đúng chiều cao 3 hàng, chỉ hàng đó
+   trống). ---- */
 
 .cal-month-weekday-row {
   margin-bottom: 8px;
@@ -441,29 +441,42 @@
 }
 
 .cal-month-grid {
-  container-type: inline-size; /* bật container query — .day-cell bên trong dùng đơn vị cqw để tự co giãn theo độ rộng THẬT của ô, không phải đoán breakpoint màn hình */
-  grid-template-columns: repeat(7, 1fr);
+  container-type: inline-size; /* bật container query — nội dung ô dùng đơn vị cqw để tự co giãn theo độ rộng THẬT của ô, không phải đoán breakpoint màn hình */
+  grid-template-columns: repeat(7, minmax(0, 1fr)); /* minmax(0, 1fr) thay vì 1fr trơn: track 1fr mặc định có min-width:auto theo spec CSS Grid, nghĩa là nó KHÔNG co nhỏ hơn min-content của item bên trong (font-size lớn của .day-number tạo min-content rộng hơn ô thực tế trên mobile) — dẫn tới lưới tràn khỏi khung dù mỗi cột "trông như" chia đều. minmax(0, 1fr) cho phép track co về 0 khi cần, buộc nội dung phải co theo đúng cột thay vì đẩy cột rộng ra. */
   gap: 6px;
 }
 
-/* BUG ĐÃ GẶP: .day-cell gốc là display:flex mặc định flex-direction:
-   row, nên "justify-content: flex-end" ở đây thực chất đẩy nội dung
-   sang PHẢI (main-axis của row là trục ngang), không phải xuống dưới
-   như ý đồ ban đầu — khiến số ngày 2 chữ số (như "14") bị đẩy sát mép
-   phải, đè lên .event-clip/.note-mark cũng đóng ở góc trên-phải.
-   Thêm flex-direction: column để justify-content (giờ đúng là trục
-   dọc) đẩy xuống dưới, align-items (giờ đúng là trục ngang) giữ giữa
-   — đúng ý đồ "số dương lệch xuống dưới, canh giữa theo chiều ngang"
-   đã đặt ra từ đầu. */
 .cal-month-grid .day-cell {
+  display: grid;
+  grid-template-columns: 1fr; /* THIẾU dòng này gây bug: không set thì cột ngầm định co theo nội dung (auto), không phải full width ô — khiến day-cell-top/day-number/day-progress dù có width:100% vẫn bị co lại theo item hẹp nhất trong grid, gây cảm giác các dòng "dồn cục" lệch trái thay vì trải đều/canh giữa toàn bộ ô */
+  grid-template-rows: auto 1fr auto;
+  align-items: stretch; /* mỗi grid item (day-cell-top/day-number/day-progress) chiếm ĐỦ chiều cao track của nó, không co theo riêng nội dung — đảm bảo .day-number thực sự nằm giữa TRACK 26px chứ không chỉ giữa vùng 20px do chính nó tự quyết định */
   border-radius: 10px;
-  font-size: 20px;
   aspect-ratio: 1.05;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding-bottom: clamp(16px, 28cqw, 26px); /* chừa đủ chỗ cho .day-progress (dòng phụ) ghim ở đáy ô, CÁCH RÕ khỏi số dương ngay phía trên nó — trước đây chỉ 12-20px khiến 2 con số gần như dính nhau, xem giải thích ở .day-progress bên dưới */
+  padding: clamp(4px, 6cqw, 6px);
 }
+
+/* Hàng 1: âm lịch bên trái, icon event/note bên phải — CÙNG 1 HÀNG
+   grid thay vì 2 phần tử absolute định vị độc lập như trước, nên luôn
+   thẳng hàng với nhau và với hàng 1 của MỌI ô khác trong lưới.
+
+   BUG ĐÃ GẶP: min-height quá lớn ở hàng 1 (18px) + hàng 3 (14px, xem
+   .day-progress) chỉ chừa lại rất ít khoảng trống cho hàng 2 (số ngày,
+   font tối đa 22px) trên ô kích thước thực tế (~68px cao, trừ padding
+   còn ~56px) — dòng chữ số ngày dễ tràn xuống đè vào dòng progress
+   ngay bên dưới vì line-height thực tế của font-size lớn luôn nhỉnh
+   hơn 1 chút so với chính con số font-size khai báo. Giảm min-height
+   xuống mức tối thiểu thực sự cần thiết để dành khoảng trống an toàn
+   hơn cho hàng giữa. */
+.cal-month-grid .day-cell-top {
+  grid-row: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-height: clamp(12px, 17cqw, 15px);
+}
+
 
 /* Ô mode Tháng to hơn hẳn mode Năm và gap cũng rộng hơn (6px so với
    5px) nên chịu được scale lớn hơn khi hover mà không tràn đè ô lân
@@ -472,61 +485,73 @@
   transform: scale(1.06);
 }
 
-/* Số dương là NỘI DUNG CHÍNH của ô, nhưng đặt LỆCH XUỐNG DƯỚI (không
-   phải chính giữa tuyệt đối — .day-cell dùng justify-content: flex-end
-   + padding-bottom ở trên) để CHỦ ĐỘNG nhường hẳn góc trên-trái cho
-   nhãn âm lịch, không tranh chấp không gian với nhau.
+/* Số dương là NỘI DUNG CHÍNH của ô — chiếm HÀNG 2 (grid-row: 2, hàng
+   1fr tự giãn nở), canh giữa tuyệt đối cả ngang lẫn dọc trong không
+   gian dành riêng cho nó, không còn tranh chấp gì với âm lịch (hàng
+   1) hay progress (hàng 3) vì mỗi thứ đã có "lãnh thổ" grid-row riêng
+   biệt rõ ràng.
 
-   BUG ĐÃ GẶP trên mobile: ban đầu số dương căn giữa ô tuyệt đối
-   (justify-content: center). Trên desktop ô đủ rộng (~70-80px) nên
-   không sao, nhưng lưới 7 cột trên màn hình hẹp (~380px) co ô xuống
-   chỉ còn ~48px — dù đã dùng cqw để tự co nhỏ font, số vẫn nằm ngay
-   giữa ô nên mép trên của nó vẫn chạm/đè vào nhãn âm lịch ở góc trên-
-   trái. Chỉ co nhỏ chữ (clamp/cqw) là chưa đủ khi 2 phần tử cùng
-   tranh chấp 1 vùng không gian ở TÂM ô — cần tách hẳn vùng hiển thị
-   của chúng (nhãn âm lịch chiếm phần trên, số dương chiếm phần dưới)
-   thay vì chỉ thu nhỏ kích thước. */
+   BUG ĐÃ GẶP (game y hệt .day-lunar ở trên, vẫn để sót lần đầu vì
+   quên áp dụng cùng bài học): rule gốc .day-number (dùng cho mode
+   Năm) có "position: absolute; bottom: 2px; right: 3px". CSS không tự
+   "reset" các thuộc tính mà rule ghi đè (specificity cao hơn) không
+   nhắc tới, nên .cal-month-grid .day-number dù không set position vẫn
+   KẾ THỪA position:absolute + bottom:2px từ rule gốc — kéo nó ra khỏi
+   luồng grid, ghim cứng vào đáy ô, đè thẳng lên .day-progress ngay
+   bên dưới. Đây chính là nguyên nhân số ngày dính sát số progress dù
+   grid-row/align-self đã set đúng — vị trí thực tế của phần tử không
+   hề do grid quyết định nữa một khi nó bị "absolute hoá". Bắt buộc
+   khai báo lại position: static tường minh, không thể chỉ dựa vào
+   "không nhắc tới position là giữ nguyên mặc định static". */
 .cal-month-grid .day-number {
+  grid-row: 2;
   position: static;
-  font-size: clamp(14px, 24cqw, 22px);
+  right: auto;
+  bottom: auto;
+  align-self: center;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(14px, 22cqw, 20px);
   font-weight: 700;
-  opacity: 1;
   line-height: 1;
+  opacity: 1;
 }
 
-/* day-progress (số việc đã hoàn thành) trước đây đè giữa ô cùng chỗ
-   với ngày dương khi ô "full/partial" — giờ ngày dương đã chiếm giữa
-   ô, day-progress lùi xuống thành 1 dòng phụ nhỏ NGAY DƯỚI số ngày.
-
-   BUG ĐÃ GẶP: "bottom: 6px" trước đây đặt quá gần đáy trong khi
-   .day-cell chỉ chừa padding-bottom 12-20px — khoảng trống thực tế
-   giữa đáy số ngày to (20-22px, line-height 1) và đỉnh day-progress
-   chỉ còn vài px, nhìn như 2 con số dính vào nhau (đúng phản hồi "số
-   trong ô chồng lấn"). Tăng khoảng cách dứt khoát hơn: bottom lớn hơn
-   + padding-bottom của .day-cell cũng tăng tương ứng ở rule trên, để
-   luôn có 1 khoảng trắng rõ ràng ngăn cách 2 con số dù ở kích thước ô
-   nào (cqw tự co theo, nhưng tỉ lệ đủ lớn để không bao giờ sát nhau). */
+/* Số việc hoàn thành — chiếm HÀNG 3 (đáy ô), canh giữa. Không còn
+   position:absolute + bottom tính tay nữa — grid-row tự đặt đúng chỗ,
+   luôn có khoảng cách nhất quán với số ngày ở hàng 2 vì đây là 2 hàng
+   grid tách biệt, không phải 2 phần tử cùng đè lên 1 điểm toạ độ ước
+   lượng như cách cũ. */
 .cal-month-grid .day-progress {
-  position: absolute;
-  bottom: clamp(6px, 10cqw, 9px);
-  left: 0;
-  right: 0;
+  grid-row: 3;
+  width: 100%;
+  display: block;
   text-align: center;
+  min-height: clamp(10px, 14cqw, 12px);
   font-size: clamp(8px, 13cqw, 10px);
   font-weight: 600;
   opacity: 0.75;
 }
 
-/* Ngày âm: khung nhỏ bo tròn riêng biệt ở góc trên-trái, xa hẳn số
-   dương ở giữa — dùng nền/viền để trông như 1 "nhãn dán" tách bạch,
-   không phải chữ trần cùng kiểu với ngày dương. Cùng lý do trên: dùng
-   cqw cho cả font-size lẫn khoảng cách top/left để nhãn này co đúng tỉ
-   lệ theo ô, không còn là điểm cố định dễ bị số dương (giờ cũng co
-   giãn) đè lên trên màn hình hẹp. */
+/* Ngày âm: khung nhỏ bo tròn, nằm trong .day-cell-top (hàng 1, bên
+   trái) — không còn position:absolute với toạ độ tính tay, giờ là 1
+   flex item bình thường trong hàng 1 nên luôn thẳng hàng với event/
+   note-mark bên phải cùng hàng đó ở MỌI ô, bất kể ô có bao nhiêu icon.
+
+   BUG ĐÃ GẶP: rule gốc .day-lunar (dùng cho mode Năm) có
+   "position: absolute; bottom: 2px; left: 3px" — CSS không tự "reset"
+   các thuộc tính mà rule ghi đè (specificity cao hơn) không nhắc tới,
+   nên .cal-month-grid .day-lunar dù không set position vẫn KẾ THỪA
+   position:absolute + bottom:2px từ rule gốc, kéo nó ra khỏi luồng
+   grid và ghim xuống đáy ô — đè lên đúng chỗ .day-number, không còn
+   nằm trong .day-cell-top (hàng 1) như HTML/thiết kế. Phải khai báo
+   LẠI position: static (và bottom/left: auto) tường minh ở đây để
+   huỷ hẳn giá trị kế thừa, không thể chỉ "không nhắc tới" là đủ. */
 .cal-month-grid .day-lunar {
-  position: absolute;
-  top: clamp(3px, 7cqw, 5px);
-  left: clamp(3px, 7cqw, 5px);
+  position: static;
+  left: auto;
   bottom: auto;
   font-size: clamp(7px, 11.5cqw, 9px);
   font-weight: 600;
@@ -535,7 +560,6 @@
   border-radius: 6px;
   background: color-mix(in srgb, var(--ink) 8%, transparent);
   color: var(--mute);
-  opacity: 1;
 }
 
 .cal-month-grid .day-cell.full .day-lunar {
@@ -548,30 +572,22 @@
   opacity: 0.8;
 }
 
-/* .event-clip (ghim sự kiện) và .note-mark (có ghi chú riêng) mặc
-   định neo 2 góc trên TRÁI/PHẢI đối xứng (xem rule gốc phía trên) —
-   thiết kế đó dành cho mode Năm, ô rất nhỏ nên .day-lunar không tồn
-   tại ở đó (xem comment "mode Năm KHÔNG hiện" gần .day-lunar gốc).
-   Ở MODE THÁNG thì .day-lunar cũng chiếm đúng góc trên-trái — nếu giữ
-   nguyên vị trí gốc, .note-mark (trên-trái) sẽ ĐÈ THẲNG lên
-   .day-lunar khi 1 ngày vừa có ghi chú riêng vừa hiển thị âm lịch.
-   Dời cả 2 dấu hiệu sự kiện/ghi chú riêng sang chung góc TRÊN-PHẢI,
-   xếp cạnh nhau theo chiều ngang (không phải trái/phải đối xứng nữa)
-   — nhường trọn góc trên-trái cho âm lịch, không tranh chấp. Kích
-   thước cũng tăng nhẹ và dùng cqw để nhất quán co giãn với các phần
-   tử khác trong ô lớn hơn hẳn mode Năm. */
-.cal-month-grid .event-clip {
-  top: clamp(3px, 6cqw, 5px);
-  right: clamp(3px, 6cqw, 5px);
-  width: clamp(13px, 20cqw, 16px);
-  height: clamp(13px, 20cqw, 16px);
-  font-size: clamp(8px, 13cqw, 10px) !important;
+/* .event-clip (ghim sự kiện) và .note-mark (có ghi chú riêng) — bọc
+   trong .day-cell-icons (nhóm bên phải của hàng 1), xếp cạnh nhau
+   bằng flexbox thay vì 2 toạ độ absolute tính tay như trước (từng
+   phải né .day-lunar bằng cách cộng trừ px thủ công). .day-cell-top
+   dùng justify-content: space-between giữa ĐÚNG 2 nhóm — .day-lunar
+   (trái) và .day-cell-icons (phải) — nên dù có 0, 1, hay 2 icon bên
+   phải, khoảng cách với âm lịch bên trái vẫn nhất quán, không lệch. */
+.cal-month-grid .day-cell-icons {
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
-.cal-month-grid .note-mark {
-  top: clamp(3px, 6cqw, 5px);
-  left: auto;
-  right: clamp(20px, 30cqw, 24px); /* ngay bên trái .event-clip, cách đủ để 2 vòng tròn không dính nhau */
+.cal-month-grid .day-cell-icons .event-clip,
+.cal-month-grid .day-cell-icons .note-mark {
+  position: static;
   width: clamp(13px, 20cqw, 16px);
   height: clamp(13px, 20cqw, 16px);
   font-size: clamp(8px, 13cqw, 10px) !important;
