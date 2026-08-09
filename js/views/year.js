@@ -102,15 +102,48 @@ const YearView = (() => {
       viewYear = new Date().getFullYear();
     }
 
+    // .cal-switch-pill: 1 khối nền ĐỘC LẬP, absolute, TRƯỢT mượt bằng
+    // transform giữa các nút thay vì mỗi nút tự đổi background rời rạc
+    // (bản trước: nút active tự tô nền, nút rời active tự bỏ nền —
+    // không có cảm giác "1 khối duy nhất di chuyển" mà là 2 sự kiện
+    // xảy ra tách biệt cùng lúc). Nút giờ luôn trong suốt
+    // (.cal-switch-btn không tự tô nền nữa, xem CSS) — pill nằm DƯỚI
+    // (z-index thấp hơn) và đổi vị trí/kích thước bằng
+    // syncPillPosition() mỗi khi mode đổi, xem hàm đó bên dưới.
     container.innerHTML = `
       <div class="cal-switcher" role="tablist" aria-label="Chọn chế độ xem lịch">
+        <div class="cal-switch-pill" aria-hidden="true"></div>
         ${MODES.map(m => `<button class="cal-switch-btn ${m === mode ? 'active' : ''}" data-mode="${m}" role="tab" aria-selected="${m === mode}">${MODE_LABEL[m]}</button>`).join('')}
       </div>
       <div id="year-content"></div>
     `;
     const switcher = container.querySelector('.cal-switcher');
+    const pill = container.querySelector('.cal-switch-pill');
     const content = container.querySelector('#year-content');
     let lastHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế — quan trọng hơn cả ở đây vì mode "year" build cả lưới 365 ô + vòng lặp đếm mỗi lần gọi, tốn kém hơn hẳn mode khác
+
+    // Đo lại vị trí/kích thước nút đang active THẬT SỰ (offsetLeft/
+    // offsetWidth) rồi áp vào pill bằng transform — không hardcode %
+    // theo index (4 nút không chắc luôn đều nhau tuyệt đối do lệch
+    // font-rendering từng nhãn "Ngày/Tuần/Tháng/Năm" độ dài khác nhau),
+    // luôn khớp CHÍNH XÁC dù nhãn ngắn dài khác nhau ra sao.
+    function syncPillPosition(withAnimation) {
+      const activeBtn = switcher.querySelector('.cal-switch-btn.active');
+      if (!activeBtn || !pill) return;
+      if (!withAnimation) pill.classList.add('cal-switch-pill-no-anim');
+      pill.style.width = `${activeBtn.offsetWidth}px`;
+      pill.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+      if (!withAnimation) {
+        // Buộc trình duyệt áp dụng NGAY vị trí ban đầu (không animation)
+        // trước khi cho phép animation áp dụng cho các lần đổi SAU —
+        // nếu không, lần vẽ đầu tiên (mount) sẽ bị "trượt từ 0 tới vị
+        // trí thật" trông như 1 hiệu ứng không mong muốn thay vì pill
+        // đã nằm đúng chỗ ngay từ đầu.
+        // eslint-disable-next-line no-unused-expressions
+        pill.offsetHeight; // ép reflow đồng bộ
+        pill.classList.remove('cal-switch-pill-no-anim');
+      }
+    }
 
     // Cụm Ngày/Tuần/Tháng/Năm dính lại NGAY DƯỚI thanh tab chính
     // (Home/Lịch/Thống kê/Thùng rác, đã sticky sẵn ở top:0 — xem
@@ -133,20 +166,63 @@ const YearView = (() => {
     }
     switcher.classList.add('cal-switcher-sticky');
 
-    switcher.querySelectorAll('.cal-switch-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (btn.dataset.mode === mode) return;
-        mode = btn.dataset.mode;
-        switcher.querySelectorAll('.cal-switch-btn').forEach(b => {
-          b.classList.toggle('active', b.dataset.mode === mode);
-          b.setAttribute('aria-selected', b.dataset.mode === mode ? 'true' : 'false');
-        });
-        lastHtml = null; // đổi mode luôn phải vẽ lại, kể cả nếu HTML mode mới trùng tình cờ với mode cũ
-        draw();
+    // switchMode() tách riêng khỏi listener click — SWIPE_NAV (vuốt
+    // ngang trên .cal-switcher, gắn ở dưới cùng file) và nút bấm đều
+    // gọi chung 1 hàm này, tránh viết trùng logic đổi mode + animation
+    // pill + vẽ lại 2 nơi.
+    function switchMode(newMode) {
+      if (newMode === mode || !MODES.includes(newMode)) return;
+      mode = newMode;
+      switcher.querySelectorAll('.cal-switch-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+        b.setAttribute('aria-selected', b.dataset.mode === mode ? 'true' : 'false');
       });
+      syncPillPosition(true);
+      lastHtml = null; // đổi mode luôn phải vẽ lại, kể cả nếu HTML mode mới trùng tình cờ với mode cũ
+      draw();
+    }
+
+    switcher.querySelectorAll('.cal-switch-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchMode(btn.dataset.mode));
     });
 
-    function draw() {
+    // Vuốt ngang TRÊN CHÍNH cụm switcher — trái = mode kế tiếp, phải =
+    // mode trước đó, theo đúng thứ tự MODES (Ngày→Tuần→Tháng→Năm) —
+    // xem js/swipe-nav.js cho giải thích ngưỡng khoảng cách/vận tốc.
+    SwipeNav.bind(switcher, {
+      onSwipeLeft: () => {
+        const idx = MODES.indexOf(mode);
+        if (idx < MODES.length - 1) switchMode(MODES[idx + 1]);
+      },
+      onSwipeRight: () => {
+        const idx = MODES.indexOf(mode);
+        if (idx > 0) switchMode(MODES[idx - 1]);
+      }
+    });
+
+    // Vị trí pill ban đầu (không animation) NGAY SAU KHI DOM đã có
+    // kích thước thật — offsetWidth/offsetLeft chỉ đúng SAU 1 lần
+    // layout, requestAnimationFrame đảm bảo trình duyệt đã tính layout
+    // xong trước khi ta đọc.
+    requestAnimationFrame(() => syncPillPosition(false));
+
+    // Kích thước nút có thể đổi khi xoay màn hình / đổi cỡ cửa sổ
+    // (responsive) — đo lại pill KHÔNG animation mỗi lần đó, animation
+    // chỉ dành riêng cho lúc NGƯỜI DÙNG chủ động đổi mode.
+    if (!container.__switcherResizeObserver) {
+      container.__switcherResizeObserver = new ResizeObserver(() => syncPillPosition(false));
+      container.__switcherResizeObserver.observe(switcher);
+    }
+
+    // draw(pageDir) — pageDir: -1 (trang MỚI trượt vào từ TRÁI, dùng
+    // khi lùi về trước) | 1 (trượt vào từ PHẢI, khi tiến lên sau) |
+    // 0/undefined (không animation hướng, dùng cho lần vẽ đầu, đổi
+    // mode, hoặc data thay đổi nền — chỉ fade nhẹ như .cal-pane vốn có).
+    // Class được gắn 1 LẦN lúc tạo phần tử (không phải toggle sau đó)
+    // vì animation CSS chỉ tự chạy khi phần tử MỚI xuất hiện trong DOM
+    // với class đã có sẵn — đây là lý do content.innerHTML luôn tạo
+    // phần tử .cal-pane HOÀN TOÀN MỚI mỗi lần draw(), không tái dùng.
+    function draw(pageDir) {
       const data = Sync.getData();
       let html;
       if (mode === 'day') html = drawDay(data);
@@ -163,7 +239,23 @@ const YearView = (() => {
       if (html === lastHtml) return;
       lastHtml = html;
 
-      content.innerHTML = `<div class="cal-pane" id="cal-pane">${html}</div>`;
+      const dirClass = pageDir === 1 ? 'cal-pane-in-next' : pageDir === -1 ? 'cal-pane-in-prev' : '';
+      content.innerHTML = `<div class="cal-pane ${dirClass}" id="cal-pane">${html}</div>`;
+      const paneEl = content.querySelector('.cal-pane');
+
+      // Vuốt ngang TRÊN CHÍNH NỘI DUNG (không phải trên switcher) —
+      // trái = trang sau (tiến), phải = trang trước (lùi), ngược chiều
+      // trực giác với vuốt trên switcher (nơi trái/phải = đổi MODE kế
+      // tiếp/trước theo thứ tự cố định) vì đây là "lật trang lịch",
+      // quy ước quen thuộc của app lịch (vuốt trái = xem cái SAU).
+      // dragTarget = paneEl để kéo-theo-ngón-tay áp đúng lên khối nội
+      // dung đang hiện, không phải lên #year-content (khối bọc ngoài
+      // không có kích thước cảm nhận được khi transform).
+      SwipeNav.bind(paneEl, {
+        dragTarget: paneEl,
+        onSwipeLeft: () => { step(1); draw(1); },
+        onSwipeRight: () => { step(-1); draw(-1); }
+      });
 
       // Gắn click cho MỌI phần tử có data-date (không phụ thuộc class
       // cụ thể — .day-cell ở Tháng/Năm, .cal-week-row ở Tuần,
@@ -204,8 +296,8 @@ const YearView = (() => {
     function bindNavCommon() {
       const prevBtn = content.querySelector('#cal-prev');
       const nextBtn = content.querySelector('#cal-next');
-      if (prevBtn) prevBtn.addEventListener('click', () => { if (!prevBtn.disabled) { step(-1); draw(); } });
-      if (nextBtn) nextBtn.addEventListener('click', () => { if (!nextBtn.disabled) { step(1); draw(); } });
+      if (prevBtn) prevBtn.addEventListener('click', () => { if (!prevBtn.disabled) { step(-1); draw(-1); } });
+      if (nextBtn) nextBtn.addEventListener('click', () => { if (!nextBtn.disabled) { step(1); draw(1); } });
     }
 
     function step(dir) {

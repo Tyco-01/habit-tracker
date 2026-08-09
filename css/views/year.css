@@ -12,55 +12,120 @@
    không đổi tên gì đã có để không phải sửa lại JS tương ứng.
    ============================================================ */
 
-/* ---- Thanh chuyển chế độ xem (Ngày/Tuần/Tháng/Năm) ---- */
+/* ---- Thanh chuyển chế độ xem (Ngày/Tuần/Tháng/Năm) ----
+
+   KÍNH MỜ (glassmorphism): nền bán trong suốt + backdrop-filter: blur
+   — để nội dung lịch phía sau (khi cụm này sticky đè lên lúc cuộn)
+   thấp thoáng qua được, tạo cảm giác "kính mờ nổi trên bề mặt" thay vì
+   1 khối đặc bệt như trước (--card 100% đục). color-mix() dùng thay
+   vì cần thêm biến --card-rgb mới (app hiện chỉ có --ink-rgb) — vẫn
+   tự động đổi đúng theo theme sáng/tối/tuỳ chỉnh đang chọn vì
+   color-mix() tính lại real-time trên biến --card hiện hành, không
+   hardcode 1 màu cố định nào.
+   @supports fallback: trình duyệt cũ không hỗ trợ backdrop-filter vẫn
+   nhận được nền đục gần giống bản gốc, không vỡ giao diện. ---- */
 
 .cal-switcher {
+  position: relative;
   display: flex;
-  gap: 3px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 3px;
-  margin-bottom: 18px;
+  gap: 2px;
+  background: color-mix(in srgb, var(--card) 68%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 14px;
+  padding: 4px;
+  margin-bottom: 20px;
   width: fit-content;
+  box-shadow: 0 1px 2px rgba(var(--ink-rgb), 0.04), 0 4px 16px rgba(var(--ink-rgb), 0.06);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .cal-switcher {
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  }
 }
 
 /* Dính lại ngay dưới thanh tab chính khi cuộn — "top" lấy từ biến CSS
    --cal-switcher-top, được year.js đo và set tự động bằng chiều cao
    thật của .sticky-tabs (ResizeObserver, tự cập nhật nếu thanh tab
-   đổi cao). Nền đục + viền mờ để phân biệt rõ với nội dung cuộn qua
-   bên dưới, giống hệt tinh thần của .sticky-tabs. */
+   đổi cao).
+   .cal-switcher giờ kính mờ + bo góc riêng (width: fit-content, không
+   còn full-width nền đục như bản trước) — nếu KHÔNG có gì che phía
+   sau nó khi dính, nội dung cuộn qua sẽ "chui qua khe hở" giữa đáy
+   .sticky-tabs và đỉnh switcher, lộ ra xấu. ::before tạo 1 dải nền
+   --paper ĐỤC HOÀN TOÀN (không kính mờ — đây là "nền lưng" cố định
+   của trang, không phải bề mặt kính nổi) phủ kín TOÀN BỘ chiều rộng
+   viewport phía sau, nằm DƯỚI switcher (z-index thấp hơn) — bản thân
+   switcher kính mờ nổi bên trên dải nền lưng này, đúng đúng hiệu ứng
+   "kính mờ trên nền đục" thay vì "kính mờ trên khoảng trống". */
 .cal-switcher-sticky {
   position: sticky;
   top: var(--cal-switcher-top, 0px);
   z-index: 19; /* thấp hơn .sticky-tabs (20) 1 bậc — .sticky-tabs luôn nổi trên cùng khi cả 2 cùng dính */
+}
+
+.cal-switcher-sticky::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -50vw;
+  right: -50vw;
+  bottom: -8px;
   background: var(--paper);
-  padding-top: 8px;
-  margin-top: -8px;
-  padding-bottom: 4px;
+  z-index: -1;
+}
+
+/* Pill nền — 1 khối DUY NHẤT trượt bằng transform (year.js:
+   syncPillPosition) thay vì mỗi nút tự tô/bỏ nền riêng lẻ. z-index:0
+   nằm DƯỚI text các nút (position:relative + z-index:1, xem dưới).
+   transition riêng cho transform/width (KHÔNG chung 1 transition tất
+   cả thuộc tính) — width chỉ đổi khi nhãn 2 nút liền kề khác độ dài
+   nhau (không xảy ra ở đây vì mọi nút cùng padding, nhưng vẫn viết
+   tường minh để không phụ thuộc ngầm định), transform là thứ animate
+   chính mỗi lần đổi mode. cal-switch-pill-no-anim tắt hẳn transition ở
+   lần đặt vị trí ĐẦU TIÊN lúc mount — không có nó, pill sẽ "trượt từ
+   góc 0 tới vị trí thật" ngay khi trang vừa mở, trông như lỗi hơn là
+   hiệu ứng. */
+.cal-switch-pill {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  bottom: 4px;
+  border-radius: 10px;
+  background: var(--ink);
+  box-shadow: 0 2px 8px rgba(var(--ink-rgb), 0.22);
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+  z-index: 0;
+}
+
+.cal-switch-pill-no-anim {
+  transition: none !important;
 }
 
 .cal-switch-btn {
   position: relative;
+  z-index: 1;
   border: none;
   background: transparent;
   color: var(--mute);
   font-size: 13px;
   font-weight: 500;
-  padding: 7px 16px;
-  border-radius: 9px;
+  padding: 8px 17px;
+  border-radius: 10px;
   transition: color 0.2s ease;
+  /* Chặn double-tap-to-zoom/ứng xử chạm mặc định của trình duyệt trên
+     mobile can thiệp vào cử chỉ vuốt của SwipeNav khi vuốt bắt đầu
+     ngay trên 1 nút — không đổi gì về mặt thị giác. */
+  touch-action: pan-y;
 }
 
 .cal-switch-btn.active {
-  background: var(--ink);
   color: var(--paper);
-  animation: cal-switch-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes cal-switch-pop {
-  from { transform: scale(0.92); }
-  to { transform: scale(1); }
+.cal-switch-btn:active {
+  transform: scale(0.95);
 }
 
 /* ---- Khung bao ngoài toàn bộ nội dung lịch — bo tròn, viền mờ, đổ
@@ -81,6 +146,34 @@
 @keyframes cal-pane-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- "Lật trang" khi bấm mũi tên trước/sau HOẶC vuốt ngang trên nội
+   dung (js/swipe-nav.js) — trang MỚI trượt vào từ đúng phía ngón tay
+   vuốt tới / phía mũi tên trỏ tới, thay cho fade trung tính không
+   hướng (.cal-pane-in gốc) ở 2 trường hợp CÓ hướng rõ ràng này. 2
+   class được gắn 1 LẦN LÚC TẠO PHẦN TỬ (xem draw() trong year.js) nên
+   animation CSS tự chạy đúng 1 lần khi phần tử .cal-pane mới xuất
+   hiện — không cần JS toggle/remove class theo dõi trạng thái.
+   next (vuốt trái / bấm "sau"): trang mới trượt vào TỪ BÊN PHẢI —
+   đúng cảm giác "thời gian trôi về sau, nội dung mới đang tới TỪ
+   TƯƠNG LAI bên phải". prev thì ngược lại, từ bên trái. */
+.cal-pane-in-next {
+  animation: cal-pane-in-next 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cal-pane-in-prev {
+  animation: cal-pane-in-prev 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cal-pane-in-next {
+  from { opacity: 0; transform: translateX(22px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes cal-pane-in-prev {
+  from { opacity: 0; transform: translateX(-22px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 @media (max-width: 480px) {
@@ -565,36 +658,40 @@
   opacity: 0.8;
 }
 
-/* .event-clip (ghim sự kiện) và .note-mark (có ghi chú riêng) — giờ
-   là badge tròn nhỏ ở GÓC TUYỆT ĐỐI của ô, đúng kiểu mode Năm (xem
-   .event-clip/.note-mark gốc phía trên: position absolute, top/
-   left/right -3px, 12px), chỉ scale lên đôi chút bằng cqw vì ô mode
-   Tháng to hơn hẳn mode Năm — không còn chiếm hẳn 1 hàng ngang cùng
-   âm lịch như trước (đã bỏ hành vi "static + flex trong day-cell-top"
-   cũ vì Chíp thấy nó chiếm chỗ, muốn gọn như mode Năm).
-   .day-cell-icons giờ chỉ còn là 1 WRAPPER VÔ HÌNH (không có kích
-   thước/vị trí riêng) để giữ đúng cấu trúc HTML hiện có (year.js) —
-   2 icon con bên trong tự định vị độc lập bằng absolute, không phụ
-   thuộc gì vào wrapper này nữa. */
+/* .event-clip (ghim sự kiện) và .note-mark (có ghi chú riêng) — badge
+   tròn nhỏ NẰM HẲN TRONG Ô (không còn lồi ra ngoài viền bằng toạ độ
+   âm như 2 bản trước — bản đầu chiếm cả 1 hàng cùng âm lịch, bản kế
+   tiếp lồi ra ngoài -4px). Lồi ra ngoài khiến badge chỉ cách viền ô
+   đúng bằng gap lưới + padding ô (~10px cộng dồn), sát tới mức đè lên
+   số ngày to bên dưới VÀ dễ chạm badge của ô liền kề — đúng phản hồi
+   "các phần tử trong ô khít quá". Giờ badge nằm NGAY MÉP TRONG của ô
+   (top/right/left: 2px, không âm) — tự động lùi hẳn vào bên trong
+   padding ô, luôn có khoảng thở rõ với mép ô lẫn ô bên cạnh; kích
+   thước cũng giảm nhẹ (11-13px so với 13-15px trước) cho gọn hơn trên
+   ô vốn đã nhỏ ở màn mobile.
+   .day-cell-icons vẫn chỉ là 1 WRAPPER VÔ HÌNH (display:contents,
+   không kích thước/vị trí riêng) để giữ đúng cấu trúc HTML hiện có
+   (year.js) — 2 icon con bên trong tự định vị độc lập bằng absolute,
+   không phụ thuộc gì vào wrapper này. */
 .cal-month-grid .day-cell-icons {
   display: contents;
 }
 
 .cal-month-grid .day-cell-icons .event-clip,
 .cal-month-grid .day-cell-icons .note-mark {
-  width: clamp(13px, 18cqw, 15px);
-  height: clamp(13px, 18cqw, 15px);
-  font-size: clamp(8px, 12cqw, 9px) !important;
+  width: clamp(11px, 15cqw, 13px);
+  height: clamp(11px, 15cqw, 13px);
+  font-size: clamp(7px, 10cqw, 8px) !important;
 }
 
 .cal-month-grid .day-cell-icons .event-clip {
-  top: -4px;
-  right: -4px;
+  top: 2px;
+  right: 2px;
 }
 
 .cal-month-grid .day-cell-icons .note-mark {
-  top: -4px;
-  left: -4px;
+  top: 2px;
+  left: 2px;
 }
 
 /* ---- Mode Ngày: 1 khối lớn duy nhất, tương tự "hôm nay" nhưng cho

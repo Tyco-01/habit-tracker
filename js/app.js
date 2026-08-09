@@ -136,6 +136,11 @@
     navTheme.addEventListener('click', () => {
       ThemeEditorModal.open(syncThemeButton);
     });
+    // NHẤN GIỮ cùng nút này (khác bấm ngắn ở trên) mở bảng chọn nhanh
+    // 3 chế độ có sẵn — rê-thả để chọn ngay, không cần mở hẳn modal
+    // đầy đủ. Tự chặn không mở ThemeEditorModal nếu long-press đã kích
+    // hoạt (xem js/theme-quick-picker.js).
+    ThemeQuickPicker.bind(navTheme, syncThemeButton);
 
     // "Làm tươi" — vừa dọn trạng thái JS tạm thời (reload trang) VỪA
     // tự dò-sửa lỗi CẤU TRÚC DỮ LIỆU thật đã biết (vd vòng lặp cha-con
@@ -217,13 +222,51 @@
       if (restoreScroll) restoreScrollPosition(tab);
     }
 
-    navToday.addEventListener('click', () => { showTab('today'); TodayView.render(viewToday); });
-    navYear.addEventListener('click', () => {
-      showTab('year', { restoreScroll: false });
-      YearView.render(viewYear, openDay, { focusToday: true });
+    // TAB_ORDER + goToTab() gộp chung logic "chuyển sang đúng tab N,
+    // gọi đúng render() của nó" — dùng CHUNG bởi cả click nút VÀ vuốt
+    // ngang (SwipeNav, gắn dưới cùng khối này), để không viết lặp lại
+    // 4 nhánh if/else y hệt nhau ở 2 nơi.
+    const TAB_ORDER = ['today', 'year', 'stats', 'trash'];
+    function goToTab(tab) {
+      if (tab === 'today') { showTab('today'); TodayView.render(viewToday); }
+      else if (tab === 'year') { showTab('year', { restoreScroll: false }); YearView.render(viewYear, openDay, { focusToday: true }); }
+      else if (tab === 'stats') { showTab('stats'); StatsView.render(viewStats); }
+      else if (tab === 'trash') { showTab('trash'); TrashView.render(viewTrash); }
+    }
+
+    navToday.addEventListener('click', () => goToTab('today'));
+    navYear.addEventListener('click', () => goToTab('year'));
+    navStats.addEventListener('click', () => goToTab('stats'));
+    navTrash.addEventListener('click', () => goToTab('trash'));
+
+    // Vuốt ngang TRÊN NỘI DUNG TRANG để đổi qua lại 4 tab chính, theo
+    // đúng thứ tự hiển thị trên thanh tab (Hôm nay→Lịch→Thống kê→Thùng
+    // rác) — trái = tab kế tiếp, phải = tab trước đó, cùng quy ước với
+    // vuốt trên .cal-switcher (year.js). dragTarget:false vì #app chứa
+    // nhiều view ẩn/hiện bằng display:none — không phải 1 "trang" duy
+    // nhất để kéo-theo-ngón-tay hợp lý (khác .cal-pane, luôn là 1 khối
+    // trực quan liền mạch).
+    //
+    // BỎ QUA khi đang ở tab "Lịch": .cal-pane bên trong (year.js) đã
+    // tự gắn SwipeNav riêng cho việc LẬT TRANG lịch (ngày/tuần/tháng/
+    // năm trước-sau) — nếu #app cũng lắng nghe cùng lúc, 1 lần vuốt sẽ
+    // kích hoạt CẢ HAI (vừa lật trang lịch vừa đổi tab), vì cả 2 tầng
+    // cùng nhận chung 1 chuỗi pointermove và cùng khoá hướng ngang.
+    // Ở tab Lịch, người dùng đổi tab qua thanh tab chính hoặc vuốt
+    // trên .cal-switcher (đổi mode) thay vì vuốt nội dung.
+    SwipeNav.bind(root, {
+      dragTarget: false,
+      onSwipeLeft: () => {
+        if (currentTab === 'year') return;
+        const idx = TAB_ORDER.indexOf(currentTab);
+        if (idx < TAB_ORDER.length - 1) goToTab(TAB_ORDER[idx + 1]);
+      },
+      onSwipeRight: () => {
+        if (currentTab === 'year') return;
+        const idx = TAB_ORDER.indexOf(currentTab);
+        if (idx > 0) goToTab(TAB_ORDER[idx - 1]);
+      }
     });
-    navStats.addEventListener('click', () => { showTab('stats'); StatsView.render(viewStats); });
-    navTrash.addEventListener('click', () => { showTab('trash'); TrashView.render(viewTrash); });
 
     function openDay(dateStr) {
       saveScrollPosition();
