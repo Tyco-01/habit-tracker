@@ -170,9 +170,18 @@ const YearView = (() => {
       // .cal-day-focus ở Ngày...) trừ .cal-day-focus-open, vì nút đó
       // ĐÃ có listener riêng qua delegation ở cuối render() (dòng dưới
       // cùng) — gắn thêm ở đây sẽ gọi onDayClick 2 lần mỗi cú bấm.
+      //
+      // NHẤN GIỮ (long-press) cùng trên các ô này mở DayPreviewSheet —
+      // xem/tick/ghi chú nhanh mà không rời trang lịch. LongPress tự
+      // chặn click ăn theo ngay sau khi long-press kích hoạt (xem
+      // js/long-press.js), nên 2 tương tác không chồng lẫn nhau: nhấn
+      // ngắn = mở day-detail như trước giờ, giữ lâu = mở sheet xem nhanh.
       content.querySelectorAll('[data-date]:not(.cal-day-focus-open)').forEach(cell => {
         cell.addEventListener('click', () => {
           if (onDayClick) onDayClick(cell.dataset.date);
+        });
+        LongPress.bind(cell, (el) => {
+          DayPreviewSheet.open(el.dataset.date, onDayClick);
         });
       });
 

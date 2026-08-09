@@ -456,24 +456,17 @@
   padding: clamp(4px, 6cqw, 6px);
 }
 
-/* Hàng 1: âm lịch bên trái, icon event/note bên phải — CÙNG 1 HÀNG
-   grid thay vì 2 phần tử absolute định vị độc lập như trước, nên luôn
-   thẳng hàng với nhau và với hàng 1 của MỌI ô khác trong lưới.
-
-   BUG ĐÃ GẶP: min-height quá lớn ở hàng 1 (18px) + hàng 3 (14px, xem
-   .day-progress) chỉ chừa lại rất ít khoảng trống cho hàng 2 (số ngày,
-   font tối đa 22px) trên ô kích thước thực tế (~68px cao, trừ padding
-   còn ~56px) — dòng chữ số ngày dễ tràn xuống đè vào dòng progress
-   ngay bên dưới vì line-height thực tế của font-size lớn luôn nhỉnh
-   hơn 1 chút so với chính con số font-size khai báo. Giảm min-height
-   xuống mức tối thiểu thực sự cần thiết để dành khoảng trống an toàn
-   hơn cho hàng giữa. */
+/* Hàng 1: chỉ còn âm lịch — icon event/note KHÔNG còn nằm chung hàng
+   này nữa (xem .cal-month-grid .day-cell-icons bên dưới, đã chuyển
+   sang badge nhỏ góc tuyệt đối giống hệt mode Năm thay vì chiếm hẳn 1
+   hàng ngang bằng âm lịch). justify-content: flex-start (không còn
+   space-between vì giờ chỉ có 1 nhóm duy nhất trong hàng này). */
 .cal-month-grid .day-cell-top {
   grid-row: 1;
   width: 100%;
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-start;
   min-height: clamp(12px, 17cqw, 15px);
 }
 
@@ -572,25 +565,36 @@
   opacity: 0.8;
 }
 
-/* .event-clip (ghim sự kiện) và .note-mark (có ghi chú riêng) — bọc
-   trong .day-cell-icons (nhóm bên phải của hàng 1), xếp cạnh nhau
-   bằng flexbox thay vì 2 toạ độ absolute tính tay như trước (từng
-   phải né .day-lunar bằng cách cộng trừ px thủ công). .day-cell-top
-   dùng justify-content: space-between giữa ĐÚNG 2 nhóm — .day-lunar
-   (trái) và .day-cell-icons (phải) — nên dù có 0, 1, hay 2 icon bên
-   phải, khoảng cách với âm lịch bên trái vẫn nhất quán, không lệch. */
+/* .event-clip (ghim sự kiện) và .note-mark (có ghi chú riêng) — giờ
+   là badge tròn nhỏ ở GÓC TUYỆT ĐỐI của ô, đúng kiểu mode Năm (xem
+   .event-clip/.note-mark gốc phía trên: position absolute, top/
+   left/right -3px, 12px), chỉ scale lên đôi chút bằng cqw vì ô mode
+   Tháng to hơn hẳn mode Năm — không còn chiếm hẳn 1 hàng ngang cùng
+   âm lịch như trước (đã bỏ hành vi "static + flex trong day-cell-top"
+   cũ vì Chíp thấy nó chiếm chỗ, muốn gọn như mode Năm).
+   .day-cell-icons giờ chỉ còn là 1 WRAPPER VÔ HÌNH (không có kích
+   thước/vị trí riêng) để giữ đúng cấu trúc HTML hiện có (year.js) —
+   2 icon con bên trong tự định vị độc lập bằng absolute, không phụ
+   thuộc gì vào wrapper này nữa. */
 .cal-month-grid .day-cell-icons {
-  display: flex;
-  align-items: center;
-  gap: 3px;
+  display: contents;
 }
 
 .cal-month-grid .day-cell-icons .event-clip,
 .cal-month-grid .day-cell-icons .note-mark {
-  position: static;
-  width: clamp(13px, 20cqw, 16px);
-  height: clamp(13px, 20cqw, 16px);
-  font-size: clamp(8px, 13cqw, 10px) !important;
+  width: clamp(13px, 18cqw, 15px);
+  height: clamp(13px, 18cqw, 15px);
+  font-size: clamp(8px, 12cqw, 9px) !important;
+}
+
+.cal-month-grid .day-cell-icons .event-clip {
+  top: -4px;
+  right: -4px;
+}
+
+.cal-month-grid .day-cell-icons .note-mark {
+  top: -4px;
+  left: -4px;
 }
 
 /* ---- Mode Ngày: 1 khối lớn duy nhất, tương tự "hôm nay" nhưng cho

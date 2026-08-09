@@ -1,0 +1,207 @@
+/* ============================================================
+   css/views/day-preview-sheet.css — Bottom sheet "xem nhanh 1 ngày",
+   mở bằng nhấn giữ (long-press) 1 ô ngày trong màn Lịch (year.js).
+   Cùng pattern overlay/is-open với confirm-modal (css/components.css)
+   nhưng trượt LÊN TỪ ĐÁY thay vì scale-fade giữa màn hình — hợp thao
+   tác 1 tay trên mobile hơn, và tách bạch trực quan với modal xác
+   nhận (sheet dùng cho xem/chỉnh nhanh, modal dùng cho quyết định
+   có/không).
+   ============================================================ */
+
+.day-preview-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(var(--ink-rgb), 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.26s ease;
+}
+
+.day-preview-sheet-overlay.is-open {
+  opacity: 1;
+}
+
+.day-preview-sheet-card {
+  /* NỀN --paper (không phải --card) — giống hệt nền trang chính
+     (#app/body, xem css/base.css), vì bên trong dùng lại NGUYÊN XI
+     các thành phần vốn được thiết kế để NỔI TRÊN nền trang (day-toggle-
+     row, event-row, input-row input — tất cả đều background: var(--card)
+     + border: var(--line), xem css/components.css và
+     css/views/day-detail.css). Lúc đầu lỡ đặt --card ở đây khiến các
+     hàng bên trong CÙNG MÀU với card cha — viền --line gần như biến
+     mất, mọi thứ bẹt dí phẳng lì, lạc hẳn tông với phần còn lại của
+     app (nơi luôn thấy rõ card nổi khối trên nền). */
+  background: var(--paper);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: min(82vh, 720px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -12px 32px rgba(var(--ink-rgb), 0.18);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.day-preview-sheet-overlay.is-open .day-preview-sheet-card {
+  transform: translateY(0);
+}
+
+.day-preview-sheet-grabber {
+  width: 36px;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--line);
+  margin: 10px auto 2px;
+  flex-shrink: 0;
+}
+
+.day-preview-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.day-preview-sheet-heading-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.day-preview-sheet-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.day-preview-sheet-date {
+  font-size: 12.5px;
+  color: var(--mute);
+  margin: 0;
+}
+
+.day-preview-sheet-lunar {
+  font-size: 12px;
+  color: var(--mute);
+  margin: 0;
+  opacity: 0.85;
+}
+
+.day-preview-sheet-close {
+  /* Đúng pattern .icon-btn-round đã có sẵn trong app (css/views/today.css)
+     — viền --ink đậm 1.5px + nền trong suốt, KHÔNG dùng nền --paper
+     như bản đầu (nền đó trùng hệt màu card cha sau khi đổi ở trên,
+     khiến nút gần như vô hình, chỉ còn viền mờ nổi lên). */
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.day-preview-sheet-close:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.day-preview-sheet-close:active {
+  transform: scale(0.92);
+}
+
+.day-preview-sheet-body {
+  padding: 16px 20px 4px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.day-preview-empty {
+  font-size: 13px;
+  color: var(--mute);
+  margin: 4px 0 0;
+}
+
+.day-preview-habit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.day-preview-sheet-footer {
+  flex-shrink: 0;
+  padding: 12px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+}
+
+.day-preview-sheet-full-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border-radius: 24px;
+  border: none;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.day-preview-sheet-full-btn:hover {
+  opacity: 0.88;
+}
+
+.day-preview-sheet-full-btn:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 480px) {
+  .day-preview-sheet-card {
+    max-height: min(88vh, 720px);
+  }
+  .day-preview-sheet-header {
+    padding: 8px 16px 12px;
+  }
+  .day-preview-sheet-body {
+    padding: 14px 16px 4px;
+  }
+  .day-preview-sheet-footer {
+    padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ---- Highlight tạm thời trên ô ngày đang được nhấn giữ — phản hồi
+   thị giác NGAY khi ngón tay chạm xuống, trước cả khi ngưỡng thời
+   gian long-press (500ms, xem js/long-press.js) trôi qua, để người
+   dùng biết thao tác đã được ghi nhận chứ không phải app đứng hình. ---- */
+.day-cell.is-long-pressing,
+.cal-week-row.is-long-pressing,
+.cal-day-focus.is-long-pressing {
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.day-cell.is-long-pressing {
+  transform: scale(0.94);
+}
