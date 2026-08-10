@@ -189,7 +189,20 @@ const YearView = (() => {
     // Vuốt ngang TRÊN CHÍNH cụm switcher — trái = mode kế tiếp, phải =
     // mode trước đó, theo đúng thứ tự MODES (Ngày→Tuần→Tháng→Năm) —
     // xem js/swipe-nav.js cho giải thích ngưỡng khoảng cách/vận tốc.
+    // dragTarget: false BẮT BUỘC — switcher là position:sticky (dính
+    // lại khi cuộn trang, xem .cal-switcher-sticky trong year.css); áp
+    // transform lên CHÍNH nó (hành vi mặc định của SwipeNav khi không
+    // truyền dragTarget) phá vỡ luôn hành vi sticky của chính phần tử
+    // đó theo đúng spec CSS (transform tạo ra 1 stacking/containing
+    // context mới, sticky positioning bên trong ngữ cảnh đó không còn
+    // "dính" theo viewport nữa) — đây là NGUYÊN NHÂN THẬT khiến cụm
+    // Ngày/Tuần/Tháng/Năm mất dính khi cuộn sau khi thêm tính năng vuốt
+    // đổi mode. Không cần hiệu ứng kéo-theo-ngón-tay ở đây (chỉ cần
+    // phát hiện cử chỉ để đổi mode ngay khi thả tay), nên tắt hẳn phần
+    // kéo-theo bằng dragTarget: false, không lệ thuộc animation gì lên
+    // chính switcher.
     SwipeNav.bind(switcher, {
+      dragTarget: false,
       onSwipeLeft: () => {
         const idx = MODES.indexOf(mode);
         if (idx < MODES.length - 1) switchMode(MODES[idx + 1]);

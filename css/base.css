@@ -98,6 +98,18 @@ html, body {
 body {
   min-height: 100vh;
   min-height: 100dvh;
+  /* pan-y trên BODY (không chỉ #app) — #app có thể KHÔNG PHỦ HẾT
+     chiều cao viewport khi nội dung tab đang xem ngắn hơn màn hình
+     (vd tab "Hôm nay" với ít việc), nên ngón tay vuốt ở phần trống
+     phía dưới #app sẽ chạm trúng BODY trực tiếp, không đi qua #app —
+     touch-action đặt CHỈ ở #app khi đó vô nghĩa vì trình duyệt xác
+     định ngưỡng ngay tại phần tử NGƯỜI DÙNG THỰC SỰ CHẠM VÀO đầu
+     tiên (document.elementFromPoint), không phải theo ancestor xa xôi
+     nào cả — xác nhận qua Puppeteer: elementFromPoint(350,400) trả về
+     BODY chứ không phải #app hay con của nó khi tab đang ngắn. Xem
+     giải thích đầy đủ về touch-action & pointercancel ở #app bên
+     dưới. */
+  touch-action: pan-y;
 }
 
 button, input {
@@ -109,6 +121,21 @@ button {
 }
 
 #app {
+  /* touch-action: pan-y — BẮT BUỘC cho vuốt ngang tuỳ chỉnh (SwipeNav,
+     js/swipe-nav.js) hoạt động trên di động. Không có dòng này, trình
+     duyệt mobile mặc định "auto": ngay khi ngón tay vừa nhích vài
+     pixel, trình duyệt tự ý QUYẾT ĐỊNH đây là cử chỉ cuộn trang và
+     GIÀNH quyền xử lý native trước khi JS kịp preventDefault() — biểu
+     hiện là sự kiện 'pointercancel' bắn ra gần như ngay lập tức, cắt
+     đứt toàn bộ chuỗi pointermove mà SwipeNav cần để nhận diện vuốt
+     ngang (xác nhận bằng test touchscreen thật qua Puppeteer:
+     down→move→move→CANCEL, chỉ 2 lần move rồi bặt hẳn). "pan-y" báo
+     trước cho trình duyệt: trục DỌC cứ để nó tự lo cuộn như bình
+     thường, còn trục NGANG nhường lại hoàn toàn cho JS tự quyết định
+     (không tự ý cancel), đúng đối xứng với "touch-action: pan-x" đã
+     dùng ở nơi khác trong app (css/components.css) cho mục đích ngược
+     lại (khoá dọc, cho JS tự lo ngang). */
+  touch-action: pan-y;
   /* An explicit width keeps the app column constrained even when a host page
      injects a display/layout rule for #app. min-width: 0 prevents flex/grid
      children such as the add row from forcing horizontal overflow. */

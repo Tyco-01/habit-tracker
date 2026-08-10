@@ -26,9 +26,22 @@ const DayPreviewSheet = (() => {
 
   let overlayEl = null;
   let onChangeHandler = null;
+  let openedAt = 0;
   const EVENT_SECTION_PREFIX = 'day-preview-sheet';
 
   const CLOSE_ANIM_MS = 260; // khớp transition trong .day-preview-sheet-card (css/views/day-preview-sheet.css)
+  // Trình duyệt di động tổng hợp 1 sự kiện 'click' SAU 'touchend' với
+  // độ trễ KHÔNG CỐ ĐỊNH (tuỳ thiết bị/OS, quan sát thực tế 0-300ms) —
+  // sheet này mở GIỮA LÚC ngón tay còn chạm màn hình (do cơ chế long-
+  // press, xem giải thích ở dưới listener "click ra ngoài"), nên click
+  // tổng hợp đó có thể tới SAU KHI overlay đã full-screen che phủ đúng
+  // vị trí ngón tay, khớp target === overlay, và tự đóng ngay khi vừa
+  // mở. IGNORE_OUTSIDE_CLICK_MS là khoảng thời gian "miễn dịch" ngay
+  // sau khi mở — trong khoảng này, dù click nhắm trúng overlay cũng
+  // KHÔNG coi là "bấm ra ngoài để đóng", vì gần như chắc chắn đó là
+  // dư âm của chính cử chỉ long-press vừa mở sheet, không phải 1 cú
+  // bấm CHỦ Ý của người dùng nhắm vào nền tối.
+  const IGNORE_OUTSIDE_CLICK_MS = 350;
 
   function ensureOverlay() {
     if (overlayEl) return overlayEl;
@@ -36,6 +49,17 @@ const DayPreviewSheet = (() => {
     overlayEl.className = 'day-preview-sheet-overlay';
     overlayEl.style.display = 'none';
     document.body.appendChild(overlayEl);
+    // Gắn Ở ĐÂY (chỉ chạy 1 LẦN DUY NHẤT trong toàn vòng đời trang,
+    // vì ensureOverlay() tự return sớm nếu overlayEl đã tồn tại) —
+    // KHÔNG gắn trong open() như bản trước, vì open() chạy lại mỗi
+    // lần mở sheet (chỉ overlay.innerHTML đổi, chính overlayEl không
+    // đổi) sẽ CHỒNG THÊM 1 listener click MỚI mỗi lần, rò rỉ dần theo
+    // số lần mở — click ra ngoài lần thứ N sẽ gọi close() N lần liên
+    // tiếp (vô hại vì close() tự return sớm nếu đã đóng, nhưng vẫn là
+    // rò rỉ bộ nhớ/CPU không cần thiết về lâu dài).
+    overlayEl.addEventListener('click', (e) => {
+      if (e.target === overlayEl && Date.now() - openedAt > IGNORE_OUTSIDE_CLICK_MS) close();
+    });
     return overlayEl;
   }
 
@@ -173,10 +197,13 @@ const DayPreviewSheet = (() => {
       close();
       if (typeof onOpenFull === 'function') onOpenFull(dateStr);
     });
-    // Bấm ra vùng tối xung quanh = đóng, giống mọi overlay khác trong app.
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
+    // "openedAt" set ở ĐÂY (mỗi lần mở) — listener "click ra ngoài để
+    // đóng" đã gắn 1 LẦN DUY NHẤT trong ensureOverlay() (không lặp lại
+    // ở đây, tránh rò rỉ listener chồng chất qua nhiều lần mở), nó tự
+    // đọc biến openedAt module-level này mỗi lần được kích hoạt — xem
+    // giải thích đầy đủ về lý do cần độ trễ ở khai báo hằng số
+    // IGNORE_OUTSIDE_CLICK_MS phía trên.
+    openedAt = Date.now();
     document.addEventListener('keydown', onKeydown);
   }
 

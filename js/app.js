@@ -60,7 +60,24 @@
           </button>
         </div>
         <div style="display:flex;align-items:center;gap:4px;">
-          <button id="nav-theme" aria-label="Đổi giao diện" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
+          <!-- touch-action:none trên #nav-theme — thao tác "giữ rồi rê
+               ngón tay xuống chọn 1 trong 3 mode" (js/theme-quick-
+               picker.js) là 1 cử chỉ DỌC ngay trên nút này. #app/body
+               có touch-action:pan-y (cho vuốt ngang 4-tab hoạt động,
+               xem css/base.css) — nhưng "pan-y" đồng nghĩa "trục dọc
+               giao lại hoàn toàn cho trình duyệt tự cuộn", nên khi
+               ngón tay rê dọc trên #nav-theme, trình duyệt tự ý coi
+               đó là cuộn trang, GIÀNH quyền xử lý và bắn pointercancel
+               giữa chừng, cắt đứt việc JS đang theo dõi rê-chọn (đã
+               xác nhận qua Puppeteer touchscreen thật: giữ đủ 500ms,
+               rê xuống lựa chọn "light", is-hover đúng, nhưng thả tay
+               ra sự kiện thực nhận được là pointercancel chứ không
+               phải pointerup, nên ThemeToggle.set() không bao giờ
+               được gọi). touch-action:none GHI ĐÈ pan-y kế thừa CHỈ
+               TRÊN NÚT NÀY — báo trình duyệt nhường TOÀN QUYỀN xử lý
+               mọi cử chỉ (cả dọc lẫn ngang) bắt đầu từ đây cho JS,
+               không tự ý can thiệp. -->
+          <button id="nav-theme" aria-label="Đổi giao diện" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;touch-action:none;">
             <i class="ti" style="font-size:16px;" aria-hidden="true"></i>
           </button>
           <button id="nav-refresh" aria-label="Làm tươi" title="Tải lại app — dùng khi giao diện bị lỗi hoặc hiển thị sai" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
@@ -247,14 +264,30 @@
     // nhất để kéo-theo-ngón-tay hợp lý (khác .cal-pane, luôn là 1 khối
     // trực quan liền mạch).
     //
+    // GẮN LÊN document.body, KHÔNG PHẢI root (#app) — #app có padding
+    // riêng và chiều cao co theo NỘI DUNG thực tế của tab đang xem (vd
+    // tab "Hôm nay" với ít việc sẽ thấp hơn hẳn viewport) — khi đó
+    // phần diện tích màn hình còn lại (vùng trống bên dưới nội dung)
+    // thuộc về BODY, KHÔNG PHẢI CON của #app, nên 1 lần chạm bắt đầu ở
+    // đó sẽ KHÔNG BAO GIỜ bubble qua #app (chỉ bubble qua các ancestor
+    // THẬT của target chạm) — SwipeNav.bind(root,...) hoàn toàn không
+    // nhận được gì trong trường hợp này. Xác nhận qua Puppeteer
+    // (touchscreen thật + isMobile/hasTouch): elementFromPoint ở toạ
+    // độ vuốt tự nhiên (giữa màn hình) trả về BODY, và listener gắn
+    // trực tiếp trên #app log ra rỗng dù document-level listener vẫn
+    // thấy đủ chuỗi sự kiện. document.body luôn phủ TOÀN BỘ viewport
+    // theo min-height:100vh (xem css/base.css), là lựa chọn an toàn
+    // duy nhất để chắc chắn bắt được vuốt bắt đầu ở bất kỳ đâu trên
+    // màn hình.
+    //
     // BỎ QUA khi đang ở tab "Lịch": .cal-pane bên trong (year.js) đã
     // tự gắn SwipeNav riêng cho việc LẬT TRANG lịch (ngày/tuần/tháng/
-    // năm trước-sau) — nếu #app cũng lắng nghe cùng lúc, 1 lần vuốt sẽ
+    // năm trước-sau) — nếu body cũng lắng nghe cùng lúc, 1 lần vuốt sẽ
     // kích hoạt CẢ HAI (vừa lật trang lịch vừa đổi tab), vì cả 2 tầng
     // cùng nhận chung 1 chuỗi pointermove và cùng khoá hướng ngang.
     // Ở tab Lịch, người dùng đổi tab qua thanh tab chính hoặc vuốt
     // trên .cal-switcher (đổi mode) thay vì vuốt nội dung.
-    SwipeNav.bind(root, {
+    SwipeNav.bind(document.body, {
       dragTarget: false,
       onSwipeLeft: () => {
         if (currentTab === 'year') return;

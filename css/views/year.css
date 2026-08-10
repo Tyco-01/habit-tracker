@@ -36,6 +36,12 @@
   margin-bottom: 20px;
   width: fit-content;
   box-shadow: 0 1px 2px rgba(var(--ink-rgb), 0.04), 0 4px 16px rgba(var(--ink-rgb), 0.06);
+  /* Khai báo TƯỜNG MINH lại ở đây dù #app (ancestor) đã có pan-y —
+     an toàn hơn là trông cậy vào kế thừa qua nhiều lớp DOM, đặc biệt
+     vì .cal-switch-btn bên trong lại có touch-action: pan-y RIÊNG của
+     nó (xem bên dưới) — khai báo rõ ở mọi tầng SwipeNav.bind() cho
+     chắc chắn, xem giải thích đầy đủ ở css/base.css #app. */
+  touch-action: pan-y;
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
@@ -141,6 +147,10 @@
   background: var(--card);
   padding: 20px 22px 22px;
   animation: cal-pane-in 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Xem giải thích đầy đủ ở css/base.css #app — bắt buộc để vuốt
+     ngang (lật trang lịch, js/swipe-nav.js) không bị trình duyệt tự
+     ý huỷ giữa chừng (pointercancel) trên thiết bị cảm ứng thật. */
+  touch-action: pan-y;
 }
 
 @keyframes cal-pane-in {
