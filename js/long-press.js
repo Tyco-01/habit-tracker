@@ -55,6 +55,12 @@ const LongPress = (() => {
       startX = e.clientX;
       startY = e.clientY;
       clearTimer();
+      // Đảm bảo pointermove/pointerup vẫn bắn về el kể cả khi ngón tay
+      // trôi ra ngoài bounding box ban đầu trong lúc chờ đủ ngưỡng
+      // DURATION_MS — không có dòng này, MOVE_TOLERANCE bên dưới có
+      // thể không bao giờ nhận được sự kiện move để tự huỷ đúng lúc
+      // (xem giải thích đầy đủ ở js/swipe-nav.js, cùng vấn đề).
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
       timer = setTimeout(() => {
         timer = null;
         firedThisPress = true;

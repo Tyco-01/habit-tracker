@@ -87,6 +87,14 @@ const SwipeNav = (() => {
       startY = e.clientY;
       lastDx = 0;
       pointerId = e.pointerId;
+      // KHÔNG setPointerCapture ở đây — el thường là 1 vùng RỘNG (cả
+      // .cal-pane, cả #app) chứa nhiều phần tử con tương tác được
+      // (nút bấm, ô ngày...). Capture NGAY khi vừa chạm xuống sẽ khiến
+      // MỌI pointerdown/click bình thường trong toàn vùng đó bị "hút"
+      // về el, kể cả những cú bấm không hề định vuốt gì — nút bấm bình
+      // thường bên trong sẽ ngừng nhận được click. Capture chỉ nên xảy
+      // ra SAU KHI đã xác định chắc chắn đây là 1 cú vuốt ngang thật
+      // (xem onPointerMove, ngay lúc lockedHorizontal chuyển true).
     }
 
     function onPointerMove(e) {
@@ -97,6 +105,10 @@ const SwipeNav = (() => {
       if (!lockedHorizontal) {
         if (Math.abs(dx) > DIRECTION_LOCK_PX && Math.abs(dx) > Math.abs(dy)) {
           lockedHorizontal = true;
+          // Chỉ TỪ ĐÂY MỚI capture — đã chắc chắn là vuốt ngang, giữ
+          // pointermove/up tiếp tục bắn về el dù ngón tay đi xa khỏi
+          // bounding box ban đầu (xem giải thích đầy đủ ở đầu file).
+          try { el.setPointerCapture(e.pointerId); } catch (err) {}
         } else if (Math.abs(dy) > DIRECTION_LOCK_PX) {
           // Rõ ràng đang cuộn dọc — bỏ theo dõi hẳn, không can thiệp gì nữa.
           active = false;
@@ -110,14 +122,31 @@ const SwipeNav = (() => {
       // duyệt trong lúc kéo, và cập nhật vị trí kéo-theo-ngón-tay (nếu
       // có drag target — khi dragTarget:false, chỉ theo dõi khoảng
       // cách để xác định swipe, không áp transform lên đâu cả).
+      //
+      // stopPropagation() BẮT BUỘC ở đây — app có NHIỀU tầng SwipeNav
+      // lồng nhau cùng lúc (vd .cal-switcher NẰM TRONG #app, cả 2 đều
+      // gọi SwipeNav.bind riêng). pointermove NỔI BỌT từ switcher lên
+      // #app theo cơ chế DOM bình thường — nếu không chặn, tầng NGOÀI
+      // (#app) CŨNG nhận được cùng chuỗi toạ độ và CŨNG tự khoá hướng
+      // ngang gần như đồng thời, rồi CŨNG gọi el.setPointerCapture()
+      // của riêng nó — capture gọi SAU sẽ ghi đè capture gọi trước,
+      // khiến tầng đã khoá trước (switcher) mất dấu hoàn toàn các
+      // pointermove/pointerup tiếp theo (chúng bị "hút" về tầng ngoài
+      // đã capture sau), callback của tầng trong không bao giờ được
+      // gọi dù người dùng đã vuốt đủ khoảng cách. stopPropagation()
+      // ngay khi VỪA khoá hướng đảm bảo CHỈ tầng trong cùng (target
+      // gần nhất với ngón tay) được xử lý cử chỉ này, đúng nguyên tắc
+      // "phần tử cụ thể nhất thắng" khi nhiều vùng vuốt lồng nhau.
       e.preventDefault();
+      e.stopPropagation();
       lastDx = dx;
       if (drag) drag.style.transform = `translateX(${rubberBand(dx)}px)`;
     }
 
-    function onPointerUp() {
+    function onPointerUp(e) {
       if (!active) return;
       active = false;
+      if (lockedHorizontal) { try { el.releasePointerCapture(e.pointerId); } catch (err) {} }
       if (lockedHorizontal) {
         resetDragVisual();
         if (lastDx <= -SWIPE_THRESHOLD_PX && typeof onSwipeLeft === 'function') onSwipeLeft();

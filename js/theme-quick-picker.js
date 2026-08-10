@@ -128,6 +128,13 @@ const ThemeQuickPicker = (() => {
       startY = e.clientY;
       activePointerId = e.pointerId;
       clearHoldTimer();
+      // BẮT BUỘC — bảng chọn nổi lên xa hẳn vị trí ngón tay đặt xuống
+      // (phía trên nút, xem positionPanel), người dùng sẽ rê ngón tay
+      // RA NGOÀI hẳn bounding box gốc của anchorEl để chạm tới từng lựa
+      // chọn — không capture, pointermove sẽ ngừng bắn về anchorEl
+      // ngay khi ngón tay rời khỏi vùng nút ban đầu, khiến việc "rê
+      // chọn" không hoạt động (xem giải thích đầy đủ ở js/swipe-nav.js).
+      try { anchorEl.setPointerCapture(e.pointerId); } catch (err) {}
       holdTimer = setTimeout(() => {
         holdTimer = null;
         panelOpen = true;
@@ -167,6 +174,7 @@ const ThemeQuickPicker = (() => {
     function onPointerUp(e) {
       if (e.pointerId !== activePointerId) return;
       clearHoldTimer();
+      try { anchorEl.releasePointerCapture(e.pointerId); } catch (err) {}
       anchorEl.classList.remove('is-long-pressing');
       if (!panelOpen) return; // bấm ngắn — để click listener gốc (mở ThemeEditorModal) tự xử lý bình thường, không can thiệp gì ở đây
       panelOpen = false;
