@@ -259,46 +259,112 @@
     // Vuốt ngang TRÊN NỘI DUNG TRANG để đổi qua lại 4 tab chính, theo
     // đúng thứ tự hiển thị trên thanh tab (Hôm nay→Lịch→Thống kê→Thùng
     // rác) — trái = tab kế tiếp, phải = tab trước đó, cùng quy ước với
-    // vuốt trên .cal-switcher (year.js). dragTarget:false vì #app chứa
-    // nhiều view ẩn/hiện bằng display:none — không phải 1 "trang" duy
-    // nhất để kéo-theo-ngón-tay hợp lý (khác .cal-pane, luôn là 1 khối
-    // trực quan liền mạch).
+    // vuốt trên .cal-switcher (year.js).
     //
     // GẮN LÊN document.body, KHÔNG PHẢI root (#app) — #app có padding
     // riêng và chiều cao co theo NỘI DUNG thực tế của tab đang xem (vd
     // tab "Hôm nay" với ít việc sẽ thấp hơn hẳn viewport) — khi đó
     // phần diện tích màn hình còn lại (vùng trống bên dưới nội dung)
-    // thuộc về BODY, KHÔNG PHẢI CON của #app, nên 1 lần chạm bắt đầu ở
-    // đó sẽ KHÔNG BAO GIỜ bubble qua #app (chỉ bubble qua các ancestor
-    // THẬT của target chạm) — SwipeNav.bind(root,...) hoàn toàn không
-    // nhận được gì trong trường hợp này. Xác nhận qua Puppeteer
-    // (touchscreen thật + isMobile/hasTouch): elementFromPoint ở toạ
-    // độ vuốt tự nhiên (giữa màn hình) trả về BODY, và listener gắn
-    // trực tiếp trên #app log ra rỗng dù document-level listener vẫn
-    // thấy đủ chuỗi sự kiện. document.body luôn phủ TOÀN BỘ viewport
-    // theo min-height:100vh (xem css/base.css), là lựa chọn an toàn
-    // duy nhất để chắc chắn bắt được vuốt bắt đầu ở bất kỳ đâu trên
-    // màn hình.
+    // thuộc về BODY, KHÔNG PHẢI CON của #app — bind trên #app hoàn
+    // toàn không nhận được gì trong trường hợp này (xác nhận qua
+    // Puppeteer touchscreen thật, xem ARCHITECTURE.md mục 8).
     //
-    // BỎ QUA khi đang ở tab "Lịch": .cal-pane bên trong (year.js) đã
-    // tự gắn SwipeNav riêng cho việc LẬT TRANG lịch (ngày/tuần/tháng/
-    // năm trước-sau) — nếu body cũng lắng nghe cùng lúc, 1 lần vuốt sẽ
-    // kích hoạt CẢ HAI (vừa lật trang lịch vừa đổi tab), vì cả 2 tầng
-    // cùng nhận chung 1 chuỗi pointermove và cùng khoá hướng ngang.
-    // Ở tab Lịch, người dùng đổi tab qua thanh tab chính hoặc vuốt
-    // trên .cal-switcher (đổi mode) thay vì vuốt nội dung.
-    SwipeNav.bind(document.body, {
-      dragTarget: false,
-      onSwipeLeft: () => {
-        if (currentTab === 'year') return;
-        const idx = TAB_ORDER.indexOf(currentTab);
-        if (idx < TAB_ORDER.length - 1) goToTab(TAB_ORDER[idx + 1]);
-      },
-      onSwipeRight: () => {
-        if (currentTab === 'year') return;
-        const idx = TAB_ORDER.indexOf(currentTab);
-        if (idx > 0) goToTab(TAB_ORDER[idx - 1]);
+    // shouldIgnore kiểm tra TARGET THẬT của cử chỉ (không dựa vào biến
+    // currentTab như bản trước — ở tab Lịch vẫn có vùng KHÔNG thuộc
+    // .cal-switcher/.cal-pane, vd khoảng trống phía trên card, nơi
+    // vuốt đổi TAB vẫn nên hoạt động) — chỉ nhường cho year.js xử lý
+    // khi cử chỉ THỰC SỰ bắt đầu trong 1 trong 2 vùng đó.
+    //
+    // ANIMATION "GIỌT LỎNG" — 2 view (đang xem + hàng xóm sắp/vừa rời
+    // khỏi) cùng hiện, dịch chuyển ĐÚNG theo dx trong lúc kéo (xem
+    // dragMove), rồi "trôi nốt" bằng CSS transition khi thả tay (xem
+    // dragSettle/dragCancel) — không snap tức thì.
+    const dragState = { neighborTab: null, neighborEl: null };
+
+    function viewElByTab(tab) {
+      if (tab === 'today') return viewToday;
+      if (tab === 'year') return viewYear;
+      if (tab === 'stats') return viewStats;
+      if (tab === 'trash') return viewTrash;
+      return null;
+    }
+
+    // dx âm (kéo trái) => xem tab KẾ TIẾP; dx dương (kéo phải) => tab TRƯỚC ĐÓ
+    function neighborTabFor(dx) {
+      const idx = TAB_ORDER.indexOf(currentTab);
+      return TAB_ORDER[dx < 0 ? idx + 1 : idx - 1] || null;
+    }
+
+    function dragMove(dx) {
+      const wantTab = neighborTabFor(dx);
+      if (dragState.neighborTab !== wantTab) {
+        // Đổi hướng kéo giữa chừng, hoặc lần đầu xác định hàng xóm —
+        // dọn hàng xóm CŨ (nếu có) rồi chuẩn bị hàng xóm MỚI.
+        if (dragState.neighborEl) {
+          dragState.neighborEl.style.display = 'none';
+          dragState.neighborEl.style.transform = '';
+        }
+        dragState.neighborTab = wantTab;
+        dragState.neighborEl = wantTab ? viewElByTab(wantTab) : null;
+        if (dragState.neighborEl) dragState.neighborEl.style.display = 'block';
       }
+      const currentEl = viewElByTab(currentTab);
+      if (currentEl) currentEl.style.transform = `translateX(${dx}px)`;
+      if (dragState.neighborEl) {
+        // Hàng xóm luôn cách view hiện tại ĐÚNG 1 bề rộng viewport,
+        // cùng chiều với hướng kéo — tiến dần vào khung hình theo
+        // đúng % ngón tay đã đi, tạo cảm giác "2 trang trôi qua nhau".
+        const vw = window.innerWidth;
+        const sign = dx < 0 ? 1 : -1;
+        dragState.neighborEl.style.transform = `translateX(${dx - sign * vw}px)`;
+      }
+    }
+
+    // animated=true: "trôi nốt" bằng transition rồi dọn sạch transform/
+    // display khi xong, thay vì snap tức thì về vị trí cuối — dùng
+    // chung cho cả huỷ kéo (mọi view trôi VỀ vị trí gốc translateX(0))
+    // lẫn hoàn tất đổi tab (view cũ trôi HẲN ra ngoài viewport, view
+    // mới trôi nốt tới đúng vị trí 0 — cả 2 đều chỉ là "còn 1 đoạn
+    // đường ngắn cần animate", không phải chạy lại animation từ đầu).
+    function finishDrag(animated) {
+      [viewToday, viewYear, viewStats, viewTrash].forEach(el => {
+        if (el.style.transform === '') return;
+        if (animated) {
+          el.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+          const done = () => { el.style.transition = ''; el.removeEventListener('transitionend', done); if (el !== viewElByTab(currentTab)) el.style.display = 'none'; };
+          el.addEventListener('transitionend', done);
+        } else if (el !== viewElByTab(currentTab)) {
+          el.style.display = 'none';
+        }
+        el.style.transform = '';
+      });
+      dragState.neighborTab = null;
+      dragState.neighborEl = null;
+    }
+
+    SwipeNav.bind(document.body, {
+      shouldIgnore: (target) => !!target.closest('.cal-switcher, .cal-pane'),
+      onDrag: dragMove,
+      onCommit: (dir) => {
+        // dir: -1 (kéo trái) | 1 (kéo phải). Hàng xóm ĐÃ ĐÚNG tab cần
+        // chuyển tới (dragState tự cập nhật liên tục trong dragMove) —
+        // chỉ cần chính thức hoá currentTab + render nội dung mới NGAY
+        // (không đợi animation kết thúc, để dữ liệu hiển thị luôn mới
+        // nhất) rồi để finishDrag() animate nốt phần transform còn lại.
+        const wantTab = dragState.neighborTab;
+        if (!wantTab) return; // đã ở đầu/cuối danh sách, không có hàng xóm để chuyển tới
+        currentTab = wantTab;
+        navToday.classList.toggle('active', currentTab === 'today');
+        navYear.classList.toggle('active', currentTab === 'year');
+        navStats.classList.toggle('active', currentTab === 'stats');
+        navTrash.classList.toggle('active', currentTab === 'trash');
+        if (currentTab === 'today') TodayView.render(viewToday);
+        else if (currentTab === 'year') YearView.render(viewYear, openDay, { focusToday: true });
+        else if (currentTab === 'stats') StatsView.render(viewStats);
+        else if (currentTab === 'trash') TrashView.render(viewTrash);
+      },
+      onSettle: () => finishDrag(true),
+      onCancel: () => finishDrag(true)
     });
 
     function openDay(dateStr) {

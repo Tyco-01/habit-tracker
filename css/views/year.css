@@ -14,28 +14,37 @@
 
 /* ---- Thanh chuyển chế độ xem (Ngày/Tuần/Tháng/Năm) ----
 
-   KÍNH MỜ (glassmorphism): nền bán trong suốt + backdrop-filter: blur
-   — để nội dung lịch phía sau (khi cụm này sticky đè lên lúc cuộn)
-   thấp thoáng qua được, tạo cảm giác "kính mờ nổi trên bề mặt" thay vì
-   1 khối đặc bệt như trước (--card 100% đục). color-mix() dùng thay
-   vì cần thêm biến --card-rgb mới (app hiện chỉ có --ink-rgb) — vẫn
-   tự động đổi đúng theo theme sáng/tối/tuỳ chỉnh đang chọn vì
-   color-mix() tính lại real-time trên biến --card hiện hành, không
-   hardcode 1 màu cố định nào.
-   @supports fallback: trình duyệt cũ không hỗ trợ backdrop-filter vẫn
-   nhận được nền đục gần giống bản gốc, không vỡ giao diện. ---- */
+   KÍNH MỜ (glassmorphism) — lịch sử đầy đủ các lần thử/sai xem
+   ARCHITECTURE.md mục 8. Tóm tắt 2 nguyên nhân THẬT khiến khối này
+   "vô hình" qua nhiều lần chỉnh sửa trước:
+   (1) --card và --paper trong bảng màu app chỉ chênh ~25/765 đơn vị
+       RGB — bất kỳ opacity/border nào dựa trên 2 biến đó đều gần như
+       không thể phân biệt bằng mắt trên nền cùng tông be. Sửa bằng
+       cách tint nhẹ --ink (màu chữ đậm) vào nền thay vì cố làm đậm
+       --card.
+   (2) 1 pseudo-element ::before (đã XOÁ) định làm "nền lưng" khi dính
+       lúc cuộn vô tình dùng z-index âm khiến nó che mất chính
+       background của .cal-switcher trong thực tế render — computed
+       style báo đúng màu đã set, nhưng pixel ảnh chụp thật vẫn ra
+       màu nền trang; chỉ xoá hẳn pseudo-element đó mới lộ ra màu thật.
+   ---- */
 
 .cal-switcher {
   position: relative;
   display: flex;
-  gap: 2px;
-  background: color-mix(in srgb, var(--card) 68%, transparent);
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
-  border-radius: 14px;
-  padding: 4px;
-  margin-bottom: 20px;
+  gap: 3px;
+  /* Tint nhẹ --ink (6%) vào nền --card (94%) — tạo đủ độ tương phản
+     với nền --paper mà không cần opacity/border dựa trên --card/--line
+     (2 biến đó gần trùng --paper, xem giải thích ở trên). */
+  background: color-mix(in srgb, var(--ink) 6%, var(--card) 94%);
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, var(--line) 88%);
+  border-radius: 16px;
+  padding: 5px;
+  margin-bottom: 22px;
   width: fit-content;
-  box-shadow: 0 1px 2px rgba(var(--ink-rgb), 0.04), 0 4px 16px rgba(var(--ink-rgb), 0.06);
+  box-shadow:
+    0 2px 6px rgba(var(--ink-rgb), 0.10),
+    0 10px 28px rgba(var(--ink-rgb), 0.14);
   /* Khai báo TƯỜNG MINH lại ở đây dù #app (ancestor) đã có pan-y —
      an toàn hơn là trông cậy vào kế thừa qua nhiều lớp DOM, đặc biệt
      vì .cal-switch-btn bên trong lại có touch-action: pan-y RIÊNG của
@@ -46,8 +55,8 @@
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   .cal-switcher {
-    backdrop-filter: blur(14px) saturate(1.4);
-    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(16px) saturate(1.6);
+    -webkit-backdrop-filter: blur(16px) saturate(1.6);
   }
 }
 
@@ -55,30 +64,24 @@
    --cal-switcher-top, được year.js đo và set tự động bằng chiều cao
    thật của .sticky-tabs (ResizeObserver, tự cập nhật nếu thanh tab
    đổi cao).
-   .cal-switcher giờ kính mờ + bo góc riêng (width: fit-content, không
-   còn full-width nền đục như bản trước) — nếu KHÔNG có gì che phía
-   sau nó khi dính, nội dung cuộn qua sẽ "chui qua khe hở" giữa đáy
-   .sticky-tabs và đỉnh switcher, lộ ra xấu. ::before tạo 1 dải nền
-   --paper ĐỤC HOÀN TOÀN (không kính mờ — đây là "nền lưng" cố định
-   của trang, không phải bề mặt kính nổi) phủ kín TOÀN BỘ chiều rộng
-   viewport phía sau, nằm DƯỚI switcher (z-index thấp hơn) — bản thân
-   switcher kính mờ nổi bên trên dải nền lưng này, đúng đúng hiệu ứng
-   "kính mờ trên nền đục" thay vì "kính mờ trên khoảng trống". */
+   KHÔNG dùng pseudo-element ::before "nền lưng" nữa (bản trước có,
+   đã XOÁ) — nó là NGUYÊN NHÂN THẬT khiến switcher hoàn toàn vô hình
+   suốt nhiều lần chỉnh sửa CSS trước đó: ::before có z-index:-1
+   NHƯNG .cal-switcher không tự tạo stacking context độc lập rõ ràng
+   cho riêng nó (chỉ có position:relative, không kèm z-index cụ thể
+   ngoài .cal-switcher-sticky), khiến pseudo-element -1 bị đẩy xuống
+   DƯỚI CẢ background thật của chính switcher trong thực tế render,
+   che mất hoàn toàn (xác nhận bằng cách đọc PIXEL THẬT của ảnh chụp
+   Puppeteer: đặt background:red !important trực tiếp qua JS, computed
+   style xác nhận đỏ, nhưng ảnh chụp vẫn ra màu --paper — chỉ khi xoá
+   hẳn class .cal-switcher-sticky (bỏ ::before) thì màu đỏ mới thực sự
+   hiện ra). Bản thân .cal-switcher đã có background riêng đủ đục
+   (background/border ở trên) — khi dính lại lúc cuộn, nó TỰ CHE đúng
+   phần nội dung cuộn qua bên dưới nó mà không cần thêm lớp nào khác. */
 .cal-switcher-sticky {
   position: sticky;
   top: var(--cal-switcher-top, 0px);
   z-index: 19; /* thấp hơn .sticky-tabs (20) 1 bậc — .sticky-tabs luôn nổi trên cùng khi cả 2 cùng dính */
-}
-
-.cal-switcher-sticky::before {
-  content: '';
-  position: absolute;
-  top: -8px;
-  left: -50vw;
-  right: -50vw;
-  bottom: -8px;
-  background: var(--paper);
-  z-index: -1;
 }
 
 /* Pill nền — 1 khối DUY NHẤT trượt bằng transform (year.js:

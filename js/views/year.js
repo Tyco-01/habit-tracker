@@ -187,31 +187,26 @@ const YearView = (() => {
     });
 
     // Vuốt ngang TRÊN CHÍNH cụm switcher — trái = mode kế tiếp, phải =
-    // mode trước đó, theo đúng thứ tự MODES (Ngày→Tuần→Tháng→Năm) —
-    // xem js/swipe-nav.js cho giải thích ngưỡng khoảng cách/vận tốc.
-    // dragTarget: false BẮT BUỘC — switcher là position:sticky (dính
-    // lại khi cuộn trang, xem .cal-switcher-sticky trong year.css); áp
-    // transform lên CHÍNH nó (hành vi mặc định của SwipeNav khi không
-    // truyền dragTarget) phá vỡ luôn hành vi sticky của chính phần tử
-    // đó theo đúng spec CSS (transform tạo ra 1 stacking/containing
-    // context mới, sticky positioning bên trong ngữ cảnh đó không còn
-    // "dính" theo viewport nữa) — đây là NGUYÊN NHÂN THẬT khiến cụm
-    // Ngày/Tuần/Tháng/Năm mất dính khi cuộn sau khi thêm tính năng vuốt
-    // đổi mode. Không cần hiệu ứng kéo-theo-ngón-tay ở đây (chỉ cần
-    // phát hiện cử chỉ để đổi mode ngay khi thả tay), nên tắt hẳn phần
-    // kéo-theo bằng dragTarget: false, không lệ thuộc animation gì lên
-    // chính switcher.
+    // mode trước đó, theo đúng thứ tự MODES (Ngày→Tuần→Tháng→Năm).
+    //
+    // KHÔNG transform CHÍNH switcher — switcher là position:sticky
+    // (dính lại khi cuộn trang, xem .cal-switcher-sticky trong
+    // year.css); transform trên CHÍNH nó phá vỡ luôn hành vi sticky
+    // theo đúng spec CSS (transform tạo 1 containing block mới, sticky
+    // bên trong ngữ cảnh đó không còn "dính" theo viewport nữa) — đây
+    // là nguyên nhân THẬT đã khiến cụm Ngày/Tuần/Tháng/Năm từng mất
+    // dính khi cuộn (xem ARCHITECTURE.md mục 8). Bản thân việc đổi
+    // mode ĐÃ có animation mượt riêng qua pill trượt (syncPillPosition,
+    // dùng transition CSS) — không cần thêm hiệu ứng kéo-theo-tay ở
+    // switcher nữa, chỉ cần commit đúng lúc thả tay.
     SwipeNav.bind(switcher, {
-      dragTarget: false,
-      onSwipeLeft: () => {
+      onCommit: (dir) => {
         const idx = MODES.indexOf(mode);
-        if (idx < MODES.length - 1) switchMode(MODES[idx + 1]);
-      },
-      onSwipeRight: () => {
-        const idx = MODES.indexOf(mode);
-        if (idx > 0) switchMode(MODES[idx - 1]);
+        const nextIdx = dir === -1 ? idx + 1 : idx - 1;
+        if (nextIdx >= 0 && nextIdx < MODES.length) switchMode(MODES[nextIdx]);
       }
     });
+
 
     // Vị trí pill ban đầu (không animation) NGAY SAU KHI DOM đã có
     // kích thước thật — offsetWidth/offsetLeft chỉ đúng SAU 1 lần
@@ -257,17 +252,28 @@ const YearView = (() => {
       const paneEl = content.querySelector('.cal-pane');
 
       // Vuốt ngang TRÊN CHÍNH NỘI DUNG (không phải trên switcher) —
-      // trái = trang sau (tiến), phải = trang trước (lùi), ngược chiều
-      // trực giác với vuốt trên switcher (nơi trái/phải = đổi MODE kế
-      // tiếp/trước theo thứ tự cố định) vì đây là "lật trang lịch",
-      // quy ước quen thuộc của app lịch (vuốt trái = xem cái SAU).
-      // dragTarget = paneEl để kéo-theo-ngón-tay áp đúng lên khối nội
-      // dung đang hiện, không phải lên #year-content (khối bọc ngoài
-      // không có kích thước cảm nhận được khi transform).
+      // trái = trang sau (tiến), phải = trang trước (lùi), quy ước
+      // quen thuộc của app lịch (vuốt trái = xem cái SAU).
+      //
+      // ANIMATION "GIỌT LỎNG": onDrag kéo paneEl theo đúng ngón tay
+      // (translateX = dx) — khi thả tay, onCommit đổi trang (gọi
+      // step+draw NGAY, dựng .cal-pane MỚI với animation CSS có sẵn
+      // cal-pane-in-next/prev, xem year.css) trong khi paneEl CŨ vẫn
+      // đang hiển thị đúng vị trí đã kéo tới — .cal-pane cũ tự bị xoá
+      // khỏi DOM ngay khi content.innerHTML được set lại trong draw(),
+      // nên không cần animate "trôi nốt" cho nó (nó biến mất ngay,
+      // thay bằng phần tử mới đã tự có animation trượt vào đúng
+      // hướng). onCancel animate paneEl trôi VỀ lại vị trí gốc khi
+      // chưa đủ ngưỡng.
       SwipeNav.bind(paneEl, {
-        dragTarget: paneEl,
-        onSwipeLeft: () => { step(1); draw(1); },
-        onSwipeRight: () => { step(-1); draw(-1); }
+        onDrag: (dx) => { paneEl.style.transform = `translateX(${dx}px)`; },
+        onCommit: (dir) => { step(dir); draw(dir); },
+        onCancel: () => {
+          paneEl.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+          paneEl.style.transform = '';
+          const done = () => { paneEl.style.transition = ''; paneEl.removeEventListener('transitionend', done); };
+          paneEl.addEventListener('transitionend', done);
+        }
       });
 
       // Gắn click cho MỌI phần tử có data-date (không phụ thuộc class
