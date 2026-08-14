@@ -111,7 +111,7 @@ const YearView = (() => {
     // (z-index thấp hơn) và đổi vị trí/kích thước bằng
     // syncPillPosition() mỗi khi mode đổi, xem hàm đó bên dưới.
     container.innerHTML = `
-      <div class="cal-switcher cal-switcher-vertical" role="tablist" aria-label="Chọn chế độ xem lịch">
+      <div class="cal-switcher" role="tablist" aria-label="Chọn chế độ xem lịch">
         <div class="cal-switch-pill" aria-hidden="true"></div>
         ${MODES.map(m => `<button class="cal-switch-btn ${m === mode ? 'active' : ''}" data-mode="${m}" role="tab" aria-selected="${m === mode}">${MODE_LABEL[m]}</button>`).join('')}
       </div>
@@ -122,32 +122,49 @@ const YearView = (() => {
     const content = container.querySelector('#year-content');
     let lastHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế — quan trọng hơn cả ở đây vì mode "year" build cả lưới 365 ô + vòng lặp đếm mỗi lần gọi, tốn kém hơn hẳn mode khác
 
-    // Đo lại vị trí/kích thước nút đang active THẬT SỰ (offsetTop/
-    // offsetHeight) rồi áp vào pill bằng transform TRỤC DỌC —
-    // .cal-switcher giờ là CỘT DỌC (4 nút chồng lên nhau, xem
-    // .cal-switcher-vertical trong CSS), nên pill trượt theo Y thay vì
-    // X như bản hàng ngang cũ. Không hardcode % theo index vì 4 nhãn
-    // "Ngày/Tuần/Tháng/Năm" có thể cao khác nhau tuỳ font-rendering.
+    // Đo lại vị trí/kích thước nút đang active THẬT SỰ (offsetLeft/
+    // offsetWidth) rồi áp vào pill bằng transform — không hardcode %
+    // theo index (4 nút không chắc luôn đều nhau tuyệt đối do lệch
+    // font-rendering từng nhãn "Ngày/Tuần/Tháng/Năm" độ dài khác nhau),
+    // luôn khớp CHÍNH XÁC dù nhãn ngắn dài khác nhau ra sao.
     function syncPillPosition(withAnimation) {
       const activeBtn = switcher.querySelector('.cal-switch-btn.active');
       if (!activeBtn || !pill) return;
       if (!withAnimation) pill.classList.add('cal-switch-pill-no-anim');
-      pill.style.height = `${activeBtn.offsetHeight}px`;
-      pill.style.transform = `translateY(${activeBtn.offsetTop}px)`;
+      pill.style.width = `${activeBtn.offsetWidth}px`;
+      pill.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
       if (!withAnimation) {
+        // Buộc trình duyệt áp dụng NGAY vị trí ban đầu (không animation)
+        // trước khi cho phép animation áp dụng cho các lần đổi SAU —
+        // nếu không, lần vẽ đầu tiên (mount) sẽ bị "trượt từ 0 tới vị
+        // trí thật" trông như 1 hiệu ứng không mong muốn thay vì pill
+        // đã nằm đúng chỗ ngay từ đầu.
         // eslint-disable-next-line no-unused-expressions
         pill.offsetHeight; // ép reflow đồng bộ
         pill.classList.remove('cal-switch-pill-no-anim');
       }
     }
 
-    // Cột dọc Ngày/Tuần/Tháng/Năm giờ NỔI CỐ ĐỊNH bên trái màn hình
-    // (position: fixed qua .cal-switcher-vertical trong CSS) — không
-    // còn "dính lại khi cuộn" theo kiểu sticky-dưới-thanh-tab như bản
-    // hàng ngang cũ, nên KHÔNG cần đo --cal-switcher-top / gắn
-    // ResizeObserver theo .sticky-tabs, và KHÔNG cần class
-    // .cal-switcher-sticky nữa (position: fixed tự lo vị trí, không
-    // phụ thuộc layout cha).
+    // Cụm Ngày/Tuần/Tháng/Năm dính lại NGAY DƯỚI thanh tab chính
+    // (Home/Lịch/Thống kê/Thùng rác, đã sticky sẵn ở top:0 — xem
+    // .sticky-tabs trong layout.css) khi cuộn trang, để luôn bấm đổi
+    // chế độ xem được mà không cần cuộn ngược lên đầu. "top" của
+    // switcher phải bằng ĐÚNG chiều cao thật của .sticky-tabs — không
+    // hardcode 1 số px cố định vì chiều cao đó có thể đổi (ví dụ icon
+    // tab lịch to/nhỏ khác đi sau này), dùng ResizeObserver để luôn
+    // đo lại đúng thực tế và tự cập nhật biến CSS tương ứng.
+    const stickyTabs = document.querySelector('.sticky-tabs');
+    if (stickyTabs) {
+      const syncStickyOffset = () => {
+        container.style.setProperty('--cal-switcher-top', `${stickyTabs.offsetHeight}px`);
+      };
+      syncStickyOffset();
+      if (!container.__stickyObserver) {
+        container.__stickyObserver = new ResizeObserver(syncStickyOffset);
+        container.__stickyObserver.observe(stickyTabs);
+      }
+    }
+    switcher.classList.add('cal-switcher-sticky');
 
     // switchMode() tách riêng khỏi listener click — SWIPE_NAV (vuốt
     // ngang trên .cal-switcher, gắn ở dưới cùng file) và nút bấm đều
@@ -169,33 +186,39 @@ const YearView = (() => {
       btn.addEventListener('click', () => switchMode(btn.dataset.mode));
     });
 
-    // Vuốt DỌC TRÊN CHÍNH cột switcher (không phải trên vùng nội dung
-    // lịch bên cạnh — 2 vùng DOM tách biệt hoàn toàn, không đụng độ
-    // với việc cuộn xem tháng dài, xem .cal-switcher-vertical trong
-    // CSS: position:fixed, khoanh vùng RIÊNG bên trái màn hình): kéo
-    // XUỐNG = mode kế tiếp, kéo LÊN = mode trước đó, theo đúng thứ tự
-    // MODES (Ngày→Tuần→Tháng→Năm) — khớp cảm giác "cuộn xuống 1 danh
-    // sách dọc" tự nhiên hơn so với bản kéo ngang cũ.
+    // Vuốt ngang TRÊN CHÍNH cụm switcher — trái = mode kế tiếp, phải =
+    // mode trước đó, theo đúng thứ tự MODES (Ngày→Tuần→Tháng→Năm).
     //
-    // KHÔNG transform CHÍNH switcher trong lúc kéo bằng cách gán trực
-    // tiếp translateY lên .cal-switcher — switcher giờ position:fixed
-    // (không phải sticky nữa), animate pill bên trong đã đủ truyền đạt
-    // "đang đổi mode", không cần thêm hiệu ứng kéo-theo-tay ở bản thân
-    // khung ngoài.
-    SwipeNavVertical.bind(switcher, {
-      onLockVertical: () => {
+    // KHÔNG transform CHÍNH switcher — switcher là position:sticky
+    // (dính lại khi cuộn trang, xem .cal-switcher-sticky trong
+    // year.css); transform trên CHÍNH nó phá vỡ luôn hành vi sticky
+    // theo đúng spec CSS (transform tạo 1 containing block mới, sticky
+    // bên trong ngữ cảnh đó không còn "dính" theo viewport nữa) — đây
+    // là nguyên nhân THẬT đã khiến cụm Ngày/Tuần/Tháng/Năm từng mất
+    // dính khi cuộn (xem ARCHITECTURE.md mục 8). Bản thân việc đổi
+    // mode ĐÃ có animation mượt riêng qua pill trượt (syncPillPosition,
+    // dùng transition CSS) — không cần thêm hiệu ứng kéo-theo-tay ở
+    // switcher nữa, chỉ cần commit đúng lúc thả tay.
+    SwipeNav.bind(switcher, {
+      onLockHorizontal: () => {
+        // Chưa biết CHẮC CHẮN hướng cuối cùng lúc này (chỉ mới khoá
+        // ngang, chưa có dx) — hiện tạm nhãn theo mode KẾ TIẾP trong
+        // danh sách (đoán hướng phổ biến hơn: trái = tiến). onDrag
+        // dưới đây tự SỬA LẠI đúng hướng thật ngay khi có dx đầu tiên,
+        // nên độ trễ hiển thị sai này chỉ tồn tại đúng 1 frame, không
+        // nhận ra được bằng mắt.
         const idx = MODES.indexOf(mode);
         if (idx < MODES.length - 1) SwipeHint.show(MODE_LABEL[MODES[idx + 1]]);
       },
-      onDrag: (dy) => {
+      onDrag: (dx) => {
         const idx = MODES.indexOf(mode);
-        const nextIdx = dy > 0 ? idx + 1 : idx - 1;
+        const nextIdx = dx < 0 ? idx + 1 : idx - 1;
         if (nextIdx >= 0 && nextIdx < MODES.length) SwipeHint.show(MODE_LABEL[MODES[nextIdx]]);
-        else SwipeHint.hide(); // đã ở đầu/cuối (vd đang xem "Ngày" mà kéo lên) — không có đích, ẩn hint
+        else SwipeHint.hide(); // đã ở đầu/cuối (vd đang xem "Ngày" mà kéo phải) — không có đích, ẩn hint
       },
       onCommit: (dir) => {
         const idx = MODES.indexOf(mode);
-        const nextIdx = dir === 1 ? idx + 1 : idx - 1;
+        const nextIdx = dir === -1 ? idx + 1 : idx - 1;
         if (nextIdx >= 0 && nextIdx < MODES.length) switchMode(MODES[nextIdx]);
       },
       onSettle: () => SwipeHint.hide(),
