@@ -200,11 +200,29 @@ const YearView = (() => {
     // dùng transition CSS) — không cần thêm hiệu ứng kéo-theo-tay ở
     // switcher nữa, chỉ cần commit đúng lúc thả tay.
     SwipeNav.bind(switcher, {
+      onLockHorizontal: () => {
+        // Chưa biết CHẮC CHẮN hướng cuối cùng lúc này (chỉ mới khoá
+        // ngang, chưa có dx) — hiện tạm nhãn theo mode KẾ TIẾP trong
+        // danh sách (đoán hướng phổ biến hơn: trái = tiến). onDrag
+        // dưới đây tự SỬA LẠI đúng hướng thật ngay khi có dx đầu tiên,
+        // nên độ trễ hiển thị sai này chỉ tồn tại đúng 1 frame, không
+        // nhận ra được bằng mắt.
+        const idx = MODES.indexOf(mode);
+        if (idx < MODES.length - 1) SwipeHint.show(MODE_LABEL[MODES[idx + 1]]);
+      },
+      onDrag: (dx) => {
+        const idx = MODES.indexOf(mode);
+        const nextIdx = dx < 0 ? idx + 1 : idx - 1;
+        if (nextIdx >= 0 && nextIdx < MODES.length) SwipeHint.show(MODE_LABEL[MODES[nextIdx]]);
+        else SwipeHint.hide(); // đã ở đầu/cuối (vd đang xem "Ngày" mà kéo phải) — không có đích, ẩn hint
+      },
       onCommit: (dir) => {
         const idx = MODES.indexOf(mode);
         const nextIdx = dir === -1 ? idx + 1 : idx - 1;
         if (nextIdx >= 0 && nextIdx < MODES.length) switchMode(MODES[nextIdx]);
-      }
+      },
+      onSettle: () => SwipeHint.hide(),
+      onCancel: () => SwipeHint.hide()
     });
 
 
@@ -266,13 +284,26 @@ const YearView = (() => {
       // hướng). onCancel animate paneEl trôi VỀ lại vị trí gốc khi
       // chưa đủ ngưỡng.
       SwipeNav.bind(paneEl, {
-        onDrag: (dx) => { paneEl.style.transform = `translateX(${dx}px)`; },
+        onDrag: (dx) => {
+          paneEl.style.transform = `translateX(${dx}px)`;
+          // Đọc TRỰC TIẾP aria-label có sẵn của #cal-prev/#cal-next
+          // (mỗi mode tự đặt đúng ngữ cảnh — "Ngày trước", "Tuần sau",
+          // "Tháng trước"... xem drawDay/drawWeek/drawMonth/
+          // drawYearMode phía trên) thay vì tự bịa chuỗi mới ở đây —
+          // đảm bảo nhãn hint LUÔN khớp đúng với nút mũi tên tương ứng,
+          // không cần đồng bộ tay 2 nơi mỗi khi đổi câu chữ.
+          const btn = content.querySelector(dx < 0 ? '#cal-next' : '#cal-prev');
+          if (btn && !btn.disabled) SwipeHint.show(btn.getAttribute('aria-label'));
+          else SwipeHint.hide(); // nút đích bị disabled (vd đã ở năm xa nhất cho phép) — không có gì để đi tới
+        },
         onCommit: (dir) => { step(dir); draw(dir); },
+        onSettle: () => SwipeHint.hide(),
         onCancel: () => {
           paneEl.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
           paneEl.style.transform = '';
           const done = () => { paneEl.style.transition = ''; paneEl.removeEventListener('transitionend', done); };
           paneEl.addEventListener('transitionend', done);
+          SwipeHint.hide();
         }
       });
 

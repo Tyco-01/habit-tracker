@@ -41,6 +41,14 @@ const SwipeNav = (() => {
   //   onCommit(dir)   — gọi ĐÚNG 1 LẦN khi thả tay và |dx| đã đủ ngưỡng; dir = -1 (kéo trái, "tiến") | 1 (kéo phải, "lùi")
   //   onSettle()      — gọi NGAY SAU onCommit, để nơi gọi animate nốt quãng đường còn lại tới vị trí cuối
   //   onCancel()       — gọi khi thả tay nhưng CHƯA đủ ngưỡng — animate trôi về lại vị trí ban đầu (dx → 0)
+  //   onLockHorizontal() — gọi ĐÚNG 1 LẦN ngay khi vừa xác định chắc
+  //     chắn đây là vuốt ngang (trước cả onDrag đầu tiên) — dùng để
+  //     hiện CHỈ BÁO cho người dùng biết mình đang vuốt cái gì (vd
+  //     nhãn nổi "→ Lịch" / "→ Năm") NGAY LẬP TỨC, không đợi tới lúc
+  //     đã kéo đủ xa mới biết. Tách riêng khỏi onDrag (chạy MỖI FRAME
+  //     kéo) vì chỉ báo chỉ cần TẠO 1 LẦN lúc bắt đầu, không cần vẽ
+  //     lại liên tục — nơi gọi tự cập nhật NỘI DUNG chỉ báo (đổi
+  //     hướng/đích) dựa vào dx nhận được qua onDrag nếu cần.
   //   shouldIgnore(target) — gọi ngay lúc chạm xuống với e.target gốc;
   //     trả true để BỎ QUA HOÀN TOÀN cử chỉ này (không active, không
   //     preventDefault gì cả) — dùng khi el là 1 vùng RỘNG (vd
@@ -53,7 +61,7 @@ const SwipeNav = (() => {
   //     nhất" đúng nghĩa: tầng ngoài tự loại trừ TRƯỚC khi bắt đầu
   //     theo dõi, thay vì cả 2 tầng cùng theo dõi rồi giành nhau.
   // Trả về hàm unbind().
-  function bind(el, { onDrag, onCommit, onSettle, onCancel, shouldIgnore } = {}) {
+  function bind(el, { onDrag, onCommit, onSettle, onCancel, onLockHorizontal, shouldIgnore } = {}) {
     let active = false;
     let lockedHorizontal = false;
     let startX = 0, startY = 0, lastDx = 0;
@@ -77,6 +85,7 @@ const SwipeNav = (() => {
       if (!lockedHorizontal) {
         if (Math.abs(dx) > DIRECTION_LOCK_PX && Math.abs(dx) > Math.abs(dy)) {
           lockedHorizontal = true;
+          if (typeof onLockHorizontal === 'function') onLockHorizontal();
         } else if (Math.abs(dy) > DIRECTION_LOCK_PX) {
           // Rõ ràng đang cuộn dọc — bỏ theo dõi hẳn, trả quyền cuộn
           // lại hoàn toàn cho trình duyệt, không preventDefault gì cả.

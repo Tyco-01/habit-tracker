@@ -1,0 +1,87 @@
+/* ============================================================
+   css/tab-bar-position.css — Bảng nổi nhỏ chọn vị trí thanh tab
+   chính (trên/dưới), mở bằng nhấn giữ vào khoảng trống trên chính
+   thanh tab (js/tab-bar-position.js). Cùng tinh thần kính mờ với
+   .theme-quick-panel (css/theme-quick-picker.css) — khác biệt DUY
+   NHẤT: bảng này nhận CLICK TRỰC TIẾP lên từng lựa chọn (không phải
+   rê-thả theo dõi bằng pointermove như theme picker), nên
+   pointer-events: auto thay vì none.
+   ============================================================ */
+
+.tab-bar-position-panel {
+  position: fixed;
+  z-index: 1100; /* cùng lớp với .theme-quick-panel — bảng quick-pick nổi trên mọi thứ */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  box-shadow: 0 8px 28px rgba(var(--ink-rgb), 0.18), 0 2px 8px rgba(var(--ink-rgb), 0.08);
+  min-width: 200px;
+  opacity: 0;
+  transform: translateY(6px) scale(0.94);
+  transition: opacity 0.16s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .tab-bar-position-panel {
+    backdrop-filter: blur(18px) saturate(1.5);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  }
+}
+
+.tab-bar-position-panel.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.tab-bar-position-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.tab-bar-position-option:active {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.tab-bar-position-option i {
+  font-size: 16px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--mute);
+}
+
+/* Lựa chọn ĐANG ÁP DỤNG — đánh dấu bằng nền pill đậm giống pill của
+   .cal-switcher (year.js/syncPillPosition), nhất quán ngôn ngữ hình
+   ảnh "đây là lựa chọn hiện tại" xuyên suốt app. */
+.tab-bar-position-option.is-current {
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.tab-bar-position-option.is-current i {
+  color: var(--paper);
+}
+
+/* Phản hồi thị giác trên CHÍNH THANH TAB khi đang giữ — cùng class
+   .is-long-pressing dùng chung với js/long-press.js xuyên suốt app
+   (xem css/views/day-preview-sheet.css, css/theme-quick-picker.css).
+   Scale rất nhẹ (0.985, không mạnh như nút đơn 0.88-0.94) vì đây là
+   CẢ THANH TAB — scale mạnh trên 1 khối lớn trông giật, không tinh tế. */
+.sticky-tabs.is-long-pressing,
+.sticky-tabs-bottom.is-long-pressing {
+  transition: transform 0.15s ease;
+  transform: scale(0.985);
+}

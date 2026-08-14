@@ -30,6 +30,33 @@
   margin-bottom: 8px;
 }
 
+/* Thanh tab CỐ ĐỊNH Ở ĐÁY màn hình — lựa chọn thay thế cho
+   .sticky-tabs, đổi qua lại bằng NHẤN GIỮ vào khoảng trống trên chính
+   thanh tab (xem js/tab-bar-position.js). fixed (không phải sticky)
+   vì cần neo đúng theo VIEWPORT bất kể cuộn trang tới đâu — sticky chỉ
+   dính trong phạm vi containing block của nó khi cuộn, không phù hợp
+   cho "luôn ở đáy màn hình". safe-area-inset-bottom cộng thêm cho
+   thiết bị có home-indicator (iPhone không viền) — nếu không, thanh
+   tab bị home-indicator che mất phần dưới cùng.
+   #app's padding-bottom được tab-bar-position.js tự đo và set bằng
+   đúng chiều cao thanh tab CỘNG margin — không hardcode ở đây vì
+   chiều cao thật phụ thuộc nội dung (safe-area khác nhau theo thiết
+   bị), xem apply() trong file đó. */
+.sticky-tabs-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  padding: 10px 1.25rem calc(10px + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  max-width: 620px; /* khớp #app's width: min(100%, 620px) — thanh tab fixed không tự co theo #app (đã ra khỏi luồng layout của nó), phải tự giới hạn lại để không tràn rộng hơn nội dung trên màn hình lớn */
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .tab-btn {
   font-size: 13px;
   font-weight: 500;

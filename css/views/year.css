@@ -97,10 +97,30 @@
    hiệu ứng. */
 .cal-switch-pill {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  bottom: 4px;
-  border-radius: 10px;
+  /* inset: 0 — pill phủ ĐÚNG vùng nội dung bên trong padding của
+     .cal-switcher (padding-box), KHÔNG dùng toạ độ cố định 4px như
+     bản trước. Bản trước có top/left/bottom: 4px trong khi
+     .cal-switcher có padding: 5px — lệch 1px ở cả 4 phía, CỘNG THÊM
+     bug ở year.js: syncPillPosition() gán
+     transform: translateX(activeBtn.offsetLeft) — offsetLeft của nút
+     ĐÃ TÍNH THEO padding thật (~5px cho nút đầu), nhưng vì CSS gốc
+     của pill vẫn còn "left: 4px" làm điểm xuất phát, vị trí thực tế
+     sau transform = 4px (CSS) + 5px (JS translateX) = 9px, lệch hẳn
+     so với vị trí nút thật — đây chính là nguyên nhân "cụm Ngày/Tuần/
+     Tháng/Năm nhìn mất cân đối" (viền/khoảng cách 2 bên không đều).
+     inset: 0 loại bỏ hẳn toạ độ cố định ở CSS, để JS's translateX
+     (luôn tính từ gốc 0) là NGUỒN DUY NHẤT quyết định vị trí ngang —
+     không còn 2 giá trị cộng dồn lệch nhau. */
+  inset: 0;
+  /* border-radius = 11px, KHÔNG PHẢI tuỳ ý — công thức chuẩn cho 2
+     đường viền bo tròn LỒNG NHAU trông "đồng tâm" (nested rounded
+     corners): inner_radius = outer_radius - padding = 16 - 5 = 11.
+     Sai công thức này (vd cả 2 cùng 1 số, hoặc chênh lệch tuỳ ý) làm
+     2 đường cong không song song nhau — nhìn có cảm giác "lệch, không
+     cân" dù khoảng cách padding mọi phía đã đúng bằng nhau, đây chính
+     là điều gây khó chịu thẩm mỹ tinh vi mà mắt thường khó chỉ đích
+     danh ra nhưng vẫn cảm nhận được sự lệch lạc. */
+  border-radius: 11px;
   background: var(--ink);
   box-shadow: 0 2px 8px rgba(var(--ink-rgb), 0.22);
   transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -8,7 +8,7 @@
 // có thể bị "kẹt" lại rất lâu dù đã tải code mới lên server.
 // ============================================================
 
-const CACHE_NAME = 'habit-tracker-v49';
+const CACHE_NAME = 'habit-tracker-v51';
 
 const CORE_ASSETS = [
   './',
@@ -25,6 +25,9 @@ const CORE_ASSETS = [
   './css/views/day-detail.css',
   './css/views/day-preview-sheet.css',
   './css/views/stats.css',
+  './css/theme-quick-picker.css',
+  './css/tab-bar-position.css',
+  './css/swipe-hint.css',
   './js/config.js',
   './js/date-utils.js',
   './js/dom-utils.js',
@@ -46,6 +49,10 @@ const CORE_ASSETS = [
   './js/event-section.js',
   './js/habit-note-panel.js',
   './js/long-press.js',
+  './js/swipe-nav.js',
+  './js/swipe-hint.js',
+  './js/theme-quick-picker.js',
+  './js/tab-bar-position.js',
   './js/day-preview-sheet.js',
   './js/views/today.js',
   './js/views/mini-calendar-picker.js',

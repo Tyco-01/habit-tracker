@@ -112,6 +112,15 @@
     const navLogout = root.querySelector('#nav-logout');
     const navExport = root.querySelector('#nav-export');
     const navTheme = root.querySelector('#nav-theme');
+    const tabsEl = root.querySelector('.tabs');
+
+    // Vị trí thanh tab (trên/dưới) — áp dụng NGAY lúc mount theo lựa
+    // chọn đã lưu (mặc định "trên" nếu chưa từng đổi), và gắn nhấn giữ
+    // để đổi qua lại. Không cần callback onChange gì thêm ở đây —
+    // apply() đã tự lo mọi việc (class CSS, padding #app), UI cập
+    // nhật ngay khi người dùng chọn trong bảng.
+    TabBarPosition.apply(tabsEl);
+    TabBarPosition.bind(tabsEl);
 
     // Icon tab "Lịch" hiển thị kiểu "T2 21": thứ trong tuần + số ngày
     // nằm ngang cạnh nhau — thay cho icon lịch tĩnh cũ. "Chủ nhật" rút
@@ -244,6 +253,7 @@
     // ngang (SwipeNav, gắn dưới cùng khối này), để không viết lặp lại
     // 4 nhánh if/else y hệt nhau ở 2 nơi.
     const TAB_ORDER = ['today', 'year', 'stats', 'trash'];
+    const TAB_LABEL = { today: 'Hôm nay', year: 'Lịch', stats: 'Thống kê', trash: 'Thùng rác' };
     function goToTab(tab) {
       if (tab === 'today') { showTab('today'); TodayView.render(viewToday); }
       else if (tab === 'year') { showTab('year', { restoreScroll: false }); YearView.render(viewYear, openDay, { focusToday: true }); }
@@ -307,6 +317,12 @@
         dragState.neighborTab = wantTab;
         dragState.neighborEl = wantTab ? viewElByTab(wantTab) : null;
         if (dragState.neighborEl) dragState.neighborEl.style.display = 'block';
+        // Cập nhật CHỈ BÁO đang vuốt tới đâu — chỉ set lại khi ĐÍCH
+        // thực sự đổi (không phải mỗi frame kéo), vì wantTab chỉ đổi
+        // khi người dùng đảo hướng giữa chừng hoặc đã ở đầu/cuối danh
+        // sách tab (wantTab null → không có gì để hiện, ẩn hint đi).
+        if (wantTab) SwipeHint.show(`→ ${TAB_LABEL[wantTab]}`);
+        else SwipeHint.hide();
       }
       const currentEl = viewElByTab(currentTab);
       if (currentEl) currentEl.style.transform = `translateX(${dx}px)`;
@@ -363,14 +379,25 @@
         else if (currentTab === 'stats') StatsView.render(viewStats);
         else if (currentTab === 'trash') TrashView.render(viewTrash);
       },
-      onSettle: () => finishDrag(true),
-      onCancel: () => finishDrag(true)
+      onSettle: () => { finishDrag(true); SwipeHint.hide(); },
+      onCancel: () => { finishDrag(true); SwipeHint.hide(); }
     });
 
     function openDay(dateStr) {
       saveScrollPosition();
+      // Ẩn TOÀN BỘ 4 view chính, không chỉ viewToday/viewYear — bug
+      // thật đã tồn tại: nếu đang ở tab Thống kê hoặc Thùng rác rồi mở
+      // day-detail (vd qua link từ đâu đó gọi window.__jumpToDate),
+      // view cũ (stats/trash) không hề bị ẩn, hiển thị CHỒNG LẤN cùng
+      // lúc với viewDay mới — cả 2 nội dung hiện trên cùng 1 trang.
+      // Phát hiện qua rà soát ảnh chụp toàn bộ view, không phải lỗi cố
+      // ý tái hiện được bằng thao tác thông thường (đường vào day-
+      // detail phổ biến nhất — bấm ô ngày trong Lịch — luôn xuất phát
+      // từ tab Lịch nên không lộ bug này).
       viewToday.style.display = 'none';
       viewYear.style.display = 'none';
+      viewStats.style.display = 'none';
+      viewTrash.style.display = 'none';
       viewDay.style.display = 'block';
       window.scrollTo(0, 0);
       DayDetailView.render(viewDay, dateStr, () => {

@@ -1,0 +1,40 @@
+/* ============================================================
+   css/swipe-hint.css — Nhãn nổi báo hiệu đang vuốt gì (js/swipe-
+   hint.js). Đặt CỐ ĐỊNH giữa màn hình theo chiều ngang, cách đáy
+   viewport 1 khoảng vừa phải — đủ nổi bật để liếc thấy ngay trong lúc
+   ngón tay đang che phần dưới màn hình, nhưng không đè lên chính nội
+   dung đang kéo (nội dung ở giữa/trên, nhãn ở dưới).
+   pointer-events: none — nhãn chỉ để NHÌN, không bao giờ chặn hay
+   nhận thao tác chạm, kể cả khi đang hiện đúng lúc ngón tay di chuyển
+   qua vị trí của nó. ============================================================ */
+
+.swipe-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 90px;
+  transform: translateX(-50%) translateY(8px);
+  z-index: 1200; /* trên cả .theme-quick-panel/.tab-bar-position-panel (1100) — nhãn cần nổi trên MỌI THỨ vì xuất hiện giữa lúc đang thao tác */
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 92%, transparent);
+  color: var(--paper);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(var(--ink-rgb), 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .swipe-hint {
+    backdrop-filter: blur(12px) saturate(1.6);
+    -webkit-backdrop-filter: blur(12px) saturate(1.6);
+  }
+}
+
+.swipe-hint.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

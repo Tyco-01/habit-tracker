@@ -15,7 +15,8 @@ const CONFIG = Object.freeze({
   STORAGE_KEYS: {
     SESSION: 'habit_session',   // { token, userId }
     DATA: 'habit_data',          // { habits, checks, events }
-    SYNC_QUEUE: 'habit_sync_queue' // các thao tác chưa đồng bộ lên server
+    SYNC_QUEUE: 'habit_sync_queue', // các thao tác chưa đồng bộ lên server
+    TAB_BAR_POSITION: 'habit_tab_bar_position' // 'top' | 'bottom' — vị trí thanh tab chính, xem js/tab-bar-position.js
   },
 
   // 9 mốc tăng trưởng của icon cây (số ngày streak)
