@@ -60,29 +60,53 @@
   }
 }
 
-/* Dính lại ngay dưới thanh tab chính khi cuộn — "top" lấy từ biến CSS
-   --cal-switcher-top, được year.js đo và set tự động bằng chiều cao
-   thật của .sticky-tabs (ResizeObserver, tự cập nhật nếu thanh tab
-   đổi cao).
-   KHÔNG dùng pseudo-element ::before "nền lưng" nữa (bản trước có,
-   đã XOÁ) — nó là NGUYÊN NHÂN THẬT khiến switcher hoàn toàn vô hình
-   suốt nhiều lần chỉnh sửa CSS trước đó: ::before có z-index:-1
-   NHƯNG .cal-switcher không tự tạo stacking context độc lập rõ ràng
-   cho riêng nó (chỉ có position:relative, không kèm z-index cụ thể
-   ngoài .cal-switcher-sticky), khiến pseudo-element -1 bị đẩy xuống
-   DƯỚI CẢ background thật của chính switcher trong thực tế render,
-   che mất hoàn toàn (xác nhận bằng cách đọc PIXEL THẬT của ảnh chụp
-   Puppeteer: đặt background:red !important trực tiếp qua JS, computed
-   style xác nhận đỏ, nhưng ảnh chụp vẫn ra màu --paper — chỉ khi xoá
-   hẳn class .cal-switcher-sticky (bỏ ::before) thì màu đỏ mới thực sự
-   hiện ra). Bản thân .cal-switcher đã có background riêng đủ đục
-   (background/border ở trên) — khi dính lại lúc cuộn, nó TỰ CHE đúng
-   phần nội dung cuộn qua bên dưới nó mà không cần thêm lớp nào khác. */
-.cal-switcher-sticky {
-  position: sticky;
-  top: var(--cal-switcher-top, 0px);
-  z-index: 19; /* thấp hơn .sticky-tabs (20) 1 bậc — .sticky-tabs luôn nổi trên cùng khi cả 2 cùng dính */
+/* ---- BẢN CỘT DỌC (thay hẳn bản hàng ngang cũ, xem lịch sử ở
+   .cal-switcher-sticky bị xoá bên dưới) — 4 nút Ngày/Tuần/Tháng/Năm
+   xếp CHỒNG LÊN NHAU, nổi CỐ ĐỊNH bên trái màn hình, không cuộn theo
+   nội dung. Vuốt DỌC ngay trên cột này để đổi mode (js/swipe-nav-
+   vertical.js), tách biệt hoàn toàn khỏi cuộn nội dung lịch bên cạnh
+   (2 vùng DOM khác nhau, xem .cal-pane) — không cần "nhường" cử chỉ
+   qua lại như từng phải làm với bản kéo NGANG cũ (vốn nằm chung trục
+   với việc vuốt đổi TAB CHÍNH, xem app.js SwipeNav.bind(document.body)
+   shouldIgnore). */
+.cal-switcher-vertical {
+  flex-direction: column;
+  position: fixed;
+  /* Biến CSS được year.js tính toán động (syncSwitcherLeft) — đặt hẳn
+     ra ngoài khung nội dung bên trái nếu đủ chỗ (desktop rộng),
+     fallback về sát mép trái nội dung nếu không đủ (mobile hẹp). Xem
+     giải thích đầy đủ trong year.js — 14px là giá trị dự phòng CHỈ
+     dùng nếu JS chưa kịp chạy (flash rất ngắn lúc mới mount trước
+     requestAnimationFrame đầu tiên). */
+  left: var(--cal-switcher-left, 14px);
+  /* Neo dọc giữa vùng nội dung khả kiến, TRỪ ĐI chiều cao thanh tab
+     chính phía trên (biến --tab-bar-offset-top, xem app.js đo bằng
+     ResizeObserver) — "top: 50%" đơn thuần sẽ đặt switcher đè lên
+     thanh tab chính khi thanh đó ở vị trí "top" (mặc định). Công thức:
+     điểm giữa của phần màn hình CÒN LẠI sau khi trừ thanh tab, cộng
+     ngược lại đúng bằng khoảng thanh tab chiếm — tương đương
+     "center vùng nội dung", không phải "center toàn viewport". */
+  top: calc(var(--tab-bar-offset-top, 0px) + (100vh - var(--tab-bar-offset-top, 0px)) / 2);
+  transform: translateY(-50%);
+  z-index: 15; /* dưới .sticky-tabs (20) và .tab-bar-dragging (50) — không che nút điều hướng chính khi đang kéo nó; trên nội dung lịch thường (không có z-index riêng) */
+  width: fit-content;
+  /* touch-action:none — TRÁI VỚI pan-y của bản ngang cũ. Cột dọc nhỏ,
+     đứng CỐ ĐỊNH tại 1 chỗ, KHÔNG nằm trong luồng cuộn của trang (đã
+     position:fixed) — không có lý do gì để trình duyệt cần "cuộn dọc
+     xuyên qua" nó nữa, nhường TOÀN QUYỀN cử chỉ dọc bắt đầu từ đây cho
+     SwipeNavVertical, cùng lý do với touch-action:none của #nav-theme
+     (xem app.js) — 2 nhu cầu "kéo dọc ngay tại 1 điểm cụ thể" giống
+     hệt nhau về bản chất kỹ thuật dù mục đích khác nhau. */
+  touch-action: none;
 }
+
+/* .cal-switcher-sticky (bản CŨ, dùng cho bố cục hàng ngang dính khi
+   cuộn) ĐÃ BỎ HẲN — cột dọc mới dùng position:fixed trực tiếp trên
+   chính .cal-switcher-vertical (xem ở trên), không cần lớp "sticky"
+   trung gian nữa. Toàn bộ lịch sử debug glassmorphism/z-index ở
+   comment phía trên vẫn còn giá trị tham khảo cho .cal-switcher gốc
+   (background/border vẫn dùng chung), chỉ riêng cơ chế "dính khi cuộn"
+   là không còn áp dụng. */
 
 /* Pill nền — 1 khối DUY NHẤT trượt bằng transform (year.js:
    syncPillPosition) thay vì mỗi nút tự tô/bỏ nền riêng lẻ. z-index:0
@@ -123,7 +147,12 @@
   border-radius: 11px;
   background: var(--ink);
   box-shadow: 0 2px 8px rgba(var(--ink-rgb), 0.22);
-  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* height thay cho width bản cũ — pill giờ trượt DỌC (translateY),
+     kích thước cần đổi theo là chiều CAO nút active, không phải chiều
+     rộng (mọi nút trong cột dọc đều rộng bằng nhau — chiều rộng
+     .cal-switcher tự co theo nhãn DÀI NHẤT trong 4 nhãn, width: fit-
+     content ở switcher cha lo việc đó, pill không cần tự set width). */
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
   will-change: transform;
   z-index: 0;
 }
@@ -143,10 +172,13 @@
   padding: 8px 17px;
   border-radius: 10px;
   transition: color 0.2s ease;
-  /* Chặn double-tap-to-zoom/ứng xử chạm mặc định của trình duyệt trên
-     mobile can thiệp vào cử chỉ vuốt của SwipeNav khi vuốt bắt đầu
-     ngay trên 1 nút — không đổi gì về mặt thị giác. */
-  touch-action: pan-y;
+  text-align: center;
+  /* touch-action:none kế thừa từ .cal-switcher-vertical cha (đã set
+     none ở đó) — KHÔNG khai lại pan-y riêng như bản hàng ngang cũ. Bản
+     cũ cần pan-y ở đây vì switcher cha là position:relative/sticky
+     (nằm trong luồng cuộn dọc bình thường của trang, cần chừa đường
+     cuộn); switcher cha giờ position:fixed (đã tách khỏi luồng cuộn),
+     không còn xung đột đó nữa. */
 }
 
 .cal-switch-btn.active {

@@ -75,52 +75,130 @@
 
 .tab-btn-icon {
   padding: 6px 10px;
+  min-height: 28px;
+  min-width: 28px;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
-/* Icon tab "Lịch" — kiểu "T2 21": thứ trong tuần + số ngày nằm NGANG
-   trên cùng 1 hàng (khác bản thử trước dùng bố cục dọc kiểu app Lịch
-   iOS — bố cục dọc làm icon này cao vọt hẳn so với 3 icon còn lại
-   trong hàng, nhìn lệch; bố cục ngang giữ chiều cao gần bằng các icon
-   khác, chỉ rộng hơn theo chiều ngang). To hơn 1 chút so với 3 icon
-   còn lại (padding dọc 7px so với 6px, chữ 13/16px so với 15/16px của
-   icon thường) — CHỦ ĐÍCH nổi bật hơn vì đây là lối vào màn Lịch,
-   nhưng canh giữa CÂN XỨNG nhờ .tab-btn-icon (align-items: center) ở
-   hàng cha vẫn áp dụng chung, nên phần chênh chiều cao chia đều cả
-   trên lẫn dưới, không lệch hẳn về 1 phía. Vẫn giữ NGUYÊN diện mạo
-   (nền card cố định) bất kể đang active hay không — khác
-   .tab-btn.active vốn đổi nền/màu chữ cho các tab khác, vì đổi màu ở
-   đây sẽ làm mất độ tương phản cần thiết giữa "Thứ" (đỏ) và số ngày
-   (đen đậm). */
+/* Viên "thuốc" bo tròn bao NGOÀI cả 4 nút điều hướng chính (Hôm nay/
+   Lịch/Thống kê/Thùng rác) — thay cho 4 nút rời trước đây, đồng bộ
+   cảm giác "segmented control" quen thuộc. Nền dùng --card (đậm hơn
+   --paper 1 chút) để tách khỏi nền trang; các nút con bên trong giữ
+   nguyên trong suốt, không tự vẽ nền riêng nữa — tránh lồng 2 lớp
+   khung/bo góc chồng lên nhau nhìn rối (xem .tab-btn-calendar-icon
+   bên dưới, phải bỏ nền/border riêng của icon Lịch vì lý do này). */
+.tab-pill-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--card);
+  /* border tint --ink 14% vào --line — border thuần var(--line) gần
+     như VÔ HÌNH trên dark mode (--card:#262220 và --line:#3A342E chỉ
+     chênh rất ít RGB, human eye khó phân biệt trên nền tối, đã báo
+     lại là "không hiện vòng bo bao quanh"). Cùng pattern đã dùng cho
+     .cal-switcher (css/views/year.css) — tint thêm --ink giúp viền
+     luôn đủ tương phản với nền ở CẢ 2 theme, không chỉ riêng light
+     mode nơi --line vốn đã đủ đậm để tự nó nổi lên. */
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, var(--line) 86%);
+  border-radius: 999px;
+  padding: 4px;
+  /* Bóng đổ rất nhẹ — lớp phòng hờ THỨ 2 để tách khỏi nền, không phụ
+     thuộc HOÀN TOÀN vào viền tint ở trên (theme có thể được người
+     dùng tự chỉnh màu qua js/theme-editor-modal.js, không đảm bảo mọi
+     tổ hợp màu tự chọn đều giữ đủ tương phản chỉ nhờ viền). */
+  box-shadow: 0 1px 3px rgba(var(--ink-rgb), 0.08);
+}
+
+/* Viên thuốc thứ 2 — cụm tiện ích (đổi giao diện/làm tươi/xuất dữ
+   liệu/đăng xuất). Các nút bên trong TRƯỚC ĐÂY tự set border/background/
+   color/padding riêng lẻ bằng inline style (xem app.js) — giờ dồn hết
+   về đây thành 1 rule chung .tab-pill-group-utility button, xoá style
+   trùng lặp ở app.js, dễ chỉnh đồng loạt hơn. */
+.tab-pill-group-utility {
+  gap: 0;
+}
+
+.tab-pill-group-utility button {
+  border: none;
+  background: transparent;
+  color: var(--mute);
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+}
+
+/* Icon tab "Lịch" — kiểu "T2 21": thứ trong tuần rút gọn + số ngày
+   nằm NGANG trên cùng 1 hàng (bố cục dọc kiểu app Lịch iOS từng thử
+   trước làm icon này cao vọt hẳn so với 3 icon còn lại, nhìn lệch;
+   bố cục ngang giữ chiều cao gần bằng các icon khác, chỉ rộng hơn 1
+   chút theo chiều ngang).
+   KHÔNG còn tự vẽ nền/border riêng (đã bỏ khi gộp vào .tab-pill-group
+   ở trên — 2 lớp khung chồng nhau nhìn rối) — chỉ còn 1 nền TRÒN NHỎ
+   xuất hiện khi active, tương tự 3 nút còn lại, dùng --paper (sáng,
+   tương phản với --card của pill group) THAY VÌ --ink đặc như
+   .tab-btn.active — giữ nguyên lựa chọn --paper vì đổi hẳn sang nền
+   --ink đặc (tối) sẽ khiến chữ "T6 14" (giờ cùng màu --mute/--ink,
+   không còn 2 tông tách biệt) khó đọc hơn trên nền quá tối so với
+   trên --paper sáng. */
 .tab-btn-calendar-icon {
-  padding: 7px 12px;
-  border-radius: 20px;
-  background: var(--card) !important;
-  border: 1px solid var(--line);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: transparent;
   flex-direction: row;
   align-items: baseline;
-  gap: 6px;
+  gap: 5px;
+  transition: background 0.15s ease;
 }
 
 .tab-btn-calendar-icon.active {
-  background: var(--card) !important;
+  background: var(--paper);
+  box-shadow: 0 1px 3px rgba(var(--ink-rgb), 0.08);
+}
+
+/* Khi active, CẢ HAI phần tử con (thứ + số ngày) cùng đổi sang
+   var(--ink) đồng bộ — trước đây giữ nguyên 2 màu tách biệt
+   (--danger/--ink) bất kể active hay không, giờ không còn lý do giữ
+   tách biệt nữa vì cả 2 đã cùng 1 màu var(--mute) ở trạng thái
+   thường (xem .cal-icon-weekday/.cal-icon-daynum ở trên) — active chỉ
+   cần làm đậm lên đồng loạt, giống cách 3 icon còn lại đổi màu khi
+   active (.tab-btn.active). */
+.tab-btn-calendar-icon.active .cal-icon-weekday,
+.tab-btn-calendar-icon.active .cal-icon-daynum {
+  color: var(--ink);
 }
 
 .cal-icon-weekday {
+  font-family: 'Manrope', -apple-system, sans-serif;
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
-  color: var(--danger);
-  text-transform: uppercase;
+  /* Trước dùng var(--danger) (đỏ/cam) để tách "T6" khỏi "14" — theo
+     phản hồi thực tế, việc tô màu khác biệt khiến ô này "lạc quẻ" so
+     với 3 icon còn lại trong cùng viên thuốc (đều 1 tông màu trung
+     tính, không có gì tô màu riêng). Bỏ hẳn màu cam/đỏ, dùng chung
+     var(--mute) như trạng thái KHÔNG active của mọi icon khác — khi
+     active, .tab-btn-calendar-icon.active bên dưới đổi CẢ HAI phần tử
+     con sang var(--ink) đồng bộ, không còn tách biệt 2 màu như trước
+     nữa (xem lại thay đổi ở .active bên dưới). */
+  color: var(--mute);
   letter-spacing: 0.01em;
 }
 
 .cal-icon-daynum {
-  font-size: 16px;
+  font-family: 'Manrope', -apple-system, sans-serif;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
-  color: var(--ink);
+  /* Cùng font-size/font-weight với .cal-icon-weekday ở trên (trước
+     đây 15px/800 so với 12px/700 của weekday — 2 cỡ chữ lệch nhau
+     trên cùng 1 hàng ngang là nguyên nhân THẬT của cảm giác "không
+     cân bằng, thuận mắt" đã báo lại, không chỉ do màu sắc). Cùng màu
+     var(--mute) như weekday — không còn tách 2 tông đậm/nhạt khác
+     nhau giữa 2 phần tử liền kề. */
+  color: var(--mute);
   font-variant-numeric: tabular-nums; /* các chữ số cùng độ rộng cố định — icon không co giãn nhẹ giữa các ngày có glyph số khác nhau (ví dụ "01" so với "08") */
 }
 

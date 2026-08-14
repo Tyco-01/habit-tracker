@@ -50,6 +50,7 @@ const CORE_ASSETS = [
   './js/habit-note-panel.js',
   './js/long-press.js',
   './js/swipe-nav.js',
+  './js/swipe-nav-vertical.js',
   './js/swipe-hint.js',
   './js/theme-quick-picker.js',
   './js/tab-bar-position.js',
