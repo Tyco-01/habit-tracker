@@ -43,8 +43,8 @@
 
   async function bootAfterLogin() {
     root.innerHTML = `
-      <div class="tabs sticky-tabs" style="justify-content:space-between;">
-        <div style="display:flex;gap:6px;align-items:center;">
+      <div class="tabs sticky-tabs" id="tab-bar-outer" style="justify-content:space-between;">
+        <div class="tab-pill-group" id="tab-pill-group">
           <button class="tab-btn tab-btn-icon active" id="nav-today" aria-label="Hôm nay" title="Hôm nay">
             <i class="ti ti-home" style="font-size:16px;" aria-hidden="true"></i>
           </button>
@@ -59,7 +59,7 @@
             <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
           </button>
         </div>
-        <div style="display:flex;align-items:center;gap:4px;">
+        <div class="tab-pill-group tab-pill-group-utility" id="tab-pill-group-utility">
           <!-- touch-action:none trên #nav-theme — thao tác "giữ rồi rê
                ngón tay xuống chọn 1 trong 3 mode" (js/theme-quick-
                picker.js) là 1 cử chỉ DỌC ngay trên nút này. #app/body
@@ -76,17 +76,20 @@
                được gọi). touch-action:none GHI ĐÈ pan-y kế thừa CHỈ
                TRÊN NÚT NÀY — báo trình duyệt nhường TOÀN QUYỀN xử lý
                mọi cử chỉ (cả dọc lẫn ngang) bắt đầu từ đây cho JS,
-               không tự ý can thiệp. -->
-          <button id="nav-theme" aria-label="Đổi giao diện" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;touch-action:none;">
+               không tự ý can thiệp. Vì lý do NÀY, TabBarDrag (kéo cả
+               thanh lên/xuống, xem js/tab-bar-position.js) PHẢI loại
+               trừ vùng #nav-theme khỏi vùng bắt cử chỉ kéo — 2 nhu cầu
+               "kéo dọc" khác nhau không thể cùng lắng nghe 1 chỗ. -->
+          <button id="nav-theme" aria-label="Đổi giao diện" style="touch-action:none;">
             <i class="ti" style="font-size:16px;" aria-hidden="true"></i>
           </button>
-          <button id="nav-refresh" aria-label="Làm tươi" title="Tải lại app — dùng khi giao diện bị lỗi hoặc hiển thị sai" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
+          <button id="nav-refresh" aria-label="Làm tươi" title="Tải lại app — dùng khi giao diện bị lỗi hoặc hiển thị sai">
             <i class="ti ti-refresh" style="font-size:16px;" aria-hidden="true"></i>
           </button>
-          <button id="nav-export" aria-label="Xuất dữ liệu backup" title="Tải file backup dữ liệu" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
+          <button id="nav-export" aria-label="Xuất dữ liệu backup" title="Tải file backup dữ liệu">
             <i class="ti ti-download" style="font-size:16px;" aria-hidden="true"></i>
           </button>
-          <button id="nav-logout" aria-label="Đăng xuất" style="border:none;background:transparent;color:var(--mute);padding:6px 8px;display:flex;align-items:center;">
+          <button id="nav-logout" aria-label="Đăng xuất">
             <i class="ti ti-logout" style="font-size:16px;" aria-hidden="true"></i>
           </button>
         </div>
@@ -122,19 +125,38 @@
     TabBarPosition.apply(tabsEl);
     TabBarPosition.bind(tabsEl);
 
-    // Icon tab "Lịch" hiển thị kiểu "T2 21": thứ trong tuần + số ngày
-    // nằm ngang cạnh nhau — thay cho icon lịch tĩnh cũ. "Chủ nhật" rút
-    // gọn riêng thành "CN" (khác DateUtils.DAYS_VN vốn dùng "Chủ nhật"
-    // đầy đủ cho những chỗ khác cần văn phong trang trọng hơn); các
-    // ngày còn lại giữ nguyên "Thứ 2".."Thứ 7" đã có sẵn dạng số,
-    // không cần đổi. Chỉ tính 1 lần lúc mount — đủ dùng vì hiếm khi 1
-    // phiên làm việc kéo dài qua nửa đêm để lệch ngày.
+    // --tab-bar-offset-top: biến CSS toàn cục báo "vùng nội dung khả
+    // kiến bắt đầu từ đâu theo trục dọc", dùng bởi .cal-switcher-
+    // vertical (css/views/year.css) để tự canh giữa ĐÚNG vùng còn lại
+    // sau khi trừ thanh tab chính — chỉ khác 0 khi thanh tab đang ở vị
+    // trí "top" (che 1 phần đỉnh màn hình); khi ở "bottom", đỉnh màn
+    // hình hoàn toàn trống, offset = 0. Cập nhật lại mỗi khi: (1)
+    // chiều cao thanh tab đổi (ResizeObserver, cùng cơ chế với
+    // TabBarPosition.apply() ở phần padding-bottom #app), (2) người
+    // dùng vừa kéo đổi vị trí top/bottom (lắng nghe qua thuộc tính
+    // class bằng MutationObserver, vì TabBarPosition không có callback
+    // onChange riêng gắn được ở đây — xem tab-bar-position.js:bind()
+    // tham số onChange optional, để trống ở lệnh gọi phía trên).
+    function syncTabBarOffsetTop() {
+      const isTop = tabsEl.classList.contains('sticky-tabs');
+      const offset = isTop ? tabsEl.offsetHeight : 0;
+      document.documentElement.style.setProperty('--tab-bar-offset-top', `${offset}px`);
+    }
+    syncTabBarOffsetTop();
+    new ResizeObserver(syncTabBarOffsetTop).observe(tabsEl);
+    new MutationObserver(syncTabBarOffsetTop).observe(tabsEl, { attributes: true, attributeFilter: ['class'] });
+
+    // Icon tab "Lịch" hiển thị kiểu "T2 21": thứ trong tuần rút gọn tối
+    // đa (DateUtils.DAYS_VN_MICRO — "T2".."T7"/"CN") + số ngày nằm
+    // ngang cạnh nhau, thay cho icon lịch tĩnh cũ. Chỉ tính 1 lần lúc
+    // mount — đủ dùng vì hiếm khi 1 phiên làm việc kéo dài qua nửa đêm
+    // để lệch ngày.
     function syncCalendarIcon() {
       const now = new Date();
       const weekdayEl = root.querySelector('#nav-cal-weekday');
       const daynumEl = root.querySelector('#nav-cal-daynum');
       if (!weekdayEl || !daynumEl) return;
-      weekdayEl.textContent = now.getDay() === 0 ? 'CN' : DateUtils.DAYS_VN[now.getDay()];
+      weekdayEl.textContent = DateUtils.DAYS_VN_MICRO[now.getDay()];
       daynumEl.textContent = String(now.getDate()).padStart(2, '0'); // luôn 2 chữ số ("08" thay vì "8") để độ rộng icon ổn định mọi ngày trong tháng, không co giãn theo 1 hay 2 chữ số
     }
     syncCalendarIcon();

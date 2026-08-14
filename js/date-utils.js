@@ -16,6 +16,12 @@ const DateUtils = (() => {
 
   const DAYS_VN = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
+  // Dạng SIÊU rút gọn — chỉ chữ "T" + số, hoặc "CN" cho chủ nhật. Dùng
+  // riêng cho icon tab "Lịch" trên thanh nav (rất hẹp chỗ), KHÁC
+  // DAYS_VN (đầy đủ "Thứ 2"..) vốn dùng cho tiêu đề trang trọng hơn —
+  // xem formatFullLabel().
+  const DAYS_VN_MICRO = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
   // Tên tháng đầy đủ — dùng cho tiêu đề dạng "Thứ 5, 30 tháng 7"
   const MONTH_NAMES_FULL = [
     'tháng 1', 'tháng 2', 'tháng 3', 'tháng 4', 'tháng 5', 'tháng 6',
@@ -84,7 +90,7 @@ const DateUtils = (() => {
   }
 
   return {
-    DAYS_VN, MONTH_NAMES_FULL, MONTHS_SHORT_BAR, MONTHS_SHORT_GRID,
+    DAYS_VN, DAYS_VN_MICRO, MONTH_NAMES_FULL, MONTHS_SHORT_BAR, MONTHS_SHORT_GRID,
     dateKey, dateKeyFromParts, parseDateStr,
     formatFullLabel, formatDayMonthLabel, isToday, addDays
   };
