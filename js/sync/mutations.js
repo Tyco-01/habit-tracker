@@ -238,6 +238,7 @@ const SyncMutations = (() => {
     applyAddHabit(habit);
     LocalStore.enqueue('add_habit', { localId: habit.id, name, validFrom });
     SyncQueue.kickSync();
+    if (typeof AppBadge !== 'undefined') AppBadge.refresh();
     return habit;
   }
 
@@ -251,6 +252,7 @@ const SyncMutations = (() => {
     applyArchiveHabit(habitId, resolvedValidTo);
     LocalStore.enqueue('archive_habit', { habitId, validTo: resolvedValidTo });
     SyncQueue.kickSync();
+    if (typeof AppBadge !== 'undefined') AppBadge.refresh();
   }
 
   function restoreHabit(habitId) {
@@ -260,6 +262,7 @@ const SyncMutations = (() => {
     applyRestoreHabit(habitId);
     LocalStore.enqueue('restore_habit', { habitId });
     SyncQueue.kickSync();
+    if (typeof AppBadge !== 'undefined') AppBadge.refresh();
     return true;
   }
 
@@ -274,6 +277,11 @@ const SyncMutations = (() => {
     if (!applySetCheck(habitId, dateStr, checked)) return false;
     LocalStore.enqueue('set_check', { habitId, date: dateStr, checked });
     SyncQueue.kickSync();
+    // Badge số trên icon Home Screen — chỉ ảnh hưởng khi tick/bỏ tick
+    // đúng NGÀY HÔM NAY, tick ngày quá khứ/tương lai không đổi badge.
+    if (typeof AppBadge !== 'undefined' && dateStr === DateUtils.dateKey(new Date())) {
+      AppBadge.refresh();
+    }
     return true;
   }
 

@@ -102,6 +102,7 @@
   <script src="js/views/trash.js"></script>
   <script src="js/export-data.js"></script>
   <script src="js/data-repair.js"></script>
+  <script src="js/badge.js"></script>
   <script src="js/app.js"></script>
 
   <script>
@@ -110,6 +111,15 @@
         navigator.serviceWorker.register('service-worker.js').catch(err => {
           console.warn('Không đăng ký được service worker:', err);
         });
+      });
+    }
+
+    // Badge số trên icon Home Screen — cập nhật mỗi khi app mở hoặc
+    // quay lại foreground (KHÔNG real-time khi app đóng, xem js/badge.js).
+    if (AppBadge.isSupported()) {
+      window.addEventListener('load', () => AppBadge.refresh());
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') AppBadge.refresh();
       });
     }
   </script>
