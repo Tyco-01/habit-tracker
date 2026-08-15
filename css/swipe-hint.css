@@ -6,14 +6,15 @@
    dung đang kéo (nội dung ở giữa/trên, nhãn ở dưới).
    pointer-events: none — nhãn chỉ để NHÌN, không bao giờ chặn hay
    nhận thao tác chạm, kể cả khi đang hiện đúng lúc ngón tay di chuyển
-   qua vị trí của nó. ============================================================ */
+   qua vị trí của nó.
+   ============================================================ */
 
 .swipe-hint {
   position: fixed;
   left: 50%;
   bottom: 90px;
   transform: translateX(-50%) translateY(8px);
-  z-index: 1200; /* trên cả .theme-quick-panel/.tab-bar-position-panel (1100) — nhãn cần nổi trên MỌI THỨ vì xuất hiện giữa lúc đang thao tác */
+  z-index: 1200; /* trên cả .theme-quick-panel (1100) — nhãn cần nổi trên MỌI THỨ vì xuất hiện giữa lúc đang thao tác */
   padding: 10px 18px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--ink) 92%, transparent);

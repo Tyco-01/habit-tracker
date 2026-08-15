@@ -1,6 +1,6 @@
 /* ============================================================
    css/theme-quick-picker.css — Bảng nổi nhỏ chọn nhanh giao diện,
-   mở bằng nhấn giữ nút #nav-theme (js/theme-quick-picker.js).
+   mở bằng nhấn giữ nút Home (#nav-today, js/theme-quick-picker.js).
    Cùng tinh thần kính mờ với .cal-switcher (css/views/year.css) —
    dùng ở đây thêm hợp lý vì bảng này NỔI TỰ DO (position: fixed) trên
    NỘI DUNG BẤT KỲ phía sau nó, không riêng gì nền trang đơn giản như
@@ -11,14 +11,19 @@
   position: fixed;
   z-index: 1100; /* trên cả .confirm-modal-overlay (1000) — bảng quick-pick cần nổi trên MỌI THỨ vì có thể mở bất cứ lúc nào, kể cả khi 1 modal khác đang mở phía sau */
   display: flex;
-  flex-direction: column;
+  /* HÀNG NGANG thay vì cột dọc (trước đây flex-direction: column) —
+     theo yêu cầu "sắp thành hàng ngang 3 thứ thay vì dọc" khi gộp
+     chức năng theme vào nút Home. Bỏ luôn nhãn chữ đi kèm mỗi icon
+     (xem js/theme-quick-picker.js renderPanelContent — không còn
+     <span>LABEL</span>) nên hàng ngang gọn, không cần min-width rộng
+     như bản có chữ trước đây. */
+  flex-direction: row;
   gap: 2px;
   padding: 6px;
   border-radius: 16px;
   background: color-mix(in srgb, var(--card) 78%, transparent);
   border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
   box-shadow: 0 8px 28px rgba(var(--ink-rgb), 0.18), 0 2px 8px rgba(var(--ink-rgb), 0.08);
-  min-width: 168px;
   opacity: 0;
   transform: translateY(6px) scale(0.94);
   transform-origin: bottom center;
@@ -41,25 +46,21 @@
 .theme-quick-option {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  justify-content: center;
+  /* Kích thước cố định vuông vắn — CHỈ ICON, không còn text kéo giãn
+     chiều rộng theo nội dung như bản có <span>LABEL</span> trước đây.
+     44px đủ rộng cho ngón tay chạm chính xác trên di động (chuẩn hit-
+     target tối thiểu ~44px của iOS HIG), cũng thoải mái với chuột. */
+  width: 44px;
+  height: 44px;
   border-radius: 11px;
-  font-size: 13.5px;
-  font-weight: 500;
   color: var(--ink);
   transition: background 0.12s ease, transform 0.12s ease;
 }
 
 .theme-quick-option i {
-  font-size: 15px;
-  width: 18px;
-  text-align: center;
-  flex-shrink: 0;
+  font-size: 18px; /* to hơn bản cũ (15px) — icon giờ là NỘI DUNG DUY NHẤT của mỗi ô (không có chữ đi kèm để "gánh" thêm ý nghĩa), cần đủ lớn để tự đứng vững, dễ nhận diện ngay cả khi không có nhãn chữ giải thích */
   color: var(--mute);
-}
-
-.theme-quick-option.is-current {
-  font-weight: 600;
 }
 
 .theme-quick-option.is-current i {
@@ -71,21 +72,19 @@
    cái này". scale nhẹ thêm phản hồi vật lý, không chỉ đổi màu suông. */
 .theme-quick-option.is-hover {
   background: var(--ink);
-  color: var(--paper);
-  transform: scale(1.03);
+  transform: scale(1.08);
 }
 
 .theme-quick-option.is-hover i {
   color: var(--paper);
 }
 
-/* Phản hồi thị giác trên CHÍNH NÚT #nav-theme khi đang giữ (trước cả
-   lúc bảng kịp hiện, ngay khi ngón tay vừa chạm xuống) — cùng class
+/* Phản hồi thị giác trên CHÍNH NÚT Home khi đang giữ (trước cả lúc
+   bảng kịp hiện, ngay khi ngón tay vừa chạm xuống) — cùng class
    .is-long-pressing dùng chung với js/long-press.js (xem CSS gốc ở
    css/views/day-preview-sheet.css) để nhất quán cảm giác "đang được
    giữ" trên toàn app, không định nghĩa lại hiệu ứng riêng ở đây. */
-#nav-theme.is-long-pressing {
-  transition: transform 0.15s ease, color 0.15s ease;
-  transform: scale(0.88);
-  color: var(--ink) !important;
+#nav-today.is-long-pressing {
+  transition: transform 0.15s ease;
+  transform: scale(0.92); /* nhẹ hơn bản cũ (0.88) — nút Home giờ TO HƠN 3 nút thường (xem .tab-btn-home), scale mạnh trên 1 nút to nhìn giật hơn scale tương tự trên nút nhỏ */
 }

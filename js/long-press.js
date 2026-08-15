@@ -50,10 +50,10 @@ const LongPress = (() => {
   // onLongPress(el): gọi khi giữ đủ lâu, nhận lại chính el để nơi gọi
   // đọc dataset dễ dàng (vd cell.dataset.date). options.shouldIgnore
   // (tuỳ chọn): gọi ngay lúc chạm xuống với target gốc — trả true để
-  // bỏ qua hoàn toàn cử chỉ này, dùng khi el là 1 vùng RỘNG chứa 1
-  // vùng CON đã có long-press RIÊNG của chính nó (vd .sticky-tabs bao
-  // ngoài #nav-theme, xem js/tab-bar-position.js) — tránh 2 long-press
-  // cùng kích hoạt cho cùng 1 điểm chạm. Trả về hàm huỷ (unbind).
+  // bỏ qua hoàn toàn cử chỉ này, dùng khi el là 1 vùng RỘNG chứa 1 hay
+  // nhiều vùng CON cần cư xử khác đi (vd 1 vùng con đã có cử chỉ giữ
+  // RIÊNG của chính nó) — tránh 2 cơ chế giữ cùng kích hoạt cho cùng 1
+  // điểm chạm. Trả về hàm huỷ (unbind).
   function bind(el, onLongPress, { shouldIgnore } = {}) {
     let timer = null;
     let startX = 0;

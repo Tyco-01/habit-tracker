@@ -1,6 +1,8 @@
 // ============================================================
 // js/theme-editor-modal.js — UI cho ThemeToggle (js/theme-toggle.js):
-// mở từ nút #nav-theme trong app.js. 2 màn trong cùng 1 overlay:
+// mở bằng NHẤP ĐÚP vào nút Home (#nav-today, xem app.js) — nút Home
+// gộp 3 hành vi theo loại thao tác, xem app.js để biết cả 3. 2 màn
+// trong cùng 1 overlay:
 //   Picker  — liệt kê 3 chế độ có sẵn (Theo hệ thống/Sáng/Tối) +
 //     "bộ sưu tập" theme tuỳ chỉnh đã lưu (chạm để áp dụng, có nút
 //     sửa/xoá riêng từng cái).

@@ -86,10 +86,10 @@ const TabBarPosition = (() => {
   // bind(tabsEl, onChange) — gắn cử chỉ "giữ rồi kéo dọc" lên chính
   // thanh tab, hoạt động với CẢ chạm lẫn chuột. shouldIgnore loại trừ
   // khi cử chỉ bắt đầu TRÊN 1 NÚT CỤ THỂ bên trong thanh (mọi <button>
-  // con) — giữ lâu vào 1 nút lẽ ra để làm việc của riêng nút đó (hiện
-  // #nav-theme có cử chỉ dọc RIÊNG của chính nó, xem theme-quick-
-  // picker.js). Chỉ khoảng TRỐNG giữa/xung quanh các nút mới kích hoạt
-  // kéo cả thanh.
+  // con) — giữ lâu vào 1 nút lẽ ra để làm việc của riêng nút đó (nút
+  // Home có cử chỉ dọc RIÊNG của chính nó, xem theme-quick-picker.js).
+  // Chỉ khoảng TRỐNG giữa/xung quanh các nút mới kích hoạt kéo cả
+  // thanh.
   function bind(tabsEl, onChange) {
     let timer = null;
     let dragging = false;
@@ -285,19 +285,29 @@ const TabBarPosition = (() => {
     tabsEl.addEventListener('touchcancel', onTouchCancel, { passive: true });
     tabsEl.addEventListener('mousedown', onMouseDown);
 
-    // ---- 3 lối tắt DỰ PHÒNG cho desktop, không cần giữ+kéo — hữu ích
+    // ---- 2 lối tắt DỰ PHÒNG cho desktop, không cần giữ+kéo — hữu ích
     // khi bàn tay đang bận chuột/bàn phím hoặc thao tác kéo bất tiện
-    // (yêu cầu thêm sau khi báo "kéo-giữ khó dùng trên web"): ----
+    // (yêu cầu thêm sau khi báo "kéo-giữ khó dùng trên web"). Bản đầu
+    // có thêm CHUỘT PHẢI → menu nhỏ, nhưng nhiều trình duyệt (đặc biệt
+    // Brave, đã báo lại kèm ảnh chụp) tự VẼ ĐÈ menu ngữ cảnh GỐC của
+    // hệ điều hành LÊN TRÊN bất kể preventDefault() có gọi hay không
+    // trong một số cấu hình — khiến menu tự tạo tuy vẫn tồn tại trong
+    // DOM (không lỗi JS) nhưng bị che khuất hoàn toàn, không đọc được.
+    // Bỏ hẳn nhánh chuột phải, thay bằng NHẤP ĐÚP — đơn giản hơn, không
+    // phụ thuộc hành vi context-menu khác nhau giữa các trình duyệt. ----
 
-    // (1) CHUỘT PHẢI trên khoảng trống thanh tab → menu nhỏ 2 lựa chọn.
-    // preventDefault() chặn context menu gốc của trình duyệt (vốn đã
-    // bị chặn ở dưới cho MỌI right-click trên thanh, xem addEventListener
-    // 'contextmenu' cuối file) — ở đây xử lý RIÊNG khi target không
-    // phải 1 nút con, để show quick-menu thay vì chỉ im lặng chặn.
-    function onContextMenu(e) {
-      if (shouldIgnore(e.target)) return; // right-click ngay trên 1 nút — không hiện quick-menu, giữ hành vi mặc định đã bị chặn ở listener chung bên dưới (không mở menu gì cả, đúng như trước)
-      e.preventDefault();
-      showQuickMenu(e.clientX, e.clientY);
+    // (1) NHẤP ĐÚP (double-click) trên khoảng trống thanh tab → đổi vị
+    // trí NGAY LẬP TỨC, đảo ngược so với hiện tại (đang "top" → chuyển
+    // "bottom" và ngược lại) — không cần chọn hướng, double-click vốn
+    // đã là 1 thao tác "quả quyết", đảo ngược trực tiếp phù hợp hơn là
+    // bắt chọn thêm 1 lần nữa qua menu.
+    function onDblClick(e) {
+      if (shouldIgnore(e.target)) return;
+      const target = get() === 'top' ? 'bottom' : 'top';
+      set(target);
+      apply(tabsEl);
+      if (navigator.vibrate) { try { navigator.vibrate(10); } catch (err) {} }
+      if (typeof onChange === 'function') onChange(target);
     }
 
     // (2) LĂN CHUỘT trên khoảng trống thanh tab → đổi ngay lập tức,
@@ -328,7 +338,7 @@ const TabBarPosition = (() => {
     // Tab để focus tới, hoặc click/chạm vào khoảng trống — xem
     // tabindex="0" gắn trên #tab-bar-outer trong app.js). Mũi tên
     // XUỐNG → "bottom", LÊN → "top" — cùng chiều trực giác với cử chỉ
-    // kéo tay/lăn chuột ở trên, nhất quán toàn bộ 4 cách.
+    // kéo tay/lăn chuột ở trên, nhất quán toàn bộ các cách.
     function onKeyDown(e) {
       if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
       // Đang gõ trong 1 ô nhập liệu nào đó vô tình nằm trong thanh tab
@@ -344,67 +354,9 @@ const TabBarPosition = (() => {
       }
     }
 
-    tabsEl.addEventListener('contextmenu', onContextMenu);
+    tabsEl.addEventListener('dblclick', onDblClick);
     tabsEl.addEventListener('wheel', onWheel, { passive: false });
     tabsEl.addEventListener('keydown', onKeyDown);
-  }
-
-  // ---- Menu nhỏ hiện khi chuột phải vào thanh tab — 2 lựa chọn Lên
-  // trên/Xuống dưới. Tự đóng khi bấm ra ngoài hoặc chọn xong. Tái sử
-  // dụng 1 phần tử DOM duy nhất (tạo lúc cần, xoá lúc đóng) thay vì
-  // giữ sẵn ẩn/hiện — quick-menu hiếm khi mở, không cần tối ưu tái
-  // dùng DOM cho trường hợp hiếm gặp này. ----
-  function showQuickMenu(x, y) {
-    const existing = document.querySelector('.tab-bar-quick-menu');
-    if (existing) existing.remove();
-
-    const menu = document.createElement('div');
-    menu.className = 'tab-bar-quick-menu';
-    menu.innerHTML = `
-      <button data-pos="top"><i class="ti ti-arrow-bar-to-up" aria-hidden="true"></i> Chuyển lên trên</button>
-      <button data-pos="bottom"><i class="ti ti-arrow-bar-to-down" aria-hidden="true"></i> Chuyển xuống dưới</button>
-    `;
-    document.body.appendChild(menu);
-
-    // Canh vị trí SAU KHI đã có kích thước thật (offsetWidth/Height),
-    // kẹp trong viewport để menu không tràn ra ngoài mép phải/dưới khi
-    // right-click gần biên màn hình.
-    const menuW = menu.offsetWidth;
-    const menuH = menu.offsetHeight;
-    const left = Math.min(x, window.innerWidth - menuW - 8);
-    const top = Math.min(y, window.innerHeight - menuH - 8);
-    menu.style.left = `${Math.max(8, left)}px`;
-    menu.style.top = `${Math.max(8, top)}px`;
-
-    function close() {
-      menu.remove();
-      document.removeEventListener('mousedown', onOutside, true);
-      document.removeEventListener('keydown', onEsc);
-    }
-    function onOutside(e) {
-      if (!menu.contains(e.target)) close();
-    }
-    function onEsc(e) {
-      if (e.key === 'Escape') close();
-    }
-    menu.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const pos = btn.dataset.pos;
-        const tabsEl = document.querySelector('#tab-bar-outer');
-        if (tabsEl && pos !== get()) {
-          set(pos);
-          apply(tabsEl);
-        }
-        close();
-      });
-    });
-    // setTimeout 0 — tránh chính sự kiện mousedown/contextmenu VỪA MỞ
-    // menu này bị listener onOutside bắt luôn trong cùng 1 lượt bubble,
-    // đóng ngay lập tức lúc vừa mở.
-    setTimeout(() => {
-      document.addEventListener('mousedown', onOutside, true);
-      document.addEventListener('keydown', onEsc);
-    }, 0);
   }
 
   return { get, set, apply, bind };

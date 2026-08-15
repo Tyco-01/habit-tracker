@@ -82,6 +82,55 @@
   justify-content: center;
 }
 
+/* Viên thuốc DUY NHẤT bao TRỌN 7 nút: 3 icon trái (Lịch/Thống kê/
+   Thùng rác) — Home to ở giữa — 3 icon phải (Làm tươi/Xuất dữ liệu/
+   Đăng xuất). Không có nút đổi giao diện riêng — chức năng đó gộp vào
+   nút Home qua 3 loại thao tác khác nhau (nhấn/giữ/đúp, xem app.js).
+   justify-content: space-between — với ĐÚNG 7 phần tử con cùng hàng,
+   khoảng cách đều nhau giữa các phần tử liền kề tự nhiên đẩy phần tử
+   THỨ 4 (Home, ở giữa danh sách 7) về đúng tâm hình học của cả hàng,
+   miễn 2 nhóm 3-icon hai bên có tổng độ rộng gần bằng nhau (ở đây các
+   icon cùng cỡ, luôn đúng). */
+.tab-pill-group-main {
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Nút Home — trung tâm của thanh, TO HƠN 6 nút còn lại (kích thước +
+   màu nền LUÔN nổi bật, không biến mất hoàn toàn khi không active như
+   .tab-btn thường — Home giờ có ý nghĩa "nút chính" thường trực, vì nó
+   còn gánh thêm 2 chức năng theme qua giữ/đúp, không chỉ khi đang ở
+   đúng tab Hôm nay). Không dùng chung .tab-btn.active nữa — .active
+   vẫn được toggle bởi JS khi đang ở tab Hôm nay (để biết TRẠNG THÁI,
+   xem app.js) nhưng riêng bề ngoài Home LUÔN giữ 1 kiểu dáng nổi bật
+   cố định bất kể active hay không, chỉ đổi độ đậm nhạt nhẹ giữa
+   active/inactive (xem rule bên dưới), không đổi hẳn kích thước như 3
+   nút thường. */
+.tab-btn-home {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  min-height: 46px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  flex-shrink: 0; /* không co lại nhường chỗ cho 6 icon còn lại khi thanh hẹp — Home LUÔN giữ đúng kích thước, các icon khác co giãn/tràn trước */
+}
+
+.tab-btn-home i {
+  font-size: 19px; /* to hơn 3 icon thường (16px) — tương xứng với kích thước nút lớn hơn */
+}
+
+/* Khi KHÔNG active (đang ở tab khác, không phải Hôm nay) — nhạt màu
+   nền đi 1 chút, vẫn giữ hình khối tròn nổi bật (khác 3 nút thường vốn
+   trong suốt hoàn toàn lúc không active) — Home luôn "có mặt" rõ ràng
+   vì còn vai trò cổng vào theme, không được phép "biến mất" như tab
+   thường khi không active. */
+.tab-btn-home:not(.active) {
+  background: color-mix(in srgb, var(--ink) 55%, var(--card) 45%);
+}
+
+
 /* Viên "thuốc" bo tròn bao NGOÀI cả 4 nút điều hướng chính (Hôm nay/
    Lịch/Thống kê/Thùng rác) — thay cho 4 nút rời trước đây, đồng bộ
    cảm giác "segmented control" quen thuộc. Nền dùng --card (đậm hơn
@@ -111,16 +160,11 @@
   box-shadow: 0 1px 3px rgba(var(--ink-rgb), 0.08);
 }
 
-/* Viên thuốc thứ 2 — cụm tiện ích (đổi giao diện/làm tươi/xuất dữ
-   liệu/đăng xuất). Các nút bên trong TRƯỚC ĐÂY tự set border/background/
-   color/padding riêng lẻ bằng inline style (xem app.js) — giờ dồn hết
-   về đây thành 1 rule chung .tab-pill-group-utility button, xoá style
-   trùng lặp ở app.js, dễ chỉnh đồng loạt hơn. */
-.tab-pill-group-utility {
-  gap: 0;
-}
-
-.tab-pill-group-utility button {
+/* 3 nút tiện ích (Làm tươi/Xuất dữ liệu/Đăng xuất) — không dùng class
+   .tab-btn (khác 4 nút điều hướng chính), nên select bằng :not(.tab-btn)
+   để chỉ áp style trơn/nhỏ này đúng cho chúng, không đụng .tab-btn/
+   .tab-btn-home đã có style riêng ở trên. */
+.tab-pill-group-main > button:not(.tab-btn) {
   border: none;
   background: transparent;
   color: var(--mute);
@@ -158,14 +202,11 @@
   box-shadow: 0 1px 3px rgba(var(--ink-rgb), 0.08);
 }
 
-/* Khi active, CẢ HAI phần tử con (thứ + số ngày) cùng đổi sang
-   var(--ink) đồng bộ — trước đây giữ nguyên 2 màu tách biệt
-   (--danger/--ink) bất kể active hay không, giờ không còn lý do giữ
-   tách biệt nữa vì cả 2 đã cùng 1 màu var(--mute) ở trạng thái
-   thường (xem .cal-icon-weekday/.cal-icon-daynum ở trên) — active chỉ
-   cần làm đậm lên đồng loạt, giống cách 3 icon còn lại đổi màu khi
-   active (.tab-btn.active). */
-.tab-btn-calendar-icon.active .cal-icon-weekday,
+/* Khi active, số ngày ("14") đậm thêm sang var(--ink) — "T6" GIỮ
+   NGUYÊN màu --danger dù active hay không (khác bản trước đó từng
+   đồng bộ cả 2 về --mute rồi cùng đổi --ink khi active — nay theo yêu
+   cầu khôi phục lại "điểm nhấn riêng biệt" của --danger, không đồng
+   bộ 2 màu nữa). */
 .tab-btn-calendar-icon.active .cal-icon-daynum {
   color: var(--ink);
 }
@@ -175,15 +216,14 @@
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
-  /* Trước dùng var(--danger) (đỏ/cam) để tách "T6" khỏi "14" — theo
-     phản hồi thực tế, việc tô màu khác biệt khiến ô này "lạc quẻ" so
-     với 3 icon còn lại trong cùng viên thuốc (đều 1 tông màu trung
-     tính, không có gì tô màu riêng). Bỏ hẳn màu cam/đỏ, dùng chung
-     var(--mute) như trạng thái KHÔNG active của mọi icon khác — khi
-     active, .tab-btn-calendar-icon.active bên dưới đổi CẢ HAI phần tử
-     con sang var(--ink) đồng bộ, không còn tách biệt 2 màu như trước
-     nữa (xem lại thay đổi ở .active bên dưới). */
-  color: var(--mute);
+  /* var(--danger) (đỏ/cam) — ĐIỂM NHẤN CÓ CHỦ ĐÍCH cho "Thứ", tách
+     biệt khỏi số ngày kế bên. Từng đổi sang var(--mute) đồng bộ 1 lần
+     (do phản hồi "lạc quẻ" khi đứng cạnh 3 icon trung tính khác trong
+     PILL RIÊNG của nó) — nhưng nay pill nav đã tái cấu trúc lại hoàn
+     toàn (xem css/layout.css .tab-pill-group-main, chỉ còn 1 icon
+     Home to ở giữa, không còn 3 icon xám cạnh nhau nữa để so màu), nên
+     khôi phục lại màu điểm nhấn theo yêu cầu mới nhất. */
+  color: var(--danger);
   letter-spacing: 0.01em;
 }
 
@@ -192,13 +232,11 @@
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
-  /* Cùng font-size/font-weight với .cal-icon-weekday ở trên (trước
-     đây 15px/800 so với 12px/700 của weekday — 2 cỡ chữ lệch nhau
-     trên cùng 1 hàng ngang là nguyên nhân THẬT của cảm giác "không
-     cân bằng, thuận mắt" đã báo lại, không chỉ do màu sắc). Cùng màu
-     var(--mute) như weekday — không còn tách 2 tông đậm/nhạt khác
-     nhau giữa 2 phần tử liền kề. */
-  color: var(--mute);
+  /* Giữ nguyên đen đậm (--ink), tương phản có chủ đích với --danger
+     của weekday kế bên — 2 tông khác nhau CÓ Ý NGHĨA (không phải lệch
+     ngẫu nhiên): "Thứ" là nhãn phụ nổi bật cảnh báo nhẹ, "ngày" là con
+     số chính cần đọc rõ nhất. */
+  color: var(--ink);
   font-variant-numeric: tabular-nums; /* các chữ số cùng độ rộng cố định — icon không co giãn nhẹ giữa các ngày có glyph số khác nhau (ví dụ "01" so với "08") */
 }
 

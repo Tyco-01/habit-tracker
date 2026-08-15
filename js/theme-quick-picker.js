@@ -1,8 +1,10 @@
 // ============================================================
 // js/theme-quick-picker.js — Bảng nổi nhỏ chọn NHANH 1 trong 3 chế độ
-// giao diện có sẵn (Theo hệ thống/Sáng/Tối), mở bằng NHẤN GIỮ nút
-// #nav-theme (app.js) — khác hẳn bấm NGẮN (vẫn mở ThemeEditorModal
-// đầy đủ như trước, xem app.js, không đổi hành vi đó).
+// giao diện có sẵn (Theo hệ thống/Sáng/Tối), mở bằng NHẤN GIỮ nút Home
+// (#nav-today, app.js) — nút Home giờ gộp 3 chức năng theo loại thao
+// tác: nhấn 1 cái = về tab Hôm nay, GIỮ = bảng này, nhấp đúp =
+// ThemeEditorModal đầy đủ (xem app.js để biết chi tiết cách 3 thao
+// tác không đụng nhau).
 //
 // Thao tác: giữ nút → bảng 3 lựa chọn hiện NGAY PHÍA TRÊN nút → rê
 // ngón tay (không rời mặt kính) qua từng lựa chọn, lựa chọn dưới ngón
@@ -81,10 +83,13 @@ const ThemeQuickPicker = (() => {
 
   function renderPanelContent(panel) {
     const current = ThemeToggle.get();
+    // CHỈ ICON, không kèm nhãn chữ ("Theo hệ thống"/"Giao diện sáng"/
+    // "Giao diện tối") — bỏ theo yêu cầu tinh gọn, biểu tượng đã đủ
+    // hiểu (☀️/🌙/🖥️ là các icon quen thuộc). title vẫn giữ để hỗ trợ
+    // accessibility/tooltip khi hover chuột trên desktop.
     panel.innerHTML = MODES.map(mode => `
-      <div class="theme-quick-option ${current === mode ? 'is-current' : ''}" data-mode="${mode}">
+      <div class="theme-quick-option ${current === mode ? 'is-current' : ''}" data-mode="${mode}" title="${ThemeToggle.LABEL[mode]}">
         <i class="ti ${ThemeToggle.ICON[mode]}" aria-hidden="true"></i>
-        <span>${ThemeToggle.LABEL[mode]}</span>
       </div>
     `).join('');
   }
@@ -106,10 +111,9 @@ const ThemeQuickPicker = (() => {
     setTimeout(() => { panel.style.display = 'none'; }, 160);
   }
 
-  // bind(anchorEl, onChange) — anchorEl: nút #nav-theme; onChange:
-  // callback gọi lại sau khi 1 lựa chọn được áp dụng (app.js dùng để
-  // cập nhật icon nút, cùng callback đã truyền cho ThemeEditorModal).
-  // Trả về hàm unbind.
+  // bind(anchorEl, onChange) — anchorEl: nút Home (#nav-today, xem
+  // app.js); onChange: callback tuỳ chọn gọi lại sau khi 1 lựa chọn
+  // được áp dụng. Trả về hàm unbind.
   function bind(anchorEl, onChange) {
     onChangeCallback = onChange || null;
     let holdTimer = null;

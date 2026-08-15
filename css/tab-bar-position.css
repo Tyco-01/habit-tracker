@@ -43,54 +43,14 @@
   background: var(--paper);
 }
 
-/* Menu nhỏ hiện khi CHUỘT PHẢI vào khoảng trống thanh tab (desktop) —
-   lối tắt dự phòng không cần giữ+kéo, xem js/tab-bar-position.js
-   showQuickMenu(). position:fixed vì toạ độ x/y được TÍNH SẴN bằng JS
-   dựa theo điểm click thật (event.clientX/Y), không neo theo layout
-   cha nào. */
-.tab-bar-quick-menu {
-  position: fixed;
-  z-index: 200; /* trên cả .tab-bar-dragging (50) — menu là lớp tương tác TRÊN CÙNG, không được để bất kỳ gì che khuất */
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(var(--ink-rgb), 0.20), 0 2px 8px rgba(var(--ink-rgb), 0.12);
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 190px;
-  animation: tab-bar-quick-menu-in 0.14s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes tab-bar-quick-menu-in {
-  from { opacity: 0; transform: scale(0.96) translateY(-2px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.tab-bar-quick-menu button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: none;
-  background: transparent;
-  color: var(--ink);
-  font-size: 14px;
-  font-family: inherit;
-  text-align: left;
-  padding: 9px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.tab-bar-quick-menu button:hover {
-  background: color-mix(in srgb, var(--ink) 8%, transparent);
-}
-
-.tab-bar-quick-menu button i {
-  font-size: 16px;
-  color: var(--mute);
-}
+/* .tab-bar-quick-menu ĐÃ BỎ HẲN — bản trước dùng menu này cho chuột
+   phải, nhưng nhiều trình duyệt (Brave...) tự vẽ đè context menu gốc
+   của hệ điều hành lên trên bất kể preventDefault(), khiến menu tự
+   tạo bị che khuất hoàn toàn dù vẫn tồn tại đúng trong DOM — đã báo
+   lại kèm ảnh chụp cho thấy chữ trắng/xám không đọc được. Thay bằng
+   NHẤP ĐÚP (dblclick) — đơn giản hơn, không phụ thuộc hành vi
+   context-menu khác nhau giữa trình duyệt, xem js/tab-bar-position.js
+   onDblClick(). */
 
 /* Focus ring khi thanh tab được focus bằng bàn phím (Tab) — cần thiết
    để dùng được phím mũi tên lên/xuống đổi vị trí (xem onKeyDown trong

@@ -120,44 +120,6 @@ const YearView = (() => {
     const switcher = container.querySelector('.cal-switcher');
     const pill = container.querySelector('.cal-switch-pill');
 
-    // --cal-switcher-left: neo switcher dọc theo MÉP TRÁI CỦA KHUNG
-    // NỘI DUNG THẬT (#app, width: min(100%, 620px), margin: 0 auto —
-    // xem css/base.css), KHÔNG PHẢI mép trái viewport cứng "14px" như
-    // bản trước — trên desktop rộng, #app canh giữa màn hình để lại
-    // khoảng trắng 2 bên rất lớn, "left: 14px" khiến switcher "lạc"
-    // hẳn ra xa nội dung, đúng lỗi đã báo lại kèm ảnh chụp.
-    //
-    // 2 CHIẾN LƯỢC theo bề rộng màn hình (branch tại ĐÂY, không phải
-    // thuần CSS, vì cần biết switcher.offsetWidth THẬT để tính đủ chỗ
-    // hay không — CSS không tự so sánh được 2 kích thước động như
-    // vậy):
-    //   - ĐỦ CHỖ bên trái #app (rect.left đủ lớn hơn offsetWidth +
-    //     khoảng cách ly mong muốn) → đặt HẲN RA NGOÀI khung nội dung,
-    //     bên trái nó — đúng cảm giác "nổi độc lập" trên desktop rộng.
-    //   - KHÔNG ĐỦ CHỖ (mobile, #app gần sát mép viewport) → giữ kiểu
-    //     CŨ đã hoạt động tốt trên mobile: nổi ĐÈ NHẸ vào mép trái
-    //     trong của #app (left cố định nhỏ, không tính theo rect —
-    //     xem nhánh else), không cố tách hẳn ra ngoài vì không có chỗ.
-    const GAP_FROM_CONTENT = 14;
-    const MOBILE_FALLBACK_LEFT = 14;
-    function syncSwitcherLeft() {
-      const appEl = document.getElementById('app');
-      if (!appEl || !switcher.offsetWidth) return;
-      const rect = appEl.getBoundingClientRect();
-      const spaceOutside = rect.left - GAP_FROM_CONTENT * 2; // khoảng trắng thật sự trống bên trái #app, trừ hao 2 lần GAP cho thoáng
-      const left = spaceOutside >= switcher.offsetWidth
-        ? rect.left - GAP_FROM_CONTENT - switcher.offsetWidth  // đủ chỗ — đặt hẳn ra ngoài
-        : MOBILE_FALLBACK_LEFT;                                 // không đủ — fallback kiểu mobile cũ
-      document.documentElement.style.setProperty('--cal-switcher-left', `${Math.max(8, left)}px`);
-    }
-    syncSwitcherLeft();
-    window.addEventListener('resize', syncSwitcherLeft);
-    // offsetWidth của switcher chỉ có giá trị ĐÚNG sau khi trình duyệt
-    // đã layout xong (nhãn "Ngày/Tuần/Tháng/Năm" quyết định độ rộng
-    // qua width: fit-content) — đo lại 1 lần nữa ở frame kế tiếp để
-    // chắc chắn không dùng offsetWidth=0 của lần đo đầu tiên quá sớm.
-    requestAnimationFrame(syncSwitcherLeft);
-
     const content = container.querySelector('#year-content');
     let lastHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế — quan trọng hơn cả ở đây vì mode "year" build cả lưới 365 ô + vòng lặp đếm mỗi lần gọi, tốn kém hơn hẳn mode khác
 
@@ -180,17 +142,13 @@ const YearView = (() => {
       }
     }
 
-    // Cột dọc Ngày/Tuần/Tháng/Năm giờ NỔI CỐ ĐỊNH bên trái màn hình
-    // (position: fixed qua .cal-switcher-vertical trong CSS) — không
-    // còn "dính lại khi cuộn" theo kiểu sticky-dưới-thanh-tab như bản
-    // hàng ngang cũ, nên KHÔNG cần đo --cal-switcher-top / gắn
-    // ResizeObserver theo .sticky-tabs, và KHÔNG cần class
-    // .cal-switcher-sticky nữa (position: fixed tự lo vị trí, không
-    // phụ thuộc layout cha).
+    // Cột dọc Ngày/Tuần/Tháng/Năm nổi CỐ ĐỊNH GIỮA MÀN HÌNH (position:
+    // fixed, căn giữa bằng CSS thuần qua .cal-switcher-vertical), đè
+    // lên nội dung lịch phía sau như 1 popup — không cuộn theo trang.
 
-    // switchMode() tách riêng khỏi listener click — SWIPE_NAV (vuốt
-    // ngang trên .cal-switcher, gắn ở dưới cùng file) và nút bấm đều
-    // gọi chung 1 hàm này, tránh viết trùng logic đổi mode + animation
+    // switchMode() tách riêng khỏi listener click — vuốt DỌC trên
+    // .cal-switcher (SwipeNavVertical.bind, gắn ở dưới cùng file) và
+    // nút bấm đều gọi chung 1 hàm này, tránh viết trùng logic đổi mode + animation
     // pill + vẽ lại 2 nơi.
     function switchMode(newMode) {
       if (newMode === mode || !MODES.includes(newMode)) return;
