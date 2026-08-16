@@ -293,8 +293,18 @@
     // "2 trang phẳng nối đuôi nhau" của kiểu cũ.
     const dragState = { neighborTab: null, neighborEl: null, outgoingEl: null, committedDir: null };
 
-    const STACK_SCALE_FROM = 0.93;   // back card BẮT ĐẦU ở scale này (nhỏ hơn top card 7%) — đủ RÕ để mắt nhận ra ngay "có gì đó xếp phía sau", không quá nhỏ tới mức trông như lỗi layout
-    const STACK_OPACITY_FROM = 0.6;  // back card BẮT ĐẦU ở độ mờ này — mờ nhưng vẫn ĐỌC ĐƯỢC lờ mờ nội dung, gợi ý "đây là gì" trước khi kéo hẳn tới
+    // STACK_SCALE/OPACITY — back card đứng CỐ ĐỊNH ở scale/opacity NÀY
+    // SUỐT QUÁ TRÌNH KÉO (KHÔNG phóng to/rõ dần theo % kéo như bản thử
+    // trước — đó là nguyên nhân THẬT gây cảm giác "chồng lấn, khựng
+    // khựng" đã báo lại: back card gần full-size trong lúc top card
+    // còn chưa trượt hết, 2 lớp nội dung đè lên nhau ở vùng top card
+    // vừa lộ ra). Đây là cách card-stack CHUẨN (Tinder/Google Photos
+    // thật): back card giữ NGUYÊN 1 trạng thái "chờ sẵn" trong suốt lúc
+    // kéo, chỉ TOP CARD chuyển động — back card chỉ animate "bật lên"
+    // thành full-size SAU KHI top card đã biến mất hẳn (xem finishDrag),
+    // không đồng bộ tiến trình với ngón tay.
+    const STACK_SCALE = 0.94;
+    const STACK_OPACITY = 0.85;
 
     function viewElByTab(tab) {
       if (tab === 'today') return viewToday;
@@ -302,6 +312,21 @@
       if (tab === 'stats') return viewStats;
       if (tab === 'trash') return viewTrash;
       return null;
+    }
+
+    // renderTab(tab) — gọi đúng hàm render() tương ứng, DÙNG CHUNG cho
+    // cả lúc PREVIEW back card khi đang kéo dở (dragMove, chưa chắc
+    // commit) lẫn lúc CHÍNH THỨC đổi tab (onCommit/goToTab). Trước khi
+    // có hàm này, nội dung back card chỉ được render SAU KHI đã commit
+    // xong — nghĩa là trong lúc đang kéo (trước ngưỡng commit), back
+    // card hiện ra HOÀN TOÀN TRỐNG nếu người dùng chưa từng ghé qua tab
+    // đó trước, phá vỡ hẳn cảm giác "thẻ chờ sẵn phía sau" mà card
+    // stack cần có (đã phản hồi lại: "chẳng thấy giống thẻ gì hết").
+    function renderTab(tab) {
+      if (tab === 'today') TodayView.render(viewToday);
+      else if (tab === 'year') YearView.render(viewYear, openDay, { focusToday: true });
+      else if (tab === 'stats') StatsView.render(viewStats);
+      else if (tab === 'trash') TrashView.render(viewTrash);
     }
 
     // dx âm (kéo trái) => xem tab KẾ TIẾP; dx dương (kéo phải) => tab TRƯỚC ĐÓ
@@ -329,30 +354,47 @@
       // TIÊN của cả lượt kéo (không phải mỗi frame — kiểm tra classList
       // trước để chỉ set 1 lần, tránh reflow thừa mỗi pixel di chuyển).
       // z-index cao hơn hẳn back card, đảm bảo LUÔN nổi trên nó dù thứ
-      // tự trong DOM là gì.
+      // tự trong DOM là gì. Đồng thời bật nền "bàn xếp thẻ" trên #app
+      // (xem .app-stacking trong CSS) — tạo tương phản để back card
+      // (box-shadow) thực sự "nổi" lên thay vì chìm vào nền cùng màu.
       if (currentEl && !currentEl.classList.contains('view-stacking')) {
         currentEl.classList.add('view-stacking');
         currentEl.style.zIndex = '2';
+        root.classList.add('app-stacking');
       }
       if (dragState.neighborTab !== wantTab) {
         // Đổi hướng kéo giữa chừng, hoặc lần đầu xác định hàng xóm —
-        // dọn hàng xóm CŨ (nếu có) rồi đặt hàng xóm MỚI vào đúng vị
-        // trí XUẤT PHÁT của back card (thu nhỏ + mờ, đứng yên ngay
-        // dưới top card, KHÔNG dịch translateX gì — khác hẳn bản cũ
-        // từng đặt hàng xóm ở "ngoài viewport bên cạnh").
+        // dọn hàng xóm CŨ (nếu có) rồi đặt hàng xóm MỚI vào ĐÚNG 1
+        // trạng thái CỐ ĐỊNH (STACK_SCALE/STACK_OPACITY) và GIỮ NGUYÊN
+        // suốt lúc kéo — không tính toán lại theo dx nữa (xem giải
+        // thích ở khai báo STACK_SCALE phía trên).
         if (dragState.neighborEl) {
           dragState.neighborEl.style.display = 'none';
           dragState.neighborEl.style.transform = '';
           dragState.neighborEl.style.opacity = '';
+          dragState.neighborEl.classList.remove('view-stack-back');
         }
         dragState.neighborTab = wantTab;
         dragState.neighborEl = wantTab ? viewElByTab(wantTab) : null;
         if (dragState.neighborEl) {
-          dragState.neighborEl.classList.add('view-stacking');
+          dragState.neighborEl.classList.add('view-stacking', 'view-stack-back');
           dragState.neighborEl.style.zIndex = '1'; // THẤP HƠN top card (z-index 2, set ở trên) — back card luôn nằm DƯỚI dù thứ tự DOM ra sao
           dragState.neighborEl.style.display = 'block';
-          dragState.neighborEl.style.transform = `scale(${STACK_SCALE_FROM})`;
-          dragState.neighborEl.style.opacity = `${STACK_OPACITY_FROM}`;
+          dragState.neighborEl.style.transform = `scale(${STACK_SCALE})`;
+          dragState.neighborEl.style.opacity = `${STACK_OPACITY}`;
+          // Render TRƯỚC nội dung thật của back card ngay khi nó trở
+          // thành hàng xóm — KHÔNG đợi tới lúc commit xong mới render
+          // (thiết kế cũ), vì lúc đó card đã hiện SẴN cho người dùng
+          // xem trong lúc còn đang kéo dở, cần có nội dung thật ngay từ
+          // đầu chứ không phải 1 khung trống trơn (đã phát hiện qua
+          // ảnh chụp thật: card phía sau hoàn toàn rỗng, không giống
+          // "thẻ" gì cả — vì view đó CHƯA TỪNG được render nếu người
+          // dùng chưa ghé qua tab đó lần nào trước). Chỉ gọi ĐÚNG 1 LẦN
+          // ở đây (bên trong khối "neighborTab đổi", không phải mỗi
+          // frame dragMove chạy) — YearView.render() khá nặng (dựng cả
+          // lưới ngày + tính âm lịch), gọi lặp lại mỗi pixel kéo sẽ
+          // giật máy thấy rõ.
+          renderTab(wantTab);
         }
         if (wantTab) SwipeHint.show(`→ ${TAB_LABEL[wantTab]}`);
         else SwipeHint.hide();
@@ -365,29 +407,20 @@
         return;
       }
 
-      // ---- Có hàng xóm hợp lệ — TOP CARD trượt ngang + mờ dần; BACK
-      // CARD phóng to + rõ dần lên đúng theo % đã kéo. ----
+      // ---- TOP CARD trượt NGANG THEO ĐÚNG dx (1:1 với ngón tay, không
+      // giới hạn tỉ lệ nào) + mờ dần khi trượt xa — CHỈ top card
+      // chuyển động, back card ĐỨNG YÊN nguyên trạng thái đã set ở
+      // trên trong SUỐT lúc kéo (không còn tính lại mỗi frame), loại
+      // bỏ hẳn cảm giác "2 lớp cùng chuyển động chồng lên nhau". ----
       const vw = window.innerWidth;
-      const progress = Math.min(1, Math.abs(dx) / (vw * 0.7)); // 0→1 đạt full ở 70% bề rộng màn hình — NGẮN HƠN bản "giọt lỏng" cũ (từng cần đủ 100% vw) vì stack card chỉ cần "lộ đủ rõ" để cảm nhận, không cần top card trôi hẳn ra khỏi màn hình mới tính là "đã lộ hết"
+      const progress = Math.min(1, Math.abs(dx) / vw); // dùng CHO OPACITY top card thôi, không còn ảnh hưởng gì tới back card nữa
 
       currentEl.style.transform = `translateX(${dx}px)`;
-      // Top card mờ dần 1 → 0.5 khi trượt xa dần — mờ NHIỀU HƠN bản cũ
-      // (từng chỉ mờ tới 0.55 vì đó là view "hàng xóm sắp tới" xem
-      // ngang hàng; ở đây top card đang THỰC SỰ rời đi để lộ card
-      // dưới, mờ sâu hơn củng cố đúng cảm giác "đang biến mất dần").
-      currentEl.style.opacity = `${1 - progress * 0.5}`;
-
-      if (dragState.neighborEl) {
-        // Back card phóng to dần từ STACK_SCALE_FROM → 1.0, rõ dần từ
-        // STACK_OPACITY_FROM → 1.0 — ĐÚNG cảm giác "thẻ dưới đang được
-        // kéo lên thành thẻ chính", không dịch chuyển translateX (nó
-        // đứng YÊN 1 chỗ, chỉ core lớn dần lên choán đúng vị trí top
-        // card để lại).
-        const scale = STACK_SCALE_FROM + (1 - STACK_SCALE_FROM) * progress;
-        const opacity = STACK_OPACITY_FROM + (1 - STACK_OPACITY_FROM) * progress;
-        dragState.neighborEl.style.transform = `scale(${scale})`;
-        dragState.neighborEl.style.opacity = `${opacity}`;
-      }
+      // Mờ dần TUYẾN TÍNH theo đúng % đã trượt qua màn hình — khi top
+      // card gần trôi hết ra ngoài (progress gần 1), nó gần như trong
+      // suốt, để lộ back card (đang đứng yên, KHÔNG đổi) rõ ràng không
+      // bị 2 lớp "đấu tranh" hiển thị cùng lúc.
+      currentEl.style.opacity = `${1 - progress * 0.7}`;
     }
 
     // animated=true: "trôi nốt" bằng transition rồi dọn sạch transform/
@@ -418,7 +451,7 @@
             // Gỡ absolute-stacking SAU KHI animation đã chạy xong hẳn —
             // gỡ giữa lúc đang transition sẽ khiến phần tử nhảy khỏi vị
             // trí absolute đột ngột (giật hình 1 khung hình cuối).
-            el.classList.remove('view-stacking');
+            el.classList.remove('view-stacking', 'view-stack-back');
             el.style.zIndex = '';
             // Dọn NỐT transform/opacity ở ĐÂY (sau khi display:none, nên
             // không còn gì hiển thị để "giật hình") — kể cả cho
@@ -449,7 +482,7 @@
             return;
           }
         } else if (!isOutgoing) {
-          el.classList.remove('view-stacking');
+          el.classList.remove('view-stacking', 'view-stack-back');
           el.style.zIndex = '';
           if (el !== viewElByTab(currentTab)) el.style.display = 'none';
         }
@@ -459,6 +492,14 @@
       dragState.neighborTab = null;
       dragState.neighborEl = null;
       dragState.outgoingEl = null;
+      // Gỡ nền "bàn xếp thẻ" — khớp đúng thời lượng transition ở trên
+      // (320ms) nếu animated, hoặc ngay lập tức nếu không (huỷ giữa
+      // chừng, admin thoát card-stacking gấp không cần animate gì).
+      if (animated) {
+        setTimeout(() => root.classList.remove('app-stacking'), 320);
+      } else {
+        root.classList.remove('app-stacking');
+      }
     }
 
     SwipeNav.bind(document.body, {
@@ -483,10 +524,12 @@
         navYear.classList.toggle('active', currentTab === 'year');
         navStats.classList.toggle('active', currentTab === 'stats');
         navTrash.classList.toggle('active', currentTab === 'trash');
-        if (currentTab === 'today') TodayView.render(viewToday);
-        else if (currentTab === 'year') YearView.render(viewYear, openDay, { focusToday: true });
-        else if (currentTab === 'stats') StatsView.render(viewStats);
-        else if (currentTab === 'trash') TrashView.render(viewTrash);
+        // Render lại LẦN NỮA cho chắc (renderTab đã gọi 1 lần trong
+        // dragMove ngay khi tab này trở thành hàng xóm — nhưng giữ
+        // lại lệnh gọi này làm lớp bảo hiểm cho trường hợp hiếm gặp
+        // sự kiện dồn dập khiến dragMove bị bỏ qua 1 vài khung hình,
+        // onCommit vẫn đảm bảo nội dung luôn đúng trước khi hiện ra).
+        renderTab(currentTab);
       },
       onSettle: () => {
         finishDrag(true, dragState.committedDir);

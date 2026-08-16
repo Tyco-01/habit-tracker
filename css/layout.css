@@ -296,3 +296,44 @@
   transform-origin: center center;
   will-change: transform, opacity;
 }
+
+/* Bóng đổ RIÊNG cho BACK CARD (view phía sau, đang chờ hiện ra) —
+   không áp cho top card (top card đang trượt/mờ đi, không cần bóng
+   đổ nào, thêm vào chỉ gây rối mắt lúc nó biến mất). Bóng đổ giúp back
+   card trông tách bạch khỏi nền phía sau NÓ (không phải trang trước —
+   quan trọng trên các view có nền gần như trống, ví dụ mới chuyển
+   sang mà chưa kịp thấy nội dung, khi đó chỉ riêng scale/opacity không
+   đủ gợi rõ "đây là 1 tấm thẻ xếp chồng", đã phản hồi lại là "chẳng
+   thấy giống thẻ gì hết"). */
+.view-stack-back {
+  box-shadow: 0 8px 28px rgba(var(--ink-rgb), 0.16), 0 2px 8px rgba(var(--ink-rgb), 0.10);
+  border-radius: 16px;
+}
+
+/* .cal-switcher-vertical dùng position:fixed + z-index riêng (xem
+   css/views/year.css) — khi #view-year là BACK CARD (opacity/scale
+   giảm qua .view-stack-back ở trên), switcher KHÔNG kế thừa độ mờ đó
+   giống phần còn lại của card (khác biệt hành vi giữa layer thường và
+   layer fixed có z-index riêng của chính nó, đã xác nhận qua ảnh chụp
+   thật: nội dung lịch mờ hẳn nhưng switcher vẫn sắc nét 100%) — ẩn hẳn
+   nó đi trong lúc là back card, vì lúc này người dùng chỉ cần THẤY
+   PREVIEW nội dung phía sau, không cần bấm/tương tác gì với switcher
+   khi thẻ còn đang ở trạng thái "chờ", nó sẽ tự hiện lại khi thẻ này
+   trở thành current thật (view-stack-back gỡ đi, xem app.js finishDrag). */
+.view-stack-back .cal-switcher-vertical {
+  display: none;
+}
+
+/* Nền "bàn xếp thẻ" — tint tối hơn --paper 1 chút, CHỈ hiện khi đang
+   trong lúc kéo/animate card stack (gán/gỡ động qua JS trên #app,
+   xem app.js). Không có lớp nền này, top/back card cùng dùng chung 1
+   màu --paper với TRANG (không có ranh giới nào để mắt phân biệt "đây
+   là 1 tấm thẻ nổi lên"), đã phản hồi lại là "chẳng thấy giống thẻ
+   gì" — box-shadow trên .view-stack-back cần 1 nền TƯƠNG PHẢN đủ rõ
+   phía dưới nó mới thực sự "nổi" lên được, bóng đổ trên nền CÙNG màu
+   gần như vô hình. */
+.app-stacking {
+  background: color-mix(in srgb, var(--ink) 6%, var(--paper) 94%);
+  border-radius: 20px;
+  transition: background 0.2s ease;
+}

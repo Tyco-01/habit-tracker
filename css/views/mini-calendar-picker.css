@@ -5,21 +5,50 @@
    lịch trong từng ô (điều input gốc không làm được).
    ============================================================ */
 
+/* Backdrop mờ phía sau popup — chuẩn "modal giữa màn hình", khác hẳn
+   kiểu "dropdown nổi ngay dưới nút bấm" trước đây (không có backdrop
+   vì đó không che gì, chỉ là 1 lớp nổi nhỏ cạnh anchor). Bấm vào
+   backdrop cũng đóng popup (xem js/views/mini-calendar-picker.js
+   onDocClick — backdrop nằm ngoài popup nên tự động khớp logic đó). */
+.mcp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 199; /* ngay dưới .mcp-popup (200) */
+  background: rgba(var(--ink-rgb), 0.15);
+  animation: mcp-backdrop-in 0.16s ease;
+}
+
+@keyframes mcp-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Căn GIỮA MÀN HÌNH tuyệt đối (position: fixed + translate) — thay
+   thế hoàn toàn kiểu "dropdown ngay dưới anchorEl" trước đây (dễ lệch/
+   tràn khỏi viewport khi anchor nằm gần mép, đã báo lại kèm ảnh chụp
+   lệch hẳn sang phải màn hình). Cùng cách tiếp cận với .cal-switcher-
+   vertical (css/views/year.css). */
 .mcp-popup {
-  position: absolute;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   z-index: 200;
   width: 300px;
+  max-width: calc(100vw - 32px); /* kẹp trên màn hình cực hẹp — không tràn 2 bên dù width cố định 300px */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 14px;
   box-shadow: 0 12px 32px rgba(var(--ink-rgb), 0.18);
   padding: 14px;
-  animation: mcp-pop-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: mcp-pop-in 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes mcp-pop-in {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
 .mcp-header {

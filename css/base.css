@@ -121,8 +121,7 @@ button {
 }
 
 #app {
-  position: relative; /* containing block cho .view-stacking (card stack lúc kéo/chuyển tab, xem css/layout.css và app.js) — CHỈ áp dụng khi 1 view con có class đó, không ảnh hưởng layout bình thường (view thường vẫn nằm trong luồng document, #app vẫn co chiều cao theo nội dung như cũ) */
-  /* touch-action: pan-y — BẮT BUỘC cho vuốt ngang tuỳ chỉnh (SwipeNav,
+  position: relative; /* containing block cho .view-stacking (card stack lúc kéo/chuyển tab, xem css/layout.css và app.js) — CHỈ áp dụng khi 1 view con có class đó, không ảnh hưởng layout bình thường (view thường vẫn nằm trong luồng document, #app vẫn co chiều cao theo nội dung như cũ) */  /* touch-action: pan-y — BẮT BUỘC cho vuốt ngang tuỳ chỉnh (SwipeNav,
      js/swipe-nav.js) hoạt động trên di động. Không có dòng này, trình
      duyệt mobile mặc định "auto": ngay khi ngón tay vừa nhích vài
      pixel, trình duyệt tự ý QUYẾT ĐỊNH đây là cử chỉ cuộn trang và

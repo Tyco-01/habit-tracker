@@ -11,7 +11,10 @@
 // được âm lịch ngay trong từng ô ngày.
 //
 // API: MiniCalendarPicker.open({ anchorEl, initialDate, mode, onSelect })
-//   - anchorEl: phần tử để định vị popup cạnh nó (thường là nút tiêu đề)
+//   - anchorEl: nút đã mở popup — dùng để loại trừ khỏi "click ra
+//     ngoài thì đóng" (bấm lại đúng nút mở không nên tự đóng ngay);
+//     KHÔNG dùng để định vị popup nữa (popup luôn ở giữa màn hình,
+//     xem .mcp-popup trong CSS)
 //   - initialDate: Date — tháng/năm ban đầu hiện ra
 //   - mode: 'day' | 'week' — 'day' bôi đậm đúng 1 ô khi hover/chọn;
 //     'week' bôi đậm CẢ HÀNG chứa ngày đang hover/chọn (để người dùng
@@ -53,6 +56,10 @@ const MiniCalendarPicker = (() => {
     today.setHours(0, 0, 0, 0);
     let viewDate = new Date(initialDate.getFullYear(), initialDate.getMonth(), 1);
     let hoveredWeekStart = null; // chỉ dùng khi mode === 'week', để bôi đậm cả hàng lúc hover
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'mcp-backdrop';
+    document.body.appendChild(backdrop);
 
     const popup = document.createElement('div');
     popup.className = 'mcp-popup';
@@ -149,7 +156,13 @@ const MiniCalendarPicker = (() => {
     }
 
     renderGrid();
-    positionPopup(popup, anchorEl);
+    // Căn GIỮA MÀN HÌNH tuyệt đối bằng CSS (position: fixed + transform,
+    // xem .mcp-popup trong CSS) — không còn định vị theo anchorEl như
+    // trước (dropdown ngay dưới nút bấm, hay bị lệch/tràn ra ngoài
+    // viewport khi anchor nằm gần mép, đã báo lại kèm ảnh chụp lệch
+    // hẳn sang phải). Cùng cách tiếp cận đã dùng cho .cal-switcher-
+    // vertical (css/views/year.css) — đơn giản, ổn định, không phụ
+    // thuộc phép đo JS nào.
 
     // Đóng khi click ra ngoài popup, hoặc nhấn Esc — hành vi popup
     // chuẩn, tránh popup "dính" lại màn hình gây khó chịu.
@@ -173,48 +186,17 @@ const MiniCalendarPicker = (() => {
     function onKeydown(e) {
       if (e.key === 'Escape') closeActive();
     }
-    function onResize() {
-      positionPopup(popup, anchorEl);
-    }
     // setTimeout 0: tránh chính cú click MỞ popup (đang nổi bọt lên
     // document ngay lúc này) bị onDocClick bắt luôn và đóng lại tức thì.
     setTimeout(() => document.addEventListener('click', onDocClick), 0);
     document.addEventListener('keydown', onKeydown);
-    window.addEventListener('resize', onResize);
-    window.addEventListener('scroll', onResize, true);
 
     activeCleanup = () => {
       document.removeEventListener('click', onDocClick);
       document.removeEventListener('keydown', onKeydown);
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('scroll', onResize, true);
       popup.remove();
+      backdrop.remove();
     };
-  }
-
-  // Định vị popup ngay dưới anchorEl, tự lật lên trên / sang trái nếu
-  // không đủ chỗ (tránh tràn khỏi viewport — quan trọng trên màn hình
-  // hẹp/điện thoại vì popup rộng ~300px).
-  function positionPopup(popup, anchorEl) {
-    const rect = anchorEl.getBoundingClientRect();
-    const popupWidth = popup.offsetWidth || 300;
-    const popupHeight = popup.offsetHeight || 360;
-    const margin = 8;
-
-    let left = rect.left + window.scrollX;
-    if (left + popupWidth > window.scrollX + window.innerWidth - margin) {
-      left = window.scrollX + window.innerWidth - popupWidth - margin;
-    }
-    if (left < window.scrollX + margin) left = window.scrollX + margin;
-
-    let top = rect.bottom + window.scrollY + 6;
-    const fitsBelow = rect.bottom + popupHeight + margin < window.innerHeight;
-    if (!fitsBelow) {
-      top = rect.top + window.scrollY - popupHeight - 6;
-    }
-
-    popup.style.left = `${left}px`;
-    popup.style.top = `${top}px`;
   }
 
   return { open, close: closeActive };
