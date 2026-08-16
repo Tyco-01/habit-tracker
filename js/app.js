@@ -45,16 +45,31 @@
     root.innerHTML = `
       <div class="tabs sticky-tabs" id="tab-bar-outer" tabindex="0" style="justify-content:center;">
         <div class="tab-pill-group tab-pill-group-main" id="tab-pill-group">
-          <button class="tab-btn tab-btn-icon tab-btn-calendar-icon" id="nav-year" aria-label="Lịch" title="Lịch">
-            <span class="cal-icon-weekday" id="nav-cal-weekday"></span>
-            <span class="cal-icon-daynum" id="nav-cal-daynum"></span>
-          </button>
-          <button class="tab-btn tab-btn-icon" id="nav-stats" aria-label="Thống kê" title="Thống kê">
-            <i class="ti ti-chart-bar" style="font-size:16px;" aria-hidden="true"></i>
-          </button>
-          <button class="tab-btn tab-btn-icon" id="nav-trash" aria-label="Thùng rác" title="Thùng rác">
-            <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
-          </button>
+          <!-- Bọc 3 icon mỗi bên vào 1 khối flex:1 riêng, TỰ CANH VỀ
+               PHÍA HOME (flex-end bên trái, flex-start bên phải) —
+               ĐÂY LÀ CÁCH DUY NHẤT đảm bảo Home luôn đúng tâm hình học
+               bất kể 2 nhóm icon rộng hẹp khác nhau ra sao. Cách cũ
+               (justify-content: space-between trên toàn bộ 7 phần tử
+               phẳng) đã SAI trong thực tế: icon Lịch (#nav-year) có 2
+               dòng chữ "T7 15" rộng hơn hẳn 2 icon đơn cạnh nó, kéo
+               lệch cả cụm 3-icon trái so với cụm 3-icon phải (đều toàn
+               icon đơn, hẹp hơn) — space-between chỉ chia đều KHOẢNG
+               CÁCH giữa các phần tử liền kề, không hề biết hay quan
+               tâm tới TỔNG độ rộng 2 nhóm 2 bên có bằng nhau không, kết
+               quả đo thực tế: Home lệch ~15px khỏi tâm (đã xác nhận
+               bằng ảnh chụp + đo pixel thật, không phải suy đoán). -->
+          <div class="tab-pill-side tab-pill-side-left">
+            <button class="tab-btn tab-btn-icon tab-btn-calendar-icon" id="nav-year" aria-label="Lịch" title="Lịch">
+              <span class="cal-icon-weekday" id="nav-cal-weekday"></span>
+              <span class="cal-icon-daynum" id="nav-cal-daynum"></span>
+            </button>
+            <button class="tab-btn tab-btn-icon" id="nav-stats" aria-label="Thống kê" title="Thống kê">
+              <i class="ti ti-chart-bar" style="font-size:16px;" aria-hidden="true"></i>
+            </button>
+            <button class="tab-btn tab-btn-icon" id="nav-trash" aria-label="Thùng rác" title="Thùng rác">
+              <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
+            </button>
+          </div>
           <!-- Home — TRUNG TÂM của thanh, to hơn 3 nút thường (xem
                .tab-btn-home trong layout.css). 3 hành vi khác nhau
                trên CÙNG 1 nút, không đè lên nhau (xem app.js):
@@ -73,15 +88,17 @@
           <button class="tab-btn tab-btn-icon tab-btn-home active" id="nav-today" aria-label="Hôm nay — nhấn để về Hôm nay, giữ để đổi giao diện nhanh, nhấp đúp để mở đầy đủ tuỳ chỉnh giao diện" title="Hôm nay" style="touch-action:none;">
             <i class="ti ti-home" aria-hidden="true"></i>
           </button>
-          <button id="nav-refresh" aria-label="Làm tươi" title="Tải lại app — dùng khi giao diện bị lỗi hoặc hiển thị sai">
-            <i class="ti ti-refresh" style="font-size:16px;" aria-hidden="true"></i>
-          </button>
-          <button id="nav-export" aria-label="Xuất dữ liệu backup" title="Tải file backup dữ liệu">
-            <i class="ti ti-download" style="font-size:16px;" aria-hidden="true"></i>
-          </button>
-          <button id="nav-logout" aria-label="Đăng xuất">
-            <i class="ti ti-logout" style="font-size:16px;" aria-hidden="true"></i>
-          </button>
+          <div class="tab-pill-side tab-pill-side-right">
+            <button id="nav-refresh" aria-label="Làm tươi" title="Tải lại app — dùng khi giao diện bị lỗi hoặc hiển thị sai">
+              <i class="ti ti-refresh" style="font-size:16px;" aria-hidden="true"></i>
+            </button>
+            <button id="nav-export" aria-label="Xuất dữ liệu backup" title="Tải file backup dữ liệu">
+              <i class="ti ti-download" style="font-size:16px;" aria-hidden="true"></i>
+            </button>
+            <button id="nav-logout" aria-label="Đăng xuất">
+              <i class="ti ti-logout" style="font-size:16px;" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
       </div>
       <div id="view-today" class="view-fade-in"></div>
@@ -262,11 +279,22 @@
     // vuốt đổi TAB vẫn nên hoạt động) — chỉ nhường cho year.js xử lý
     // khi cử chỉ THỰC SỰ bắt đầu trong 1 trong 2 vùng đó.
     //
-    // ANIMATION "GIỌT LỎNG" — 2 view (đang xem + hàng xóm sắp/vừa rời
-    // khỏi) cùng hiện, dịch chuyển ĐÚNG theo dx trong lúc kéo (xem
-    // dragMove), rồi "trôi nốt" bằng CSS transition khi thả tay (xem
-    // dragSettle/dragCancel) — không snap tức thì.
-    const dragState = { neighborTab: null, neighborEl: null };
+    // ANIMATION KIỂU "CARD STACK" (thẻ xếp chồng, cảm giác quẹt thẻ
+    // Tinder) — THAY THẾ HẲN kiểu "giọt lỏng" cũ (2 view cùng mặt
+    // phẳng trượt cạnh nhau, xem lịch sử ở git/bản trước nếu cần đối
+    // chiếu). Ý tưởng: view SẮP TỚI (hàng xóm theo hướng kéo) luôn nằm
+    // SẴN NGAY PHÍA SAU view hiện tại, thu nhỏ + mờ hơn ngay từ đầu
+    // (STACK_SCALE_FROM/STACK_OPACITY_FROM) — không phải "trôi từ 1
+    // bề rộng viewport bên cạnh" như kiểu cũ. Khi kéo, view hiện tại
+    // (top card) trượt NGANG theo dx VÀ mờ dần đi; view phía sau (back
+    // card) phóng to + rõ dần lên ĐÚNG THEO % top card đã trượt — tạo
+    // cảm giác "thẻ dưới lộ dần ra khi thẻ trên được lia đi", đúng
+    // ngôn ngữ thị giác của Tinder/Google Photos card stack, khác hẳn
+    // "2 trang phẳng nối đuôi nhau" của kiểu cũ.
+    const dragState = { neighborTab: null, neighborEl: null, outgoingEl: null, committedDir: null };
+
+    const STACK_SCALE_FROM = 0.93;   // back card BẮT ĐẦU ở scale này (nhỏ hơn top card 7%) — đủ RÕ để mắt nhận ra ngay "có gì đó xếp phía sau", không quá nhỏ tới mức trông như lỗi layout
+    const STACK_OPACITY_FROM = 0.6;  // back card BẮT ĐẦU ở độ mờ này — mờ nhưng vẫn ĐỌC ĐƯỢC lờ mờ nội dung, gợi ý "đây là gì" trước khi kéo hẳn tới
 
     function viewElByTab(tab) {
       if (tab === 'today') return viewToday;
@@ -284,109 +312,153 @@
 
     // Hệ số làm mềm hiệu ứng ĐÀN HỒI khi kéo tại ĐẦU (today, kéo phải)
     // hoặc CUỐI (trash, kéo trái) danh sách tab — không có hàng xóm để
-    // trôi vào, nhưng ngón tay vẫn đang kéo. Thay vì "im lìm không
-    // phản hồi gì" (cảm giác app bị đứng/lag), view hiện tại di chuyển
-    // theo dx nhưng bị "ghìm lại" bằng căn bậc hai — kéo cùng 1 khoảng
-    // dx thực tế cho chuyển vị màn hình NHỎ HƠN NHIỀU và giảm dần tốc
-    // độ, giống cảm giác "kéo dây thun" quen thuộc (iOS rubber-band
-    // scroll). Hệ số 0.35 chọn qua thử nghiệm: đủ RÕ để nhận ra khác
-    // biệt so với kéo bình thường, không NẶNG tới mức cảm giác ì trễ.
+    // lộ ra phía sau, nhưng ngón tay vẫn đang kéo. Cùng công thức căn
+    // bậc hai với bản "giọt lỏng" cũ (cảm giác kéo dây thun quen
+    // thuộc, xem giải thích gốc), chỉ đổi NƠI áp dụng — giờ chỉ còn
+    // top card di chuyển (không có back card nào để tính scale/opacity
+    // cùng lúc, vì đơn giản là không có view nào phía sau để lộ ra).
     function rubberBand(dx) {
       const sign = dx < 0 ? -1 : 1;
-      return sign * Math.sqrt(Math.abs(dx)) * 6; // *6 bù lại độ "phẳng" của sqrt ở khoảng dx nhỏ, giữ cảm giác di chuyển có thật ngay từ đầu cú kéo thay vì gần như đứng yên
+      return sign * Math.sqrt(Math.abs(dx)) * 6;
     }
 
     function dragMove(dx) {
       const wantTab = neighborTabFor(dx);
+      const currentEl = viewElByTab(currentTab);
+      // Bật absolute-stacking cho TOP CARD ngay từ lần dragMove ĐẦU
+      // TIÊN của cả lượt kéo (không phải mỗi frame — kiểm tra classList
+      // trước để chỉ set 1 lần, tránh reflow thừa mỗi pixel di chuyển).
+      // z-index cao hơn hẳn back card, đảm bảo LUÔN nổi trên nó dù thứ
+      // tự trong DOM là gì.
+      if (currentEl && !currentEl.classList.contains('view-stacking')) {
+        currentEl.classList.add('view-stacking');
+        currentEl.style.zIndex = '2';
+      }
       if (dragState.neighborTab !== wantTab) {
         // Đổi hướng kéo giữa chừng, hoặc lần đầu xác định hàng xóm —
-        // dọn hàng xóm CŨ (nếu có) rồi chuẩn bị hàng xóm MỚI.
+        // dọn hàng xóm CŨ (nếu có) rồi đặt hàng xóm MỚI vào đúng vị
+        // trí XUẤT PHÁT của back card (thu nhỏ + mờ, đứng yên ngay
+        // dưới top card, KHÔNG dịch translateX gì — khác hẳn bản cũ
+        // từng đặt hàng xóm ở "ngoài viewport bên cạnh").
         if (dragState.neighborEl) {
           dragState.neighborEl.style.display = 'none';
           dragState.neighborEl.style.transform = '';
           dragState.neighborEl.style.opacity = '';
-          dragState.neighborEl.style.boxShadow = '';
         }
         dragState.neighborTab = wantTab;
         dragState.neighborEl = wantTab ? viewElByTab(wantTab) : null;
-        if (dragState.neighborEl) dragState.neighborEl.style.display = 'block';
-        // Cập nhật CHỈ BÁO đang vuốt tới đâu — chỉ set lại khi ĐÍCH
-        // thực sự đổi (không phải mỗi frame kéo), vì wantTab chỉ đổi
-        // khi người dùng đảo hướng giữa chừng hoặc đã ở đầu/cuối danh
-        // sách tab (wantTab null → không có gì để hiện, ẩn hint đi).
+        if (dragState.neighborEl) {
+          dragState.neighborEl.classList.add('view-stacking');
+          dragState.neighborEl.style.zIndex = '1'; // THẤP HƠN top card (z-index 2, set ở trên) — back card luôn nằm DƯỚI dù thứ tự DOM ra sao
+          dragState.neighborEl.style.display = 'block';
+          dragState.neighborEl.style.transform = `scale(${STACK_SCALE_FROM})`;
+          dragState.neighborEl.style.opacity = `${STACK_OPACITY_FROM}`;
+        }
         if (wantTab) SwipeHint.show(`→ ${TAB_LABEL[wantTab]}`);
         else SwipeHint.hide();
       }
-      const currentEl = viewElByTab(currentTab);
 
       if (!wantTab) {
-        // ĐẦU/CUỐI danh sách — áp dụng hiệu ứng ĐÀN HỒI thay vì kéo
-        // tuyến tính bình thường, xem rubberBand() ở trên. Không có
-        // hàng xóm nào để mờ dần/trôi vào, chỉ chính view hiện tại co
-        // giãn nhẹ rồi tự bật lại khi thả tay (bật lại xử lý trong
-        // finishDrag, dùng chung logic transform:'' như đường thoát
-        // bình thường).
+        // ĐẦU/CUỐI danh sách — chỉ top card đàn hồi nhẹ, không có back
+        // card nào để tính toán thêm.
         if (currentEl) currentEl.style.transform = `translateX(${rubberBand(dx)}px)`;
         return;
       }
 
-      // ---- Có hàng xóm hợp lệ — hiệu ứng ĐẦY ĐỦ: trượt NGANG (như cũ)
-      // + MỜ DẦN (opacity) + BÓNG ĐỔ động, tạo cảm giác "2 lớp trang có
-      // chiều sâu trôi qua nhau" thay vì 2 tấm phẳng trượt cứng. ----
+      // ---- Có hàng xóm hợp lệ — TOP CARD trượt ngang + mờ dần; BACK
+      // CARD phóng to + rõ dần lên đúng theo % đã kéo. ----
       const vw = window.innerWidth;
-      const progress = Math.min(1, Math.abs(dx) / vw); // 0 → 1, tiến độ đã kéo qua hết chiều rộng màn hình
+      const progress = Math.min(1, Math.abs(dx) / (vw * 0.7)); // 0→1 đạt full ở 70% bề rộng màn hình — NGẮN HƠN bản "giọt lỏng" cũ (từng cần đủ 100% vw) vì stack card chỉ cần "lộ đủ rõ" để cảm nhận, không cần top card trôi hẳn ra khỏi màn hình mới tính là "đã lộ hết"
 
       currentEl.style.transform = `translateX(${dx}px)`;
-      // View ĐANG RỜI ĐI mờ dần từ 1 → 0.55 (không mờ hẳn về 0 — vẫn
-      // cần đọc được nội dung nếu người dùng đổi ý kéo ngược lại giữa
-      // chừng, mờ hẳn về 0 sẽ tạo cảm giác "biến mất" đột ngột khó
-      // chịu hơn là hữu ích).
-      currentEl.style.opacity = `${1 - progress * 0.45}`;
-      // Bóng đổ RÚT DẦN theo cạnh đang rời khỏi khung hình — mô phỏng
-      // trang đang "nhấc lên" khỏi trang bên dưới, đậm nhất lúc bắt
-      // đầu kéo (còn che phần lớn màn hình) và nhạt dần khi gần trôi
-      // hết (progress → 1, gần như phẳng lại với trang bên dưới).
-      const shadowSide = dx < 0 ? '-' : ''; // trượt trái → bóng đổ bên PHẢI (hướng ngược lại chiều trôi, mô phỏng ánh sáng chiếu từ trên xuống lúc "nhấc mép")
-      currentEl.style.boxShadow = `${shadowSide}${8 * (1 - progress)}px 0 ${20 * (1 - progress)}px rgba(var(--ink-rgb), ${0.18 * (1 - progress)})`;
+      // Top card mờ dần 1 → 0.5 khi trượt xa dần — mờ NHIỀU HƠN bản cũ
+      // (từng chỉ mờ tới 0.55 vì đó là view "hàng xóm sắp tới" xem
+      // ngang hàng; ở đây top card đang THỰC SỰ rời đi để lộ card
+      // dưới, mờ sâu hơn củng cố đúng cảm giác "đang biến mất dần").
+      currentEl.style.opacity = `${1 - progress * 0.5}`;
 
       if (dragState.neighborEl) {
-        // Hàng xóm luôn cách view hiện tại ĐÚNG 1 bề rộng viewport,
-        // cùng chiều với hướng kéo — tiến dần vào khung hình theo
-        // đúng % ngón tay đã đi, tạo cảm giác "2 trang trôi qua nhau".
-        const sign = dx < 0 ? 1 : -1;
-        dragState.neighborEl.style.transform = `translateX(${dx - sign * vw}px)`;
-        // View SẮP TỚI mờ dần từ 0.7 → 1 (đối xứng ngược lại view đang
-        // rời đi) — bắt đầu đã hiện mờ mờ (không phải 0 tuyệt đối) để
-        // người dùng thấy ngay có gì đó đang tới, rõ dần lên khi kéo
-        // gần hoàn tất.
-        dragState.neighborEl.style.opacity = `${0.7 + progress * 0.3}`;
+        // Back card phóng to dần từ STACK_SCALE_FROM → 1.0, rõ dần từ
+        // STACK_OPACITY_FROM → 1.0 — ĐÚNG cảm giác "thẻ dưới đang được
+        // kéo lên thành thẻ chính", không dịch chuyển translateX (nó
+        // đứng YÊN 1 chỗ, chỉ core lớn dần lên choán đúng vị trí top
+        // card để lại).
+        const scale = STACK_SCALE_FROM + (1 - STACK_SCALE_FROM) * progress;
+        const opacity = STACK_OPACITY_FROM + (1 - STACK_OPACITY_FROM) * progress;
+        dragState.neighborEl.style.transform = `scale(${scale})`;
+        dragState.neighborEl.style.opacity = `${opacity}`;
       }
     }
 
     // animated=true: "trôi nốt" bằng transition rồi dọn sạch transform/
-    // opacity/boxShadow/display khi xong, thay vì snap tức thì về vị
-    // trí cuối — dùng chung cho cả huỷ kéo (mọi view trôi VỀ vị trí
-    // gốc translateX(0), opacity(1), không bóng) lẫn hoàn tất đổi tab
-    // (view cũ trôi HẲN ra ngoài viewport, view mới trôi nốt tới đúng
-    // vị trí 0 — cả 2 đều chỉ là "còn 1 đoạn đường ngắn cần animate",
-    // không phải chạy lại animation từ đầu).
-    function finishDrag(animated) {
+    // opacity/display khi xong, thay vì snap tức thì — dùng chung cho
+    // cả huỷ kéo (top card trôi VỀ translateX(0)/opacity(1), back card
+    // thu lại về vị trí xuất phát rồi ẩn đi) lẫn hoàn tất đổi tab (top
+    // card CŨ tiếp tục trôi HẲN ra ngoài viewport theo ĐÚNG hướng đang
+    // kéo dở rồi mới ẩn — KHÔNG bật về translateX(0) giữa chừng, vì
+    // currentTab đã đổi trước khi hàm này chạy (xem onCommit), nên
+    // viewElByTab(currentTab) lúc này trả về BACK CARD chứ không còn
+    // là top card cũ nữa; back card trôi nốt lên scale(1)/opacity(1)
+    // để trở thành top card mới).
+    // committedDir: hướng đã COMMIT thật (1 | -1 | null) — null nghĩa
+    // là đang HUỶ kéo (cancel/settle không tới ngưỡng), mọi thứ trôi
+    // VỀ vị trí gốc; có giá trị nghĩa là đang HOÀN TẤT đổi tab, top
+    // card cũ cần trôi TIẾP ra ngoài theo đúng hướng đó.
+    function finishDrag(animated, committedDir) {
+      const outgoingEl = committedDir ? dragState.outgoingEl : null;
       [viewToday, viewYear, viewStats, viewTrash].forEach(el => {
-        const touched = el.style.transform !== '' || el.style.opacity !== '' || el.style.boxShadow !== '';
+        const touched = el.style.transform !== '' || el.style.opacity !== '';
         if (!touched) return;
+        const isOutgoing = el === outgoingEl;
         if (animated) {
-          el.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
-          const done = () => { el.style.transition = ''; el.removeEventListener('transitionend', done); if (el !== viewElByTab(currentTab)) el.style.display = 'none'; };
+          el.style.transition = 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1)';
+          const done = () => {
+            el.style.transition = '';
+            el.removeEventListener('transitionend', done);
+            // Gỡ absolute-stacking SAU KHI animation đã chạy xong hẳn —
+            // gỡ giữa lúc đang transition sẽ khiến phần tử nhảy khỏi vị
+            // trí absolute đột ngột (giật hình 1 khung hình cuối).
+            el.classList.remove('view-stacking');
+            el.style.zIndex = '';
+            // Dọn NỐT transform/opacity ở ĐÂY (sau khi display:none, nên
+            // không còn gì hiển thị để "giật hình") — kể cả cho
+            // outgoingEl. QUAN TRỌNG: outgoingEl vừa trôi ra ngoài xong,
+            // nếu KHÔNG dọn 2 giá trị này, lần sau chính el này quay lại
+            // làm current/neighbor (vd vuốt lùi lại), style "translateX(vw),
+            // opacity:0" CŨ vẫn còn nguyên trong inline style — dù object
+            // model coi nó "sạch" theo currentTab, ảnh chụp/DOM thật vẫn
+            // giữ giá trị cũ đó, hiện tượng đã bắt được qua test hồi quy
+            // (view-year mắc kẹt translateX(710px)/opacity:0 sau nhiều
+            // lượt vuốt qua lại — dù currentTab đã đúng, view vẫn "tàng
+            // hình" nếu có lúc nó trở thành current trở lại mà code khác
+            // quên set lại transform/opacity tường minh).
+            el.style.display = el !== viewElByTab(currentTab) ? 'none' : el.style.display;
+            el.style.transform = '';
+            el.style.opacity = '';
+          };
           el.addEventListener('transitionend', done);
-        } else if (el !== viewElByTab(currentTab)) {
-          el.style.display = 'none';
+          if (isOutgoing) {
+            // TRÔI TIẾP ra ngoài viewport theo đúng hướng đã kéo dở,
+            // KHÔNG về 0 — el này không còn là currentTab nữa (đã đổi
+            // ở onCommit trước khi gọi hàm này). done() ở trên sẽ dọn
+            // sạch nốt 2 giá trị này SAU KHI đã ẩn hẳn, không cần dọn
+            // ngay tại đây.
+            const vw = window.innerWidth;
+            el.style.transform = `translateX(${committedDir < 0 ? -vw : vw}px)`;
+            el.style.opacity = '0';
+            return;
+          }
+        } else if (!isOutgoing) {
+          el.classList.remove('view-stacking');
+          el.style.zIndex = '';
+          if (el !== viewElByTab(currentTab)) el.style.display = 'none';
         }
         el.style.transform = '';
         el.style.opacity = '';
-        el.style.boxShadow = '';
       });
       dragState.neighborTab = null;
       dragState.neighborEl = null;
+      dragState.outgoingEl = null;
     }
 
     SwipeNav.bind(document.body, {
@@ -394,12 +466,18 @@
       onDrag: dragMove,
       onCommit: (dir) => {
         // dir: -1 (kéo trái) | 1 (kéo phải). Hàng xóm ĐÃ ĐÚNG tab cần
-        // chuyển tới (dragState tự cập nhật liên tục trong dragMove) —
-        // chỉ cần chính thức hoá currentTab + render nội dung mới NGAY
-        // (không đợi animation kết thúc, để dữ liệu hiển thị luôn mới
-        // nhất) rồi để finishDrag() animate nốt phần transform còn lại.
+        // chuyển tới (dragState tự cập nhật liên tục trong dragMove).
         const wantTab = dragState.neighborTab;
         if (!wantTab) return; // đã ở đầu/cuối danh sách, không có hàng xóm để chuyển tới
+        // LƯU LẠI top card SẮP THÀNH "cũ" TRƯỚC KHI đổi currentTab —
+        // sau dòng currentTab = wantTab bên dưới, viewElByTab(currentTab)
+        // sẽ trỏ sang BACK CARD (giờ là current), không còn cách nào
+        // lấy lại đúng phần tử top card cũ nếu không lưu từ bây giờ.
+        // finishDrag() cần biết chính xác phần tử này để cho nó trôi
+        // TIẾP ra ngoài thay vì bật về 0 (xem finishDrag để biết lý do
+        // đầy đủ).
+        dragState.outgoingEl = viewElByTab(currentTab);
+        dragState.committedDir = dir;
         currentTab = wantTab;
         navToday.classList.toggle('active', currentTab === 'today');
         navYear.classList.toggle('active', currentTab === 'year');
@@ -410,8 +488,12 @@
         else if (currentTab === 'stats') StatsView.render(viewStats);
         else if (currentTab === 'trash') TrashView.render(viewTrash);
       },
-      onSettle: () => { finishDrag(true); SwipeHint.hide(); },
-      onCancel: () => { finishDrag(true); SwipeHint.hide(); }
+      onSettle: () => {
+        finishDrag(true, dragState.committedDir);
+        dragState.committedDir = null;
+        SwipeHint.hide();
+      },
+      onCancel: () => { finishDrag(true, null); SwipeHint.hide(); }
     });
 
     // Lăn chuột NGANG + phím mũi tên TRÁI/PHẢI để chuyển nhanh 4 tab

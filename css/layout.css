@@ -86,14 +86,36 @@
    Thùng rác) — Home to ở giữa — 3 icon phải (Làm tươi/Xuất dữ liệu/
    Đăng xuất). Không có nút đổi giao diện riêng — chức năng đó gộp vào
    nút Home qua 3 loại thao tác khác nhau (nhấn/giữ/đúp, xem app.js).
-   justify-content: space-between — với ĐÚNG 7 phần tử con cùng hàng,
-   khoảng cách đều nhau giữa các phần tử liền kề tự nhiên đẩy phần tử
-   THỨ 4 (Home, ở giữa danh sách 7) về đúng tâm hình học của cả hàng,
-   miễn 2 nhóm 3-icon hai bên có tổng độ rộng gần bằng nhau (ở đây các
-   icon cùng cỡ, luôn đúng). */
+   space-between (bản trước) SAI khi 2 nhóm 3-icon không đối xứng độ
+   rộng (icon Lịch 2 dòng chữ rộng hơn hẳn 2 icon đơn cạnh nó) — đo
+   thực tế Home lệch ~15px khỏi tâm. Bây giờ: mỗi 3-icon bọc trong 1
+   khối riêng (.tab-pill-side, xem dưới) với flex: 1 bằng nhau tuyệt
+   đối — 2 khối LUÔN chiếm đúng 1 nửa không gian còn lại sau khi trừ
+   Home, bất kể bên trong mỗi khối rộng hẹp ra sao, nên Home LUÔN đúng
+   tâm hình học. */
 .tab-pill-group-main {
-  justify-content: space-between;
   width: 100%;
+}
+
+/* 2 khối bọc 3-icon mỗi bên — flex: 1 bằng nhau ép cả 2 chiếm đúng
+   nửa-nửa không gian còn lại quanh Home (flex-shrink:0, xem dưới).
+   justify-content ngược hướng nhau: bên trái dồn về PHẢI (gần Home),
+   bên phải dồn về TRÁI (gần Home) — 2 cụm icon cùng "áp sát" Home ở
+   giữa, phần dư thừa (nếu 1 bên hẹp hơn bên kia) tự động dồn ra 2 mép
+   ngoài viên thuốc thay vì làm lệch tâm Home. */
+.tab-pill-side {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 2px;
+}
+
+.tab-pill-side-left {
+  justify-content: flex-end;
+}
+
+.tab-pill-side-right {
+  justify-content: flex-start;
 }
 
 /* Nút Home — trung tâm của thanh, TO HƠN 6 nút còn lại (kích thước +
@@ -160,11 +182,13 @@
   box-shadow: 0 1px 3px rgba(var(--ink-rgb), 0.08);
 }
 
-/* 3 nút tiện ích (Làm tươi/Xuất dữ liệu/Đăng xuất) — không dùng class
-   .tab-btn (khác 4 nút điều hướng chính), nên select bằng :not(.tab-btn)
-   để chỉ áp style trơn/nhỏ này đúng cho chúng, không đụng .tab-btn/
-   .tab-btn-home đã có style riêng ở trên. */
-.tab-pill-group-main > button:not(.tab-btn) {
+/* 3 nút tiện ích (Làm tươi/Xuất dữ liệu/Đăng xuất) — nằm trong
+   .tab-pill-side-right (không còn là con TRỰC TIẾP của
+   .tab-pill-group-main sau khi bọc 2 khối .tab-pill-side, nên bỏ
+   dấu ">" so với bản trước). Không dùng class .tab-btn (khác 4 nút
+   điều hướng chính), nên select bằng :not(.tab-btn) để chỉ áp style
+   trơn/nhỏ này đúng cho chúng. */
+.tab-pill-group-main button:not(.tab-btn) {
   border: none;
   background: transparent;
   color: var(--mute);
@@ -188,12 +212,12 @@
    không còn 2 tông tách biệt) khó đọc hơn trên nền quá tối so với
    trên --paper sáng. */
 .tab-btn-calendar-icon {
-  padding: 6px 10px;
+  padding: 6px 7px;
   border-radius: 999px;
   background: transparent;
   flex-direction: row;
   align-items: baseline;
-  gap: 5px;
+  gap: 3px;
   transition: background 0.15s ease;
 }
 
@@ -252,4 +276,23 @@
 @keyframes view-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Card stack lúc VUỐT TAY đổi tab (js/app.js dragMove/finishDrag) —
+   khác hẳn .view-fade-in ở trên (đó là cho click/wheel/phím, không
+   qua kéo tay). Gán/gỡ ĐỘNG bằng JS đúng lúc bắt đầu/kết thúc 1 lượt
+   kéo — KHÔNG gán cố định, vì absolute lấy view ra khỏi luồng
+   document, nếu để mãi #app sẽ mất chiều cao (không còn con nào trong
+   luồng bình thường để tính height, xem #app { position: relative }
+   trong css/base.css để biết containing block).
+   transform-origin: center — scale co giãn ĐỀU quanh tâm, không lệch
+   về 1 góc (mặc định top-left sẽ làm card "phình" lệch sang phải/dưới
+   khi scale lên, trông sai lệch không tự nhiên). */
+.view-stacking {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  transform-origin: center center;
+  will-change: transform, opacity;
 }
