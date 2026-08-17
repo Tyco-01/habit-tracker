@@ -44,7 +44,7 @@
   async function bootAfterLogin() {
     root.innerHTML = `
       <div class="tabs sticky-tabs" id="tab-bar-outer" tabindex="0" style="justify-content:center;">
-        <div class="tab-pill-group tab-pill-group-main" id="tab-pill-group">
+        <div class="tab-pill-group-main" id="tab-pill-group">
           <!-- Bọc 3 icon mỗi bên vào 1 khối flex:1 riêng, TỰ CANH VỀ
                PHÍA HOME (flex-end bên trái, flex-start bên phải) —
                ĐÂY LÀ CÁCH DUY NHẤT đảm bảo Home luôn đúng tâm hình học

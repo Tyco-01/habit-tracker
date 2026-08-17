@@ -16,18 +16,31 @@
   margin-bottom: 20px;
 }
 
-/* Thanh tab dính lại khi cuộn xuống, để luôn thao tác được ngay mà
-   không cần cuộn ngược lên đầu trang. Nền đục để chữ/nút bên dưới
-   không đè lên, có viền mờ phân tách nhẹ khi đang dính. */
+/* Thanh nav — THANH PHẲNG LIỀN MẠCH, không còn kiểu "viên thuốc nổi"
+   (bo tròn, lơ lửng cách mép màn hình) như bản trước. Full-width,
+   vuông vắn, dính sát 3 cạnh trên/trái/phải màn hình như navbar
+   truyền thống, viền dưới RÕ RÀNG phân tách hẳn với nội dung — thay
+   đổi thiết kế theo yêu cầu cụ thể sau khi "viên thuốc nổi" bị chê
+   nhìn "co cụm" giữa khoảng trắng lớn 2 bên trên desktop VÀ có hiện
+   tượng đường viền lạ xuất hiện (không tái hiện được qua test tự
+   động, nghi do đặc thù trình duyệt cụ thể) — thanh liền mạch giải
+   quyết cả 2 vấn đề: luôn full-width thật (không cần kỹ thuật full-
+   bleed phức tạp để "phá" giới hạn width của #app nữa), và viền dưới
+   giờ là CHỦ Đích thiết kế thay vì nghi vấn bug.
+   Dính lại khi cuộn xuống (position: sticky) để luôn thao tác được
+   ngay mà không cần cuộn ngược lên đầu trang. */
 .sticky-tabs {
   position: sticky;
   top: 0;
+  left: 50%;
   z-index: 20;
   background: var(--paper);
-  padding-top: 1.5rem;
+  border-bottom: 1px solid var(--line);
+  width: 100vw;
+  margin-left: -50vw;
   margin-top: -1.5rem;
-  padding-bottom: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 20px;
+  padding: 14px max(1.25rem, calc((100vw - 1100px) / 2));
 }
 
 /* Thanh tab CỐ ĐỊNH Ở ĐÁY màn hình — lựa chọn thay thế cho
@@ -38,6 +51,10 @@
    cho "luôn ở đáy màn hình". safe-area-inset-bottom cộng thêm cho
    thiết bị có home-indicator (iPhone không viền) — nếu không, thanh
    tab bị home-indicator che mất phần dưới cùng.
+   Cùng thiết kế PHẲNG LIỀN MẠCH như .sticky-tabs ở trên (không còn
+   max-width: 620px bó hẹp theo #app — full-width thật, viền TRÊN thay
+   vì dưới vì thanh này nằm ở đáy màn hình, phân tách với nội dung phía
+   TRÊN nó).
    #app's padding-bottom được tab-bar-position.js tự đo và set bằng
    đúng chiều cao thanh tab CỘNG margin — không hardcode ở đây vì
    chiều cao thật phụ thuộc nội dung (safe-area khác nhau theo thiết
@@ -50,11 +67,8 @@
   z-index: 20;
   background: var(--paper);
   border-top: 1px solid var(--line);
-  padding: 10px 1.25rem calc(10px + env(safe-area-inset-bottom, 0px));
+  padding: 10px max(1.25rem, calc((100vw - 1100px) / 2)) calc(10px + env(safe-area-inset-bottom, 0px));
   margin: 0;
-  max-width: 620px; /* khớp #app's width: min(100%, 620px) — thanh tab fixed không tự co theo #app (đã ra khỏi luồng layout của nó), phải tự giới hạn lại để không tràn rộng hơn nội dung trên màn hình lớn */
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .tab-btn {
@@ -82,40 +96,46 @@
   justify-content: center;
 }
 
-/* Viên thuốc DUY NHẤT bao TRỌN 7 nút: 3 icon trái (Lịch/Thống kê/
-   Thùng rác) — Home to ở giữa — 3 icon phải (Làm tươi/Xuất dữ liệu/
-   Đăng xuất). Không có nút đổi giao diện riêng — chức năng đó gộp vào
-   nút Home qua 3 loại thao tác khác nhau (nhấn/giữ/đúp, xem app.js).
-   space-between (bản trước) SAI khi 2 nhóm 3-icon không đối xứng độ
-   rộng (icon Lịch 2 dòng chữ rộng hơn hẳn 2 icon đơn cạnh nó) — đo
-   thực tế Home lệch ~15px khỏi tâm. Bây giờ: mỗi 3-icon bọc trong 1
-   khối riêng (.tab-pill-side, xem dưới) với flex: 1 bằng nhau tuyệt
-   đối — 2 khối LUÔN chiếm đúng 1 nửa không gian còn lại sau khi trừ
-   Home, bất kể bên trong mỗi khối rộng hẹp ra sao, nên Home LUÔN đúng
-   tâm hình học. */
+/* 7 nút trực tiếp trên thanh nav phẳng (không còn "viên thuốc" bọc
+   ngoài, xem .sticky-tabs ở trên đã tự đảm nhiệm vai trò khung/nền/
+   viền rồi — lồng thêm 1 lớp khung nữa ở đây sẽ nhìn rối, 2 tầng viền
+   chồng nhau): 3 icon trái (Lịch/Thống kê/Thùng rác) — Home to ở giữa
+   — 3 icon phải (Làm tươi/Xuất dữ liệu/Đăng xuất). Không có nút đổi
+   giao diện riêng — chức năng đó gộp vào nút Home qua 3 loại thao tác
+   khác nhau (nhấn/giữ/đúp, xem app.js).
+   Mỗi 3-icon bọc trong 1 khối riêng (.tab-pill-side, xem dưới) với
+   flex: 1 bằng nhau tuyệt đối — 2 khối LUÔN chiếm đúng 1 nửa không
+   gian còn lại sau khi trừ Home, bất kể bên trong mỗi khối rộng hẹp ra
+   sao, nên Home LUÔN đúng tâm hình học (space-between đơn thuần từng
+   SAI khi 2 nhóm 3-icon không đối xứng độ rộng — icon Lịch 2 dòng chữ
+   rộng hơn hẳn 2 icon đơn cạnh nó, đo thực tế Home từng lệch ~15px). */
 .tab-pill-group-main {
+  display: flex;
+  align-items: center;
   width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 /* 2 khối bọc 3-icon mỗi bên — flex: 1 bằng nhau ép cả 2 chiếm đúng
-   nửa-nửa không gian còn lại quanh Home (flex-shrink:0, xem dưới).
-   justify-content ngược hướng nhau: bên trái dồn về PHẢI (gần Home),
-   bên phải dồn về TRÁI (gần Home) — 2 cụm icon cùng "áp sát" Home ở
-   giữa, phần dư thừa (nếu 1 bên hẹp hơn bên kia) tự động dồn ra 2 mép
-   ngoài viên thuốc thay vì làm lệch tâm Home. */
+   nửa-nửa không gian còn lại quanh Home. space-around phân bổ khoảng
+   trống thừa ĐỀU giữa các icon (bao gồm cả 2 đầu) — icon tự dãn cách
+   xa nhau hơn khi thanh rộng ra, lấp đầy không gian thật sự thay vì
+   dồn hết ra 1 phía (flex-end/flex-start từng dùng sẽ dồn hết khoảng
+   trống ra rìa ngoài, icon vẫn dính sát nhau — đúng nguyên nhân "nhìn
+   co cụm" đã báo lại). */
 .tab-pill-side {
   display: flex;
   align-items: center;
   flex: 1;
-  gap: 2px;
 }
 
 .tab-pill-side-left {
-  justify-content: flex-end;
+  justify-content: space-around;
 }
 
 .tab-pill-side-right {
-  justify-content: flex-start;
+  justify-content: space-around;
 }
 
 /* Nút Home — trung tâm của thanh, TO HƠN 6 nút còn lại (kích thước +
@@ -152,36 +172,6 @@
   background: color-mix(in srgb, var(--ink) 55%, var(--card) 45%);
 }
 
-
-/* Viên "thuốc" bo tròn bao NGOÀI cả 4 nút điều hướng chính (Hôm nay/
-   Lịch/Thống kê/Thùng rác) — thay cho 4 nút rời trước đây, đồng bộ
-   cảm giác "segmented control" quen thuộc. Nền dùng --card (đậm hơn
-   --paper 1 chút) để tách khỏi nền trang; các nút con bên trong giữ
-   nguyên trong suốt, không tự vẽ nền riêng nữa — tránh lồng 2 lớp
-   khung/bo góc chồng lên nhau nhìn rối (xem .tab-btn-calendar-icon
-   bên dưới, phải bỏ nền/border riêng của icon Lịch vì lý do này). */
-.tab-pill-group {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background: var(--card);
-  /* border tint --ink 14% vào --line — border thuần var(--line) gần
-     như VÔ HÌNH trên dark mode (--card:#262220 và --line:#3A342E chỉ
-     chênh rất ít RGB, human eye khó phân biệt trên nền tối, đã báo
-     lại là "không hiện vòng bo bao quanh"). Cùng pattern đã dùng cho
-     .cal-switcher (css/views/year.css) — tint thêm --ink giúp viền
-     luôn đủ tương phản với nền ở CẢ 2 theme, không chỉ riêng light
-     mode nơi --line vốn đã đủ đậm để tự nó nổi lên. */
-  border: 1px solid color-mix(in srgb, var(--ink) 14%, var(--line) 86%);
-  border-radius: 999px;
-  padding: 4px;
-  /* Bóng đổ rất nhẹ — lớp phòng hờ THỨ 2 để tách khỏi nền, không phụ
-     thuộc HOÀN TOÀN vào viền tint ở trên (theme có thể được người
-     dùng tự chỉnh màu qua js/theme-editor-modal.js, không đảm bảo mọi
-     tổ hợp màu tự chọn đều giữ đủ tương phản chỉ nhờ viền). */
-  box-shadow: 0 1px 3px rgba(var(--ink-rgb), 0.08);
-}
-
 /* 3 nút tiện ích (Làm tươi/Xuất dữ liệu/Đăng xuất) — nằm trong
    .tab-pill-side-right (không còn là con TRỰC TIẾP của
    .tab-pill-group-main sau khi bọc 2 khối .tab-pill-side, nên bỏ
@@ -203,14 +193,12 @@
    trước làm icon này cao vọt hẳn so với 3 icon còn lại, nhìn lệch;
    bố cục ngang giữ chiều cao gần bằng các icon khác, chỉ rộng hơn 1
    chút theo chiều ngang).
-   KHÔNG còn tự vẽ nền/border riêng (đã bỏ khi gộp vào .tab-pill-group
-   ở trên — 2 lớp khung chồng nhau nhìn rối) — chỉ còn 1 nền TRÒN NHỎ
-   xuất hiện khi active, tương tự 3 nút còn lại, dùng --paper (sáng,
-   tương phản với --card của pill group) THAY VÌ --ink đặc như
-   .tab-btn.active — giữ nguyên lựa chọn --paper vì đổi hẳn sang nền
-   --ink đặc (tối) sẽ khiến chữ "T6 14" (giờ cùng màu --mute/--ink,
-   không còn 2 tông tách biệt) khó đọc hơn trên nền quá tối so với
-   trên --paper sáng. */
+   Không tự vẽ nền/border riêng khi bình thường — chỉ còn 1 nền TRÒN
+   NHỎ xuất hiện khi active, tương tự 3 nút còn lại, dùng --paper
+   (sáng) THAY VÌ --ink đặc như .tab-btn.active — giữ nguyên lựa chọn
+   --paper vì đổi hẳn sang nền --ink đặc (tối) sẽ khiến chữ "T6 14"
+   (giờ cùng màu --mute/--ink, không còn 2 tông tách biệt) khó đọc hơn
+   trên nền quá tối so với trên --paper sáng. */
 .tab-btn-calendar-icon {
   padding: 6px 7px;
   border-radius: 999px;
@@ -241,12 +229,7 @@
   font-weight: 700;
   line-height: 1;
   /* var(--danger) (đỏ/cam) — ĐIỂM NHẤN CÓ CHỦ ĐÍCH cho "Thứ", tách
-     biệt khỏi số ngày kế bên. Từng đổi sang var(--mute) đồng bộ 1 lần
-     (do phản hồi "lạc quẻ" khi đứng cạnh 3 icon trung tính khác trong
-     PILL RIÊNG của nó) — nhưng nay pill nav đã tái cấu trúc lại hoàn
-     toàn (xem css/layout.css .tab-pill-group-main, chỉ còn 1 icon
-     Home to ở giữa, không còn 3 icon xám cạnh nhau nữa để so màu), nên
-     khôi phục lại màu điểm nhấn theo yêu cầu mới nhất. */
+     biệt khỏi số ngày kế bên. */
   color: var(--danger);
   letter-spacing: 0.01em;
 }
