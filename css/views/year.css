@@ -60,84 +60,22 @@
   }
 }
 
-/* ---- BẢN CỘT DỌC — 4 nút Ngày/Tuần/Tháng/Năm xếp CHỒNG LÊN NHAU, nổi
-   CỐ ĐỊNH GIỮA MÀN HÌNH (cả 2 chiều ngang/dọc) bằng CSS thuần
-   (translate(-50%,-50%)), không cuộn theo nội dung, được PHÉP đè lên
-   nội dung lịch phía sau như 1 popup. Vuốt DỌC ngay trên cột này để
-   đổi mode (js/swipe-nav-vertical.js), tách biệt hoàn toàn khỏi cuộn
-   nội dung lịch bên cạnh (2 vùng DOM khác nhau, xem .cal-pane).
-   Hình dáng "KHẢM VÀO" — mỗi nút là 1 Ô RIÊNG BIỆT có viền/rãnh rõ
-   ràng (xem .cal-switch-btn bên dưới), khác hẳn kiểu "segmented
-   control" mềm mại thông thường (1 pill mờ trượt qua lại trên nền
-   phẳng) — theo yêu cầu cụ thể "như 4 cái lỗ cứng khảm vào", gợi cảm
-   giác công tắc/nút bấm cơ khí thay vì popup mềm nổi lửng lơ. */
-.cal-switcher-vertical {
-  flex-direction: column;
-  position: fixed;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 15; /* dưới .sticky-tabs (20) và .tab-bar-dragging (50) — không che nút điều hướng chính khi đang kéo nó; trên nội dung lịch thường (không có z-index riêng) */
-  width: fit-content;
-  gap: 6px; /* rộng hơn bản cũ (3px kế thừa từ .cal-switcher ngang) — mỗi ô giờ có viền RIÊNG (xem .cal-switch-btn), cần khoảng cách đủ rõ để 4 viền không dính chạm nhau trông rối */
-  padding: 8px;
-  /* touch-action:none — TRÁI VỚI pan-y của bản ngang cũ. Cột dọc nhỏ,
-     đứng CỐ ĐỊNH tại 1 chỗ, KHÔNG nằm trong luồng cuộn của trang (đã
-     position:fixed) — không có lý do gì để trình duyệt cần "cuộn dọc
-     xuyên qua" nó nữa, nhường TOÀN QUYỀN cử chỉ dọc bắt đầu từ đây cho
-     SwipeNavVertical, cùng lý do với touch-action:none của nút Home
-     (#nav-today, xem app.js) — 2 nhu cầu "kéo dọc ngay tại 1 điểm cụ
-     thể" giống hệt nhau về bản chất kỹ thuật dù mục đích khác nhau. */
-  touch-action: none;
-}
-
-/* .cal-switch-pill (pill nền trượt MỀM MẠI) — BỎ HẲN cho riêng bản
-   dọc (.cal-switcher-vertical), thay bằng style TRỰC TIẾP trên từng
-   .cal-switch-btn (xem bên dưới: mỗi ô tự có viền + nền lõm khi active,
-   không cần 1 khối pill riêng trượt qua lại animate transform nữa —
-   "khảm 4 lỗ cứng" có ý nghĩa MỖI VỊ TRÍ CỐ ĐỊNH RÕ RÀNG, không phải 1
-   khối di động qua lại giữa các vị trí đó). Selector này CHỈ ẩn pill
-   trong ngữ cảnh CỘT DỌC — bản ngang gốc (.cal-switcher không có
-   .cal-switcher-vertical, nếu còn dùng ở nơi khác) vẫn giữ pill trượt
-   bình thường. */
-.cal-switcher-vertical .cal-switch-pill {
-  display: none;
-}
-
+/* .cal-switch-pill: 1 khối nền ĐỘC LẬP, absolute, TRƯỢT mượt bằng
+   transform giữa các nút thay vì mỗi nút tự đổi background rời rạc. */
 .cal-switch-pill {
   position: absolute;
   /* inset: 0 — pill phủ ĐÚNG vùng nội dung bên trong padding của
-     .cal-switcher (padding-box), KHÔNG dùng toạ độ cố định 4px như
-     bản trước. Bản trước có top/left/bottom: 4px trong khi
-     .cal-switcher có padding: 5px — lệch 1px ở cả 4 phía, CỘNG THÊM
-     bug ở year.js: syncPillPosition() gán
-     transform: translateX(activeBtn.offsetLeft) — offsetLeft của nút
-     ĐÃ TÍNH THEO padding thật (~5px cho nút đầu), nhưng vì CSS gốc
-     của pill vẫn còn "left: 4px" làm điểm xuất phát, vị trí thực tế
-     sau transform = 4px (CSS) + 5px (JS translateX) = 9px, lệch hẳn
-     so với vị trí nút thật — đây chính là nguyên nhân "cụm Ngày/Tuần/
-     Tháng/Năm nhìn mất cân đối" (viền/khoảng cách 2 bên không đều).
-     inset: 0 loại bỏ hẳn toạ độ cố định ở CSS, để JS's translateX
-     (luôn tính từ gốc 0) là NGUỒN DUY NHẤT quyết định vị trí ngang —
-     không còn 2 giá trị cộng dồn lệch nhau. */
+     .cal-switcher (padding-box) — để JS's translateX (luôn tính từ
+     gốc 0 qua offsetLeft) là NGUỒN DUY NHẤT quyết định vị trí ngang,
+     không cộng dồn với toạ độ cố định nào khác khai ở CSS. */
   inset: 0;
   /* border-radius = 11px, KHÔNG PHẢI tuỳ ý — công thức chuẩn cho 2
      đường viền bo tròn LỒNG NHAU trông "đồng tâm" (nested rounded
-     corners): inner_radius = outer_radius - padding = 16 - 5 = 11.
-     Sai công thức này (vd cả 2 cùng 1 số, hoặc chênh lệch tuỳ ý) làm
-     2 đường cong không song song nhau — nhìn có cảm giác "lệch, không
-     cân" dù khoảng cách padding mọi phía đã đúng bằng nhau, đây chính
-     là điều gây khó chịu thẩm mỹ tinh vi mà mắt thường khó chỉ đích
-     danh ra nhưng vẫn cảm nhận được sự lệch lạc. */
+     corners): inner_radius = outer_radius - padding = 16 - 5 = 11. */
   border-radius: 11px;
   background: var(--ink);
   box-shadow: 0 2px 8px rgba(var(--ink-rgb), 0.22);
-  /* height thay cho width bản cũ — pill giờ trượt DỌC (translateY),
-     kích thước cần đổi theo là chiều CAO nút active, không phải chiều
-     rộng (mọi nút trong cột dọc đều rộng bằng nhau — chiều rộng
-     .cal-switcher tự co theo nhãn DÀI NHẤT trong 4 nhãn, width: fit-
-     content ở switcher cha lo việc đó, pill không cần tự set width). */
-  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
   will-change: transform;
   z-index: 0;
 }
@@ -149,47 +87,19 @@
 .cal-switch-btn {
   position: relative;
   z-index: 1;
+  border: none;
+  background: transparent;
   color: var(--mute);
   font-size: 13px;
   font-weight: 500;
   padding: 8px 17px;
+  border-radius: 10px;
   text-align: center;
-  transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
-  /* touch-action:none kế thừa từ .cal-switcher-vertical cha (đã set
-     none ở đó) — KHÔNG khai lại pan-y riêng như bản hàng ngang cũ. Bản
-     cũ cần pan-y ở đây vì switcher cha là position:relative/sticky
-     (nằm trong luồng cuộn dọc bình thường của trang, cần chừa đường
-     cuộn); switcher cha giờ position:fixed (đã tách khỏi luồng cuộn),
-     không còn xung đột đó nữa. */
-}
-
-/* ---- Style "KHẢM/KHẮC LÕM" riêng cho CỘT DỌC — mỗi nút là 1 Ô độc
-   lập có viền RÕ RÀNG (khác bản ngang gốc dùng chung pill mờ trượt
-   qua lại). border-radius NHỎ hơn switcher cha (8px so với 16px) —
-   mỗi ô là 1 khối con RIÊNG BIỆT bên trong khung lớn, không phải 1
-   pill kéo dài liền mạch theo cha. ---- */
-.cal-switcher-vertical .cal-switch-btn {
-  border: 1px solid color-mix(in srgb, var(--ink) 14%, var(--line) 86%);
-  border-radius: 8px;
-  background: var(--paper);
-}
-
-/* Trạng thái BÌNH THƯỜNG (không active) — nền --paper sáng nổi lên
-   trên nền --card tint của switcher cha, viền mờ rõ ràng nhưng không
-   nổi bật quá — đây là "cái lỗ rỗng" chưa được chọn. */
-
-/* Trạng thái ACTIVE — nền LÕM VÀO (box-shadow inset) thay vì nổi lên,
-   mô phỏng đúng cảm giác "khảm vào, ấn xuống" — khác hẳn kiểu "nút nổi
-   được tô đậm" thông thường. Viền đậm hơn hẳn (--ink thay vì tint nhẹ)
-   để phân biệt rõ ràng NGAY LẬP TỨC ô nào đang được chọn, không cần
-   nhìn kỹ mới nhận ra. */
-.cal-switcher-vertical .cal-switch-btn.active {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.25),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  transition: color 0.2s ease;
+  /* Chặn double-tap-to-zoom/ứng xử chạm mặc định của trình duyệt trên
+     mobile can thiệp vào cử chỉ vuốt của SwipeNav khi vuốt bắt đầu
+     ngay trên 1 nút — không đổi gì về mặt thị giác. */
+  touch-action: pan-y;
 }
 
 .cal-switch-btn.active {

@@ -111,7 +111,7 @@ const YearView = (() => {
     // (z-index thấp hơn) và đổi vị trí/kích thước bằng
     // syncPillPosition() mỗi khi mode đổi, xem hàm đó bên dưới.
     container.innerHTML = `
-      <div class="cal-switcher cal-switcher-vertical" role="tablist" aria-label="Chọn chế độ xem lịch">
+      <div class="cal-switcher" role="tablist" aria-label="Chọn chế độ xem lịch">
         <div class="cal-switch-pill" aria-hidden="true"></div>
         ${MODES.map(m => `<button class="cal-switch-btn ${m === mode ? 'active' : ''}" data-mode="${m}" role="tab" aria-selected="${m === mode}">${MODE_LABEL[m]}</button>`).join('')}
       </div>
@@ -123,18 +123,19 @@ const YearView = (() => {
     const content = container.querySelector('#year-content');
     let lastHtml = null; // xem giải thích ở EventSection.drawEvents(), cùng cơ chế — quan trọng hơn cả ở đây vì mode "year" build cả lưới 365 ô + vòng lặp đếm mỗi lần gọi, tốn kém hơn hẳn mode khác
 
-    // Đo lại vị trí/kích thước nút đang active THẬT SỰ (offsetTop/
-    // offsetHeight) rồi áp vào pill bằng transform TRỤC DỌC —
-    // .cal-switcher giờ là CỘT DỌC (4 nút chồng lên nhau, xem
-    // .cal-switcher-vertical trong CSS), nên pill trượt theo Y thay vì
-    // X như bản hàng ngang cũ. Không hardcode % theo index vì 4 nhãn
-    // "Ngày/Tuần/Tháng/Năm" có thể cao khác nhau tuỳ font-rendering.
+    // Đo lại vị trí/kích thước nút đang active THẬT SỰ (offsetLeft/
+    // offsetWidth) rồi áp vào pill bằng transform TRỤC NGANG — switcher
+    // giờ là HÀNG NGANG (4 nút dàn ngang, xem .cal-switcher trong CSS),
+    // gắn liền vào trang ngay dưới thanh nav chính (không còn nổi giữa
+    // màn hình như bản popup trước đó). Không hardcode % theo index vì
+    // 4 nhãn "Ngày/Tuần/Tháng/Năm" có thể rộng khác nhau tuỳ font-
+    // rendering.
     function syncPillPosition(withAnimation) {
       const activeBtn = switcher.querySelector('.cal-switch-btn.active');
       if (!activeBtn || !pill) return;
       if (!withAnimation) pill.classList.add('cal-switch-pill-no-anim');
-      pill.style.height = `${activeBtn.offsetHeight}px`;
-      pill.style.transform = `translateY(${activeBtn.offsetTop}px)`;
+      pill.style.width = `${activeBtn.offsetWidth}px`;
+      pill.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
       if (!withAnimation) {
         // eslint-disable-next-line no-unused-expressions
         pill.offsetHeight; // ép reflow đồng bộ
@@ -142,14 +143,17 @@ const YearView = (() => {
       }
     }
 
-    // Cột dọc Ngày/Tuần/Tháng/Năm nổi CỐ ĐỊNH GIỮA MÀN HÌNH (position:
-    // fixed, căn giữa bằng CSS thuần qua .cal-switcher-vertical), đè
-    // lên nội dung lịch phía sau như 1 popup — không cuộn theo trang.
+    // Switcher GẮN LIỀN vào luồng trang (không còn position:fixed nổi
+    // đè + backdrop như bản popup trước đó) — luôn hiện sẵn, ngay dưới
+    // thanh nav chính, đẩy nội dung lịch xuống khi có mặt (giống 1
+    // thanh tab con cố định). Đổi theo yêu cầu cụ thể sau khi thử
+    // nghiệm bản "nổi giữa màn hình" — quay về đúng vị trí/kiểu hiển
+    // thị gắn liền ban đầu.
 
-    // switchMode() tách riêng khỏi listener click — vuốt DỌC trên
-    // .cal-switcher (SwipeNavVertical.bind, gắn ở dưới cùng file) và
-    // nút bấm đều gọi chung 1 hàm này, tránh viết trùng logic đổi mode + animation
-    // pill + vẽ lại 2 nơi.
+    // switchMode() tách riêng khỏi listener click — vuốt NGANG trên
+    // .cal-switcher (SwipeNav.bind, gắn ở dưới cùng file) và nút bấm
+    // đều gọi chung 1 hàm này, tránh viết trùng logic đổi mode +
+    // animation pill + vẽ lại 2 nơi.
     function switchMode(newMode) {
       if (newMode === mode || !MODES.includes(newMode)) return;
       mode = newMode;
@@ -166,33 +170,25 @@ const YearView = (() => {
       btn.addEventListener('click', () => switchMode(btn.dataset.mode));
     });
 
-    // Vuốt DỌC TRÊN CHÍNH cột switcher (không phải trên vùng nội dung
-    // lịch bên cạnh — 2 vùng DOM tách biệt hoàn toàn, không đụng độ
-    // với việc cuộn xem tháng dài, xem .cal-switcher-vertical trong
-    // CSS: position:fixed, khoanh vùng RIÊNG bên trái màn hình): kéo
-    // XUỐNG = mode kế tiếp, kéo LÊN = mode trước đó, theo đúng thứ tự
-    // MODES (Ngày→Tuần→Tháng→Năm) — khớp cảm giác "cuộn xuống 1 danh
-    // sách dọc" tự nhiên hơn so với bản kéo ngang cũ.
-    //
-    // KHÔNG transform CHÍNH switcher trong lúc kéo bằng cách gán trực
-    // tiếp translateY lên .cal-switcher — switcher giờ position:fixed
-    // (không phải sticky nữa), animate pill bên trong đã đủ truyền đạt
-    // "đang đổi mode", không cần thêm hiệu ứng kéo-theo-tay ở bản thân
-    // khung ngoài.
-    SwipeNavVertical.bind(switcher, {
-      onLockVertical: () => {
+    // Vuốt NGANG TRÊN CHÍNH cụm switcher — trái = mode kế tiếp, phải =
+    // mode trước đó, theo đúng thứ tự MODES (Ngày→Tuần→Tháng→Năm).
+    // Bản thân việc đổi mode ĐÃ có animation mượt riêng qua pill trượt
+    // (syncPillPosition, dùng transition CSS) — không cần thêm hiệu
+    // ứng kéo-theo-tay ở switcher nữa, chỉ cần commit đúng lúc thả tay.
+    SwipeNav.bind(switcher, {
+      onLockHorizontal: () => {
         const idx = MODES.indexOf(mode);
         if (idx < MODES.length - 1) SwipeHint.show(MODE_LABEL[MODES[idx + 1]]);
       },
-      onDrag: (dy) => {
+      onDrag: (dx) => {
         const idx = MODES.indexOf(mode);
-        const nextIdx = dy > 0 ? idx + 1 : idx - 1;
+        const nextIdx = dx < 0 ? idx + 1 : idx - 1;
         if (nextIdx >= 0 && nextIdx < MODES.length) SwipeHint.show(MODE_LABEL[MODES[nextIdx]]);
-        else SwipeHint.hide(); // đã ở đầu/cuối (vd đang xem "Ngày" mà kéo lên) — không có đích, ẩn hint
+        else SwipeHint.hide(); // đã ở đầu/cuối (vd đang xem "Ngày" mà kéo phải) — không có đích, ẩn hint
       },
       onCommit: (dir) => {
         const idx = MODES.indexOf(mode);
-        const nextIdx = dir === 1 ? idx + 1 : idx - 1;
+        const nextIdx = dir === -1 ? idx + 1 : idx - 1;
         if (nextIdx >= 0 && nextIdx < MODES.length) switchMode(MODES[nextIdx]);
       },
       onSettle: () => SwipeHint.hide(),

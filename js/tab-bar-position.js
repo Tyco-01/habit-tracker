@@ -90,11 +90,29 @@ const TabBarPosition = (() => {
   // Home có cử chỉ dọc RIÊNG của chính nó, xem theme-quick-picker.js).
   // Chỉ khoảng TRỐNG giữa/xung quanh các nút mới kích hoạt kéo cả
   // thanh.
+  //
+  // HIỆU ỨNG "GHOST CLONE" — mô phỏng ĐÚNG cảm giác kéo-thả sắp xếp
+  // habit (js/views/today.js: draggable="true" HTML5 DnD, xem
+  // css/views/today.css .habit-row.dragging) theo yêu cầu cụ thể: bản
+  // GỐC đứng YÊN tại chỗ trong lúc kéo, chỉ đổi diện mạo (mờ đi + viền
+  // nét đứt, xem .tab-bar-drag-source trong CSS) — KHÔNG dùng
+  // position:fixed di chuyển CHÍNH tabsEl như bản trước (đó là
+  // nguyên nhân bản trước để lại "khoảng trống hoàn toàn, không có gì
+  // đứng đó cả" khi đang kéo, khác hẳn cảm giác habit). Bản THẬT SỰ
+  // bám theo tay là 1 CLONE riêng (ghostEl) — tạo mới lúc beginDrag(),
+  // absolute/fixed theo viewport, xoá hẳn lúc kết thúc lượt kéo.
+  // KHÔNG dùng HTML5 Drag and Drop API thật (draggable="true") như bên
+  // habit — API đó CHỈ hoạt động với chuột trên desktop, hoàn toàn vô
+  // dụng trên cảm ứng/mobile (đã xác nhận từ đợt sửa trước "kéo-giữ
+  // khó dùng trên web" — vấn đề ngược lại, thiếu hỗ trợ CHUỘT, ở đây
+  // là vấn đề thiếu hỗ trợ TOUCH nếu dùng draggable thật). Tự vẽ ghost
+  // bằng JS thuần đảm bảo hoạt động đồng nhất trên CẢ 2 loại input.
   function bind(tabsEl, onChange) {
     let timer = null;
     let dragging = false;
     let startX = 0, startY = 0;
-    let startTop = 0; // vị trí Y ban đầu của thanh trên màn hình lúc bắt đầu kéo — dùng để tính offset kéo
+    let startTop = 0, startLeft = 0; // vị trí ban đầu của tabsEl trên màn hình lúc bắt đầu kéo — dùng để tính offset kéo VÀ vị trí xuất phát của ghost
+    let ghostEl = null;
 
     function shouldIgnore(target) {
       return !!target.closest('button');
@@ -118,18 +136,31 @@ const TabBarPosition = (() => {
       dragging = true;
       const rect = tabsEl.getBoundingClientRect();
       startTop = rect.top;
+      startLeft = rect.left;
       tabsEl.classList.remove('is-long-pressing');
-      tabsEl.classList.add('tab-bar-dragging');
-      // Khoá vị trí hiện tại bằng position:fixed ngay tại toạ độ đang
-      // đứng, để tránh "giật" 1 khung hình khi lớp CSS sticky/fixed cũ
-      // vẫn còn tác động trong lúc bắt đầu kéo.
-      tabsEl.style.position = 'fixed';
-      tabsEl.style.left = `${tabsEl.getBoundingClientRect().left}px`;
-      tabsEl.style.top = `${startTop}px`;
-      tabsEl.style.right = 'auto';
-      tabsEl.style.bottom = 'auto';
-      tabsEl.style.margin = '0';
-      tabsEl.style.zIndex = '50';
+      // Bản GỐC đứng yên, chỉ đổi diện mạo — mờ đi + viền nét đứt,
+      // đúng cảm giác .habit-row.dragging (css/views/today.css).
+      // KHÔNG set position:fixed/transform gì lên chính tabsEl nữa.
+      tabsEl.classList.add('tab-bar-drag-source');
+
+      // Tạo GHOST CLONE — bản THẬT SỰ bám theo tay, đứng NGOÀI luồng
+      // layout (position: fixed), nhân bản visually y hệt tabsEl thật
+      // (dùng cloneNode(true) — copy cả nội dung 7 icon bên trong,
+      // không phải 1 khung trống) tại ĐÚNG vị trí xuất phát của bản
+      // gốc, để không có cú "nhảy" nào giữa lúc bắt đầu kéo.
+      ghostEl = tabsEl.cloneNode(true);
+      ghostEl.removeAttribute('id'); // tránh 2 phần tử trùng ID cùng lúc tồn tại trong DOM (tabsEl thật + ghost) — vi phạm HTML hợp lệ, có thể gây querySelector('#id') nhầm trúng ghost
+      ghostEl.classList.add('tab-bar-drag-ghost');
+      ghostEl.classList.remove('sticky-tabs', 'sticky-tabs-bottom', 'tab-bar-drag-source', 'is-long-pressing');
+      ghostEl.style.position = 'fixed';
+      ghostEl.style.left = `${startLeft}px`;
+      ghostEl.style.top = `${startTop}px`;
+      ghostEl.style.width = `${rect.width}px`;
+      ghostEl.style.margin = '0';
+      ghostEl.style.zIndex = '50';
+      ghostEl.style.pointerEvents = 'none'; // ghost chỉ để NHÌN — mọi sự kiện chạm/chuột tiếp theo vẫn phải xuyên qua nó để tới đúng document (nơi onMouseMove/touchmove đang lắng nghe), không bị ghost chặn ngang
+      document.body.appendChild(ghostEl);
+
       if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
     }
 
@@ -141,7 +172,7 @@ const TabBarPosition = (() => {
       startX = x;
       startY = y;
       clearTimer();
-      tabsEl.classList.add('is-long-pressing'); // phản hồi NHẸ ngay khi bắt đầu, nâng lên RÕ (tab-bar-dragging) khi đủ HOLD_MS
+      tabsEl.classList.add('is-long-pressing'); // phản hồi NHẸ ngay khi bắt đầu, nâng lên RÕ (tab-bar-drag-source + ghost) khi đủ HOLD_MS
       timer = setTimeout(beginDrag, HOLD_MS);
       return true;
     }
@@ -157,84 +188,59 @@ const TabBarPosition = (() => {
         }
         return;
       }
-      // Đang kéo thật — chặn cuộn/chọn text mặc định, theo sát toạ độ
-      // theo TRỤC DỌC (bám đúng Y hiện tại trừ đi khoảng lệch ban đầu
-      // giữa điểm bắt đầu và mép trên của thanh, để thanh không "nhảy
-      // cóc" về đúng dưới con trỏ ngay khung hình đầu, mà giữ nguyên
-      // độ lệch ban đầu lúc bắt đầu).
+      // Đang kéo thật — chặn cuộn/chọn text mặc định, di chuyển GHOST
+      // (không phải tabsEl gốc) theo sát toạ độ theo TRỤC DỌC (bám
+      // đúng Y hiện tại trừ đi khoảng lệch ban đầu giữa điểm bắt đầu
+      // và mép trên của thanh, để ghost không "nhảy cóc" về đúng dưới
+      // con trỏ ngay khung hình đầu, mà giữ nguyên độ lệch ban đầu).
       if (preventDefault) preventDefault();
+      if (!ghostEl) return;
       const offsetInBar = startY - startTop;
       let newTop = y - offsetInBar;
-      const maxTop = window.innerHeight - tabsEl.offsetHeight;
+      const maxTop = window.innerHeight - ghostEl.offsetHeight;
       newTop = Math.max(0, Math.min(newTop, maxTop));
-      tabsEl.style.top = `${newTop}px`;
+      ghostEl.style.top = `${newTop}px`;
+    }
+
+    // Dọn sạch ghost + diện mạo "nguồn đang kéo" của bản gốc — dùng
+    // chung cho cả 2 đường thoát (commit hợp lệ / huỷ giữa chừng),
+    // luôn gọi ngay khi biết CHẮC CHẮN lượt kéo đã hoàn toàn kết thúc.
+    function cleanupGhost() {
+      if (ghostEl) {
+        ghostEl.remove();
+        ghostEl = null;
+      }
+      tabsEl.classList.remove('tab-bar-drag-source');
     }
 
     function handleEnd() {
       cancelPending();
       if (!dragging) return;
       dragging = false;
-      tabsEl.classList.remove('tab-bar-dragging');
 
-      // Quyết định "top" hay "bottom" theo vị trí TRUNG ĐIỂM thanh so
+      // Quyết định "top" hay "bottom" theo vị trí TRUNG ĐIỂM GHOST so
       // với nửa trên/dưới màn hình lúc buông — trực quan hơn so với
       // chỉ so điểm chạm/con trỏ, vì người dùng cảm nhận theo cả khối
-      // thanh đang trôi tới đâu, không chỉ 1 điểm.
-      const rect = tabsEl.getBoundingClientRect();
+      // ghost đang trôi tới đâu, không chỉ 1 điểm.
+      const rect = ghostEl ? ghostEl.getBoundingClientRect() : tabsEl.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
       const chosen = midY < window.innerHeight / 2 ? 'top' : 'bottom';
       const changed = chosen !== get();
       set(chosen);
-
-      // "Bay nốt" về đúng vị trí neo cuối cùng (top:0 dính đỉnh, hoặc
-      // đáy màn hình) bằng transition, rồi dọn sạch style tạm để
-      // apply() (class sticky-tabs/sticky-tabs-bottom trong CSS) tiếp
-      // quản vị trí lâu dài.
-      const targetTop = chosen === 'top' ? 0 : window.innerHeight - tabsEl.offsetHeight;
-      tabsEl.style.transition = 'top 0.28s cubic-bezier(0.16, 1, 0.3, 1)';
-      tabsEl.style.top = `${targetTop}px`;
-
-      const cleanup = () => {
-        tabsEl.style.transition = '';
-        tabsEl.style.position = '';
-        tabsEl.style.left = '';
-        tabsEl.style.top = '';
-        tabsEl.style.right = '';
-        tabsEl.style.bottom = '';
-        tabsEl.style.margin = '';
-        tabsEl.style.zIndex = '';
-        apply(tabsEl);
-        if (changed && navigator.vibrate) { try { navigator.vibrate(14); } catch (e) {} }
-        if (changed && typeof onChange === 'function') onChange(chosen);
-        tabsEl.removeEventListener('transitionend', cleanup);
-      };
-      tabsEl.addEventListener('transitionend', cleanup);
+      apply(tabsEl); // đổi diện mạo THẬT (sticky-tabs / sticky-tabs-bottom) NGAY LẬP TỨC trên tabsEl gốc — nó vẫn đứng nguyên vị trí cũ suốt lúc kéo, giờ mới thật sự "nhảy" sang vị trí mới, đồng thời với việc ghost biến mất
+      cleanupGhost();
+      if (changed && navigator.vibrate) { try { navigator.vibrate(14); } catch (e) {} }
+      if (changed && typeof onChange === 'function') onChange(chosen);
     }
 
     function handleCancel() {
       cancelPending();
       if (!dragging) return;
       dragging = false;
-      tabsEl.classList.remove('tab-bar-dragging');
-      // Huỷ giữa chừng — trôi VỀ vị trí đã lưu trước đó (không đổi
-      // gì), không để thanh kẹt lại giữa màn hình.
-      const pos = get();
-      const targetTop = pos === 'top' ? 0 : window.innerHeight - tabsEl.offsetHeight;
-      tabsEl.style.transition = 'top 0.28s cubic-bezier(0.16, 1, 0.3, 1)';
-      tabsEl.style.top = `${targetTop}px`;
-      const cleanup = () => {
-        tabsEl.style.transition = '';
-        tabsEl.style.position = '';
-        tabsEl.style.left = '';
-        tabsEl.style.top = '';
-        tabsEl.style.right = '';
-        tabsEl.style.bottom = '';
-        tabsEl.style.margin = '';
-        tabsEl.style.zIndex = '';
-        apply(tabsEl);
-        tabsEl.removeEventListener('transitionend', cleanup);
-      };
-      tabsEl.addEventListener('transitionend', cleanup);
+      // Huỷ giữa chừng — không đổi gì, chỉ dọn ghost + trả bản gốc về
+      // diện mạo bình thường (nó chưa từng rời khỏi vị trí cũ, không
+      // cần animate "bay về" gì cả).
+      cleanupGhost();
     }
 
     // ---- Adapter TOUCH — chuyển touch event → gọi phần lõi chung ----

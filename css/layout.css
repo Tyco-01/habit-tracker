@@ -293,20 +293,6 @@
   border-radius: 16px;
 }
 
-/* .cal-switcher-vertical dùng position:fixed + z-index riêng (xem
-   css/views/year.css) — khi #view-year là BACK CARD (opacity/scale
-   giảm qua .view-stack-back ở trên), switcher KHÔNG kế thừa độ mờ đó
-   giống phần còn lại của card (khác biệt hành vi giữa layer thường và
-   layer fixed có z-index riêng của chính nó, đã xác nhận qua ảnh chụp
-   thật: nội dung lịch mờ hẳn nhưng switcher vẫn sắc nét 100%) — ẩn hẳn
-   nó đi trong lúc là back card, vì lúc này người dùng chỉ cần THẤY
-   PREVIEW nội dung phía sau, không cần bấm/tương tác gì với switcher
-   khi thẻ còn đang ở trạng thái "chờ", nó sẽ tự hiện lại khi thẻ này
-   trở thành current thật (view-stack-back gỡ đi, xem app.js finishDrag). */
-.view-stack-back .cal-switcher-vertical {
-  display: none;
-}
-
 /* Nền "bàn xếp thẻ" — tint tối hơn --paper 1 chút, CHỈ hiện khi đang
    trong lúc kéo/animate card stack (gán/gỡ động qua JS trên #app,
    xem app.js). Không có lớp nền này, top/back card cùng dùng chung 1

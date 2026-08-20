@@ -25,7 +25,7 @@ const ThemeQuickPicker = (() => {
   const HOLD_MS = 400; // ngắn hơn LongPress.DURATION_MS (500ms) một chút — đây là lối tắt hay dùng lặp lại nên phản hồi nhanh hơn 1 nhịp so với long-press "khám phá" (mở sheet xem ngày)
   const MOVE_TOLERANCE = 8; // di chuyển quá mốc này TRƯỚC khi đủ HOLD_MS coi như đang định cuộn/kéo gì khác, không phải định giữ yên chờ bảng hiện ra
 
-  const MODES = ['system', 'light', 'dark'];
+  const MODES = ['light', 'system', 'dark']; // thứ tự hiển thị: Sáng - Theo hệ thống - Tối (yêu cầu cụ thể, khác thứ tự MODES trong theme-editor-modal.js — 2 nơi không bắt buộc phải đồng bộ vì đây là 2 UI độc lập, bảng đầy đủ giữ thứ tự gốc)
 
   let panelEl = null;
   let onChangeCallback = null;

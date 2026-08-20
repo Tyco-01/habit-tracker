@@ -18,29 +18,34 @@
   transform: scale(0.985);
 }
 
-/* Giai đoạn ĐANG KÉO THẬT (đã bứt khỏi vị trí neo, theo ngón tay) —
-   hiệu ứng RÕ RÀNG hơn nhiều so với is-long-pressing, để không thể
-   nhầm "mình đang kéo được rồi" với "mình mới chỉ đang giữ chờ":
-     - Nhấc lên nhẹ + nghiêng phối cảnh (scale to hơn viền gốc 1 chút,
-       không phải nhỏ lại) — cảm giác thanh đang "nổi" khỏi mặt trang.
-     - Bóng đổ đậm hẳn (khác bóng mờ tĩnh bình thường của thanh) —
-       khẳng định thị giác "đang trôi tự do", không dính cứng vào layout.
-     - Độ mờ nhẹ (opacity 0.94) — 1 tín hiệu phụ tinh tế, không che mất
-       nội dung bên trong thanh, người dùng vẫn đọc rõ đang cầm cái gì. */
-.tab-bar-dragging {
-  transition: none; /* khi đang kéo, top phải bám NGAY theo tay mỗi khung hình — không có transition nào chen vào, transition chỉ bật lại lúc "bay nốt" sau khi thả tay, xem js/tab-bar-position.js */
-  transform: scale(1.03);
-  opacity: 0.94;
-  box-shadow: 0 14px 32px rgba(var(--ink-rgb), 0.28), 0 4px 12px rgba(var(--ink-rgb), 0.16);
-  cursor: grabbing;
+/* Giai đoạn ĐANG KÉO THẬT — 2 phần tử riêng biệt, mô phỏng ĐÚNG cảm
+   giác kéo-thả sắp xếp habit (css/views/today.css .habit-row.dragging)
+   theo yêu cầu cụ thể, THAY THẾ hẳn cách cũ (di chuyển CHÍNH thanh
+   bằng position:fixed, để lại khoảng trống hoàn toàn tại vị trí gốc —
+   khác hẳn cảm giác habit, nơi item gốc vẫn đứng yên chỉ mờ đi):
+
+   .tab-bar-drag-source — BẢN GỐC, đứng YÊN tại đúng vị trí cũ trong
+   layout suốt lúc kéo (không set position/transform gì cả) — chỉ mờ
+   đi (opacity 0.4, khớp CHÍNH XÁC giá trị .habit-row.dragging) + viền
+   nét đứt để đánh dấu rõ "đây là chỗ vừa được nhấc lên", đúng ý ảnh
+   minh hoạ đã cung cấp. */
+.tab-bar-drag-source {
+  opacity: 0.4;
+  outline: 1.5px dashed var(--ink);
+  outline-offset: -2px;
 }
 
-/* Lúc đang kéo, giữ nguyên nền var(--paper) đục (không trong suốt) dù
-   thanh đang NỔI TỰ DO qua position:fixed do JS set trực tiếp — để
-   chữ/icon bên trong luôn đọc rõ khi trôi qua nội dung bên dưới. */
-.tab-bar-dragging.sticky-tabs,
-.tab-bar-dragging.sticky-tabs-bottom {
-  background: var(--paper);
+/* .tab-bar-drag-ghost — BẢN CLONE thật sự bám theo tay (position:
+   fixed do JS set trực tiếp, xem js/tab-bar-position.js beginDrag()).
+   Rõ nét, đậm hẳn — đối lập với bản gốc đang mờ — để không nhầm lẫn
+   "đâu là bản sắp thả xuống". Bóng đổ + scale nhẹ tạo cảm giác "đang
+   nổi khỏi mặt trang", cùng tinh thần .tab-bar-dragging cũ (đã xoá)
+   nhưng giờ áp cho GHOST thay vì chính thanh gốc. */
+.tab-bar-drag-ghost {
+  transform: scale(1.03);
+  box-shadow: 0 14px 32px rgba(var(--ink-rgb), 0.28), 0 4px 12px rgba(var(--ink-rgb), 0.16);
+  cursor: grabbing;
+  background: var(--paper) !important; /* ép nền đục dù ghost được clone từ .sticky-tabs/.sticky-tabs-bottom (đã bị gỡ class ở JS, nhưng phòng hờ theme tuỳ chỉnh có nền trong suốt riêng) — chữ/icon bên trong luôn đọc rõ khi ghost trôi qua nội dung phía dưới */
 }
 
 /* .tab-bar-quick-menu ĐÃ BỎ HẲN — bản trước dùng menu này cho chuột

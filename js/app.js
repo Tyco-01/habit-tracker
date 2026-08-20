@@ -59,15 +59,15 @@
                quả đo thực tế: Home lệch ~15px khỏi tâm (đã xác nhận
                bằng ảnh chụp + đo pixel thật, không phải suy đoán). -->
           <div class="tab-pill-side tab-pill-side-left">
-            <button class="tab-btn tab-btn-icon tab-btn-calendar-icon" id="nav-year" aria-label="Lịch" title="Lịch">
-              <span class="cal-icon-weekday" id="nav-cal-weekday"></span>
-              <span class="cal-icon-daynum" id="nav-cal-daynum"></span>
+            <button class="tab-btn tab-btn-icon" id="nav-trash" aria-label="Thùng rác" title="Thùng rác">
+              <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
             </button>
             <button class="tab-btn tab-btn-icon" id="nav-stats" aria-label="Thống kê" title="Thống kê">
               <i class="ti ti-chart-bar" style="font-size:16px;" aria-hidden="true"></i>
             </button>
-            <button class="tab-btn tab-btn-icon" id="nav-trash" aria-label="Thùng rác" title="Thùng rác">
-              <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
+            <button class="tab-btn tab-btn-icon tab-btn-calendar-icon" id="nav-year" aria-label="Lịch" title="Lịch">
+              <span class="cal-icon-weekday" id="nav-cal-weekday"></span>
+              <span class="cal-icon-daynum" id="nav-cal-daynum"></span>
             </button>
           </div>
           <!-- Home — TRUNG TÂM của thanh, to hơn 3 nút thường (xem
@@ -568,7 +568,8 @@
     }
     function target_isIgnored(target) {
       // Không cướp lăn ngang khi đang ở trên chính switcher Lịch (nó
-      // có cơ chế lăn/kéo DỌC riêng của nó, xem SwipeNavVertical) hoặc
+      // có cơ chế vuốt ngang RIÊNG của chính nó để đổi mode Ngày/Tuần/
+      // Tháng/Năm, xem SwipeNav.bind(switcher) trong year.js) hoặc
       // trên thanh tab chính (đang dùng lăn dọc để đổi top/bottom, xem
       // TabBarPosition.onWheel — 1 sự kiện wheel không nên bị CẢ 2 nơi
       // cùng xử lý).
