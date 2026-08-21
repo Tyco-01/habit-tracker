@@ -32,15 +32,21 @@
 .cal-switcher {
   position: relative;
   display: flex;
-  gap: 3px;
+  /* Rộng hơn bản trước (3px) — mỗi nút giờ có viền RIÊNG (xem
+     .cal-switch-btn bên dưới), cần khoảng cách đủ rõ để 4 viền không
+     dính chạm nhau trông rối, theo yêu cầu "mỗi ô có khung/viền riêng
+     rõ ràng" thay vì chỉ pill đen trượt qua lại trên nền phẳng. */
+  gap: 6px;
   /* Tint nhẹ --ink (6%) vào nền --card (94%) — tạo đủ độ tương phản
      với nền --paper mà không cần opacity/border dựa trên --card/--line
      (2 biến đó gần trùng --paper, xem giải thích ở trên). */
   background: color-mix(in srgb, var(--ink) 6%, var(--card) 94%);
   border: 1px solid color-mix(in srgb, var(--ink) 12%, var(--line) 88%);
   border-radius: 16px;
-  padding: 5px;
+  padding: 6px;
   margin-bottom: 22px;
+  margin-left: auto;
+  margin-right: auto;
   width: fit-content;
   box-shadow:
     0 2px 6px rgba(var(--ink-rgb), 0.10),
@@ -60,50 +66,47 @@
   }
 }
 
-/* .cal-switch-pill: 1 khối nền ĐỘC LẬP, absolute, TRƯỢT mượt bằng
-   transform giữa các nút thay vì mỗi nút tự đổi background rời rạc. */
+/* .cal-switch-pill — ẨN HẲN theo yêu cầu mới: mỗi nút giờ tự có
+   viền/nền RIÊNG BIỆT rõ ràng (xem .cal-switch-btn bên dưới), không
+   cần 1 khối pill trượt mượt qua lại trên nền phẳng nữa — "khảm 4 ô"
+   có ý nghĩa MỖI VỊ TRÍ CỐ ĐỊNH TỰ CÓ KHUNG RIÊNG, không phải 1 khối
+   di động qua lại giữa các vị trí. year.js vẫn gọi syncPillPosition()
+   bình thường (không sửa JS) — hàm đó chỉ set style lên 1 phần tử
+   display:none, không gây lỗi, chỉ đơn giản là vô nghĩa về thị giác. */
 .cal-switch-pill {
-  position: absolute;
-  /* inset: 0 — pill phủ ĐÚNG vùng nội dung bên trong padding của
-     .cal-switcher (padding-box) — để JS's translateX (luôn tính từ
-     gốc 0 qua offsetLeft) là NGUỒN DUY NHẤT quyết định vị trí ngang,
-     không cộng dồn với toạ độ cố định nào khác khai ở CSS. */
-  inset: 0;
-  /* border-radius = 11px, KHÔNG PHẢI tuỳ ý — công thức chuẩn cho 2
-     đường viền bo tròn LỒNG NHAU trông "đồng tâm" (nested rounded
-     corners): inner_radius = outer_radius - padding = 16 - 5 = 11. */
-  border-radius: 11px;
-  background: var(--ink);
-  box-shadow: 0 2px 8px rgba(var(--ink-rgb), 0.22);
-  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
-  will-change: transform;
-  z-index: 0;
-}
-
-.cal-switch-pill-no-anim {
-  transition: none !important;
+  display: none;
 }
 
 .cal-switch-btn {
   position: relative;
   z-index: 1;
-  border: none;
-  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, var(--line) 86%);
+  background: var(--paper);
   color: var(--mute);
   font-size: 13px;
   font-weight: 500;
   padding: 8px 17px;
   border-radius: 10px;
   text-align: center;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   /* Chặn double-tap-to-zoom/ứng xử chạm mặc định của trình duyệt trên
      mobile can thiệp vào cử chỉ vuốt của SwipeNav khi vuốt bắt đầu
      ngay trên 1 nút — không đổi gì về mặt thị giác. */
   touch-action: pan-y;
 }
 
+/* Trạng thái ACTIVE — nền LÕM VÀO (box-shadow inset) mô phỏng cảm
+   giác "đang được nhấn xuống", khác hẳn kiểu "nút nổi được tô đậm"
+   thông thường — cùng ngôn ngữ thiết kế đã dùng cho bản dọc trước đây,
+   giờ áp dụng lại cho bản ngang theo đúng ảnh mẫu đã cung cấp ("Ngày"
+   nền đen, 3 ô còn lại viền nhạt trung tính). */
 .cal-switch-btn.active {
+  background: var(--ink);
+  border-color: var(--ink);
   color: var(--paper);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.25),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .cal-switch-btn:active {
@@ -296,6 +299,7 @@
   color: var(--ink);
   margin: 0 0 9px;
   white-space: nowrap;
+  text-align: center; /* canh GIữA mỗi khối tháng — trước đây mặc định canh trái (không set gì), đã báo lại "dồn qua góc trái" */
 }
 
 .weekday-row {
