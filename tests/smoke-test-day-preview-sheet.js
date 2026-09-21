@@ -97,8 +97,11 @@ check('day-cell-icons chứa event-clip bên trong (không bị wrapper nuốt m
 // jsdom chạy setTimeout trên Node event loop THẬT, nên chờ thật ~520ms
 // (nhỉnh hơn ngưỡng 500ms trong long-press.js) là đủ để timer bên
 // trong tự bắn — không cần fake timer.
-function firePointer(el, type, opts = {}) {
-  const ev = new dom.window.PointerEvent(type, { bubbles: true, cancelable: true, clientX: 10, clientY: 10, pointerType: 'touch', ...opts });
+// LongPress giờ dùng Touch Events thuần (xem js/long-press.js) — giả
+// lập touchstart/touchend tối giản, chỉ cần .touches[0].clientX/Y.
+function fireTouch(el, type, x = 10, y = 10) {
+  const ev = new dom.window.Event(type, { bubbles: true, cancelable: true });
+  ev.touches = [{ clientX: x, clientY: y }];
   el.dispatchEvent(ev);
   return ev;
 }
@@ -109,7 +112,7 @@ async function run() {
   const overlayBefore = document.querySelector('.day-preview-sheet-overlay');
   check('Chưa có sheet nào mở lúc đầu', !overlayBefore || overlayBefore.style.display === 'none');
 
-  firePointer(todayCell, 'pointerdown');
+  fireTouch(todayCell, 'touchstart');
   check('Ô hôm nay có class is-long-pressing NGAY khi vừa nhấn xuống (trước ngưỡng)', !todayCell.classList.contains('is-long-pressing'));
   await wait(560);
 
@@ -155,13 +158,62 @@ async function run() {
   console.log('=== Click thường (nhấn rồi nhả ngay) vẫn hoạt động như trước ===');
   openedDate = null;
   const otherCell = container.querySelector('.day-cell:not(.blank-adjacent):not(.future-day)');
-  firePointer(otherCell, 'pointerdown');
+  fireTouch(otherCell, 'touchstart');
   await wait(50); // nhả tay SỚM, trước ngưỡng 500ms — không phải long-press
-  firePointer(otherCell, 'pointerup');
-  otherCell.click(); // JSDOM không tự bắn 'click' sau pointerup/down giả lập — gọi tay giống trình duyệt thật sẽ làm
+  fireTouch(otherCell, 'touchend');
+  otherCell.click(); // JSDOM không tự bắn 'click' sau touchstart/end giả lập — gọi tay giống trình duyệt thật sẽ làm
   check('Click thường (thả sớm) mở thẳng onDayClick, KHÔNG có is-long-pressing', openedDate === otherCell.dataset.date && !otherCell.classList.contains('is-long-pressing'));
   const overlayAfterClick = document.querySelector('.day-preview-sheet-overlay');
   check('Click thường KHÔNG mở sheet xem nhanh', !overlayAfterClick.classList.contains('is-open'));
+
+  // ---- Test 6: click "ra ngoài để đóng" NGAY SAU KHI MỞ không được
+  // tự đóng sheet — đây là bug thật đã gặp: trên di động, long-press
+  // mở sheet trong lúc ngón tay còn chạm màn hình, nên khi nhấc tay
+  // trình duyệt tổng hợp 1 click rơi trúng lớp nền (overlay) vừa mở,
+  // khiến sheet tự đóng ngay tức khắc trước khi người dùng kịp thấy.
+  // Xem IGNORE_OUTSIDE_CLICK_MS trong day-preview-sheet.js. ----
+  console.log('=== Long-press mở sheet, rồi mô phỏng click tổng hợp trên overlay NGAY LẬP TỨC (bug thật trên di động) ===');
+  fireTouch(todayCell, 'touchstart');
+  await wait(560);
+  const overlay2 = document.querySelector('.day-preview-sheet-overlay');
+  check('Sheet đã mở (is-open) trước khi mô phỏng click tổng hợp', overlay2.classList.contains('is-open'));
+  // Mô phỏng ĐÚNG kịch bản lỗi: click rơi trúng overlay NGAY sau khi mở
+  const clickEvt = new dom.window.MouseEvent('click', { bubbles: true });
+  Object.defineProperty(clickEvt, 'target', { value: overlay2, enumerable: true });
+  overlay2.dispatchEvent(clickEvt);
+  check('Sheet VẪN MỞ ngay sau click tổng hợp tức thời (chưa đủ IGNORE_OUTSIDE_CLICK_MS)', overlay2.classList.contains('is-open'));
+
+  console.log('=== Sau khi đợi đủ lâu (400ms), click ra ngoài ĐÓNG được sheet như bình thường ===');
+  await wait(400);
+  const clickEvt2 = new dom.window.MouseEvent('click', { bubbles: true });
+  Object.defineProperty(clickEvt2, 'target', { value: overlay2, enumerable: true });
+  overlay2.dispatchEvent(clickEvt2);
+  check('Sheet đóng đúng khi click ra ngoài SAU khoảng miễn dịch', !overlay2.classList.contains('is-open'));
+  await wait(300);
+
+  // ---- Test 7: mở sheet NHIỀU LẦN không làm nhân bản listener "click
+  // ra ngoài để đóng" trên overlay — bug rò rỉ đã gặp: bản trước gắn
+  // listener này lại mỗi lần open(), trong khi overlay chỉ tạo 1 lần
+  // duy nhất (ensureOverlay() tái dùng), khiến listener chồng chất
+  // qua mỗi lần mở. Kiểm tra gián tiếp: mở 3 lần, rồi đợi đủ lâu, 1
+  // click ra ngoài phải đóng sheet ĐÚNG 1 LẦN gọi close() thực chất
+  // (không quan sát trực tiếp được số listener từ ngoài module, nhưng
+  // có thể xác nhận qua việc sheet đóng gọn gàng không lỗi/không tự
+  // mở lại bất thường). ----
+  console.log('=== Mở sheet 3 lần liên tiếp, xác nhận vẫn đóng gọn gàng bằng click ra ngoài (không rò rỉ listener) ===');
+  for (let i = 0; i < 3; i++) {
+    fireTouch(todayCell, 'touchstart');
+    await wait(560);
+    fireTouch(todayCell, 'touchend');
+    await wait(50);
+  }
+  const overlay3 = document.querySelector('.day-preview-sheet-overlay');
+  check('Sheet mở đúng sau 3 lần long-press liên tiếp', overlay3.classList.contains('is-open'));
+  await wait(400); // vượt khoảng miễn dịch của lần mở cuối
+  const clickEvt3 = new dom.window.MouseEvent('click', { bubbles: true });
+  Object.defineProperty(clickEvt3, 'target', { value: overlay3, enumerable: true });
+  overlay3.dispatchEvent(clickEvt3);
+  check('Đóng đúng bằng ĐÚNG 1 lần click ra ngoài, dù đã mở lại nhiều lần trước đó (không rò rỉ listener)', !overlay3.classList.contains('is-open'));
 
   console.log(`\n=== KẾT QUẢ: ${pass} pass, ${fail} fail ===`);
   process.exit(fail > 0 ? 1 : 0);

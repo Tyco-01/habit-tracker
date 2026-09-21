@@ -42,22 +42,16 @@
   }
 
   async function bootAfterLogin() {
-    root.innerHTML = `
-      <div class="tabs sticky-tabs" id="tab-bar-outer" tabindex="0" style="justify-content:center;">
+    // Thanh nav render RIÊNG vào #tab-bar-outer (đã có sẵn trong
+    // index.html, NGOÀI #app — xem giải thích đầy đủ tại đó về lý do
+    // kỹ thuật). Đây là phần tử ĐÃ TỒN TẠI (không tạo bằng root.innerHTML
+    // như trước), lấy tham chiếu rồi set thuộc tính/innerHTML riêng.
+    const tabBarOuter = document.getElementById('tab-bar-outer');
+    tabBarOuter.className = 'tabs sticky-tabs';
+    tabBarOuter.setAttribute('tabindex', '0');
+    tabBarOuter.style.justifyContent = 'center';
+    tabBarOuter.innerHTML = `
         <div class="tab-pill-group-main" id="tab-pill-group">
-          <!-- Bọc 3 icon mỗi bên vào 1 khối flex:1 riêng, TỰ CANH VỀ
-               PHÍA HOME (flex-end bên trái, flex-start bên phải) —
-               ĐÂY LÀ CÁCH DUY NHẤT đảm bảo Home luôn đúng tâm hình học
-               bất kể 2 nhóm icon rộng hẹp khác nhau ra sao. Cách cũ
-               (justify-content: space-between trên toàn bộ 7 phần tử
-               phẳng) đã SAI trong thực tế: icon Lịch (#nav-year) có 2
-               dòng chữ "T7 15" rộng hơn hẳn 2 icon đơn cạnh nó, kéo
-               lệch cả cụm 3-icon trái so với cụm 3-icon phải (đều toàn
-               icon đơn, hẹp hơn) — space-between chỉ chia đều KHOẢNG
-               CÁCH giữa các phần tử liền kề, không hề biết hay quan
-               tâm tới TỔNG độ rộng 2 nhóm 2 bên có bằng nhau không, kết
-               quả đo thực tế: Home lệch ~15px khỏi tâm (đã xác nhận
-               bằng ảnh chụp + đo pixel thật, không phải suy đoán). -->
           <div class="tab-pill-side tab-pill-side-left">
             <button class="tab-btn tab-btn-icon" id="nav-trash" aria-label="Thùng rác" title="Thùng rác">
               <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
@@ -70,21 +64,6 @@
               <span class="cal-icon-daynum" id="nav-cal-daynum"></span>
             </button>
           </div>
-          <!-- Home — TRUNG TÂM của thanh, to hơn 3 nút thường (xem
-               .tab-btn-home trong layout.css). 3 hành vi khác nhau
-               trên CÙNG 1 nút, không đè lên nhau (xem app.js):
-                 - Nhấn 1 cái (click)  → goToTab('today'), y hệt hành
-                   vi Home cũ.
-                 - Nhấp đúp (dblclick) → mở ThemeEditorModal đầy đủ
-                   (thay chỗ "bấm ngắn nút theme cũ" — bấm ngắn giờ đã
-                   dùng cho goToTab nên dời sang đúp).
-                 - Giữ (long-press + rê chọn) → ThemeQuickPicker, y hệt
-                   hành vi "giữ nút theme cũ", chỉ đổi anchor sang đây.
-               touch-action:none — LÝ DO Y HỆT #nav-theme cũ (đã xoá):
-               ThemeQuickPicker cần 1 cử chỉ DỌC (giữ rồi rê xuống chọn)
-               ngay trên nút này, phải giành quyền cử chỉ hoàn toàn
-               khỏi tay trình duyệt (xem giải thích gốc trong lịch sử
-               file, không lặp lại ở đây). -->
           <button class="tab-btn tab-btn-icon tab-btn-home active" id="nav-today" aria-label="Hôm nay — nhấn để về Hôm nay, giữ để đổi giao diện nhanh, nhấp đúp để mở đầy đủ tuỳ chỉnh giao diện" title="Hôm nay" style="touch-action:none;">
             <i class="ti ti-home" aria-hidden="true"></i>
           </button>
@@ -100,7 +79,9 @@
             </button>
           </div>
         </div>
-      </div>
+    `;
+
+    root.innerHTML = `
       <div id="view-today" class="view-fade-in"></div>
       <div id="view-year" class="view-fade-in" style="display:none;"></div>
       <div id="view-stats" class="view-fade-in" style="display:none;"></div>
@@ -114,14 +95,14 @@
     const viewStats = root.querySelector('#view-stats');
     const viewTrash = root.querySelector('#view-trash');
     const viewDay = root.querySelector('#view-day');
-    const navToday = root.querySelector('#nav-today');
-    const navYear = root.querySelector('#nav-year');
-    const navStats = root.querySelector('#nav-stats');
-    const navTrash = root.querySelector('#nav-trash');
-    const navRefresh = root.querySelector('#nav-refresh');
-    const navLogout = root.querySelector('#nav-logout');
-    const navExport = root.querySelector('#nav-export');
-    const tabsEl = root.querySelector('.tabs');
+    const navToday = document.querySelector('#nav-today');
+    const navYear = document.querySelector('#nav-year');
+    const navStats = document.querySelector('#nav-stats');
+    const navTrash = document.querySelector('#nav-trash');
+    const navRefresh = document.querySelector('#nav-refresh');
+    const navLogout = document.querySelector('#nav-logout');
+    const navExport = document.querySelector('#nav-export');
+    const tabsEl = document.getElementById('tab-bar-outer');
 
     // Vị trí thanh tab (trên/dưới) — áp dụng NGAY lúc mount theo lựa
     // chọn đã lưu (mặc định "trên" nếu chưa từng đổi), và gắn nhấn giữ
@@ -138,8 +119,8 @@
     // để lệch ngày.
     function syncCalendarIcon() {
       const now = new Date();
-      const weekdayEl = root.querySelector('#nav-cal-weekday');
-      const daynumEl = root.querySelector('#nav-cal-daynum');
+      const weekdayEl = document.querySelector('#nav-cal-weekday');
+      const daynumEl = document.querySelector('#nav-cal-daynum');
       if (!weekdayEl || !daynumEl) return;
       weekdayEl.textContent = DateUtils.DAYS_VN_MICRO[now.getDay()];
       daynumEl.textContent = String(now.getDate()).padStart(2, '0'); // luôn 2 chữ số ("08" thay vì "8") để độ rộng icon ổn định mọi ngày trong tháng, không co giãn theo 1 hay 2 chữ số
