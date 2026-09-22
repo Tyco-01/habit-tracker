@@ -17,16 +17,7 @@
         if (m === 'light' || m === 'dark') {
           document.documentElement.setAttribute('data-theme', m);
         } else if (m && m.indexOf('custom:') === 0) {
-          var list = JSON.parse(localStorage.getItem('habit-tracker-custom-themes') || '[]');
-          var theme = list.find(function (t) { return t.id === m.slice(7); });
-          if (theme && theme.vars) {
-            var style = document.documentElement.style;
-            var map = { ink: '--ink', mute: '--mute', paper: '--paper', card: '--card', line: '--line', fullBg: '--full-bg', partialBg: '--partial-bg', danger: '--danger' };
-            Object.keys(map).forEach(function (k) { if (theme.vars[k]) style.setProperty(map[k], theme.vars[k]); });
-            var hex = theme.vars.ink;
-            var mm = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
-            if (mm) style.setProperty('--ink-rgb', parseInt(mm[1], 16) + ', ' + parseInt(mm[2], 16) + ', ' + parseInt(mm[3], 16));
-          }
+          localStorage.setItem('habit-tracker-theme', 'system');
         }
       } catch (e) {}
     })();
@@ -46,12 +37,17 @@
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/event-timeline.css" />
+  <link rel="stylesheet" href="css/theme-quick-picker.css" />
+  <link rel="stylesheet" href="css/tab-bar-position.css" />
+  <link rel="stylesheet" href="css/swipe-hint.css" />
   <link rel="stylesheet" href="css/views/lock.css" />
   <link rel="stylesheet" href="css/views/today.css" />
   <link rel="stylesheet" href="css/views/year.css" />
+  <link rel="stylesheet" href="css/views/mini-calendar-picker.css" />
   <link rel="stylesheet" href="css/views/day-detail.css" />
-  <link rel="stylesheet" href="css/simplify.css" />
+  <link rel="stylesheet" href="css/views/day-preview-sheet.css" />
   <link rel="stylesheet" href="css/views/stats.css" />
+  <link rel="stylesheet" href="css/refined-ui.css" />
 </head>
 <body>
 
@@ -69,6 +65,8 @@
   <script src="js/date-utils.js"></script>
   <script src="js/dom-utils.js"></script>
   <script src="js/habit-scope.js"></script>
+  <script src="js/lunar-calendar.js"></script>
+  <script src="js/theme-toggle.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/storage-local.js"></script>
@@ -79,15 +77,25 @@
   <script src="js/sync/index.js"></script>
   <script src="js/tree-icons.js"></script>
   <script src="js/confirm-modal.js"></script>
+  <script src="js/habit-range-modal.js"></script>
+  <script src="js/theme-editor-modal.js"></script>
   <script src="js/event-section.js"></script>
   <script src="js/habit-note-panel.js"></script>
+  <script src="js/long-press.js"></script>
+  <script src="js/swipe-nav.js"></script>
+  <script src="js/swipe-hint.js"></script>
+  <script src="js/theme-quick-picker.js"></script>
+  <script src="js/tab-bar-position.js"></script>
+  <script src="js/day-preview-sheet.js"></script>
   <script src="js/views/today.js"></script>
+  <script src="js/views/mini-calendar-picker.js"></script>
   <script src="js/views/year.js"></script>
   <script src="js/views/day-detail.js"></script>
   <script src="js/views/stats.js"></script>
   <script src="js/views/trash.js"></script>
   <script src="js/export-data.js"></script>
   <script src="js/data-repair.js"></script>
+  <script src="js/badge.js"></script>
   <script src="js/app.js"></script>
 
   <script>

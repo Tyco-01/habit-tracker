@@ -48,14 +48,37 @@
     // như trước), lấy tham chiếu rồi set thuộc tính/innerHTML riêng.
     const tabBarOuter = document.getElementById('tab-bar-outer');
     tabBarOuter.className = 'tabs sticky-tabs';
+    tabBarOuter.setAttribute('tabindex', '0');
+    tabBarOuter.style.justifyContent = 'center';
     tabBarOuter.innerHTML = `
-      <div class="tab-pill-group-main">
-        <button class="tab-btn tab-btn-icon active" id="nav-today" aria-label="Hôm nay" title="Hôm nay"><i class="ti ti-home" aria-hidden="true"></i></button>
-        <button class="tab-btn tab-btn-icon" id="nav-year" aria-label="Lịch" title="Lịch"><i class="ti ti-calendar" aria-hidden="true"></i></button>
-        <button class="tab-btn tab-btn-icon" id="nav-stats" aria-label="Thống kê" title="Thống kê"><i class="ti ti-chart-bar" aria-hidden="true"></i></button>
-        <button class="tab-btn tab-btn-icon" id="nav-trash" aria-label="Thùng rác" title="Thùng rác"><i class="ti ti-trash" aria-hidden="true"></i></button>
-        <button id="nav-export" aria-label="Xuất dữ liệu backup" title="Xuất dữ liệu"><i class="ti ti-download" aria-hidden="true"></i></button>
-      </div>
+        <div class="tab-pill-group-main" id="tab-pill-group">
+          <div class="tab-pill-side tab-pill-side-left">
+            <button class="tab-btn tab-btn-icon" id="nav-trash" aria-label="Thùng rác" title="Thùng rác">
+              <i class="ti ti-trash" style="font-size:15px;" aria-hidden="true"></i>
+            </button>
+            <button class="tab-btn tab-btn-icon" id="nav-stats" aria-label="Thống kê" title="Thống kê">
+              <i class="ti ti-chart-bar" style="font-size:16px;" aria-hidden="true"></i>
+            </button>
+            <button class="tab-btn tab-btn-icon tab-btn-calendar-icon" id="nav-year" aria-label="Lịch" title="Lịch">
+              <span class="cal-icon-weekday" id="nav-cal-weekday"></span>
+              <span class="cal-icon-daynum" id="nav-cal-daynum"></span>
+            </button>
+          </div>
+          <button class="tab-btn tab-btn-icon tab-btn-home active" id="nav-today" aria-label="Hôm nay — nhấn để về Hôm nay, giữ để đổi giao diện nhanh, nhấp đúp để mở đầy đủ tuỳ chỉnh giao diện" title="Hôm nay" style="touch-action:none;">
+            <i class="ti ti-home" aria-hidden="true"></i>
+          </button>
+          <div class="tab-pill-side tab-pill-side-right">
+            <button id="nav-refresh" aria-label="Làm tươi" title="Tải lại app — dùng khi giao diện bị lỗi hoặc hiển thị sai">
+              <i class="ti ti-refresh" style="font-size:16px;" aria-hidden="true"></i>
+            </button>
+            <button id="nav-export" aria-label="Xuất dữ liệu backup" title="Tải file backup dữ liệu">
+              <i class="ti ti-download" style="font-size:16px;" aria-hidden="true"></i>
+            </button>
+            <button id="nav-logout" aria-label="Đăng xuất">
+              <i class="ti ti-logout" style="font-size:16px;" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
     `;
 
     root.innerHTML = `
@@ -76,59 +99,17 @@
     const navYear = document.querySelector('#nav-year');
     const navStats = document.querySelector('#nav-stats');
     const navTrash = document.querySelector('#nav-trash');
+    const navRefresh = document.querySelector('#nav-refresh');
+    const navLogout = document.querySelector('#nav-logout');
     const navExport = document.querySelector('#nav-export');
-
-    // Simple navigation intentionally replaces gesture-based tab switching,
-    // hidden long-press actions, and card-stack previews.
-    const simpleScrollPositions = { today: 0, year: 0, stats: 0, trash: 0 };
-    let simpleCurrentTab = 'today';
-    function simpleShowTab(tab, restoreScroll = true) {
-      simpleScrollPositions[simpleCurrentTab] = window.scrollY;
-      viewToday.style.display = tab === 'today' ? 'block' : 'none';
-      viewYear.style.display = tab === 'year' ? 'block' : 'none';
-      viewStats.style.display = tab === 'stats' ? 'block' : 'none';
-      viewTrash.style.display = tab === 'trash' ? 'block' : 'none';
-      viewDay.style.display = 'none';
-      [navToday, navYear, navStats, navTrash].forEach((button, index) => button.classList.toggle('active', ['today', 'year', 'stats', 'trash'][index] === tab));
-      simpleCurrentTab = tab;
-      if (restoreScroll) requestAnimationFrame(() => window.scrollTo(0, simpleScrollPositions[tab] || 0));
-    }
-    function simpleOpenDay(dateStr) {
-      simpleScrollPositions[simpleCurrentTab] = window.scrollY;
-      [viewToday, viewYear, viewStats, viewTrash].forEach(view => { view.style.display = 'none'; });
-      viewDay.style.display = 'block';
-      window.scrollTo(0, 0);
-      DayDetailView.render(viewDay, dateStr, () => {
-        simpleShowTab('year');
-        YearView.render(viewYear, simpleOpenDay);
-      });
-    }
-    function simpleGoToTab(tab) {
-      simpleShowTab(tab, tab !== 'year');
-      if (tab === 'today') TodayView.render(viewToday);
-      if (tab === 'year') YearView.render(viewYear, simpleOpenDay, { focusToday: true });
-      if (tab === 'stats') StatsView.render(viewStats);
-      if (tab === 'trash') TrashView.render(viewTrash);
-    }
-    navToday.addEventListener('click', () => simpleGoToTab('today'));
-    navYear.addEventListener('click', () => simpleGoToTab('year'));
-    navStats.addEventListener('click', () => simpleGoToTab('stats'));
-    navTrash.addEventListener('click', () => simpleGoToTab('trash'));
-    navExport.addEventListener('click', () => ExportData.exportAll());
-    window.__jumpToDate = simpleOpenDay;
-    try { await Sync.pullFromServer(); } catch (err) { console.warn('Không tải được dữ liệu mới nhất:', err); }
-    TodayView.render(viewToday);
-    simpleShowTab('today');
-    setupSyncIndicator();
-    return;
+    const tabsEl = document.getElementById('tab-bar-outer');
 
     // Vị trí thanh tab (trên/dưới) — áp dụng NGAY lúc mount theo lựa
     // chọn đã lưu (mặc định "trên" nếu chưa từng đổi), và gắn nhấn giữ
     // để đổi qua lại. Không cần callback onChange gì thêm ở đây —
     // apply() đã tự lo mọi việc (class CSS, padding #app), UI cập
     // nhật ngay khi người dùng chọn trong bảng.
-    TabBarPosition.apply(tabsEl);
-    TabBarPosition.bind(tabsEl);
+    // Keep the navigation in one predictable top position.
 
     // Icon tab "Lịch" hiển thị kiểu "T2 21": thứ trong tuần rút gọn tối
     // đa (DateUtils.DAYS_VN_MICRO — "T2".."T7"/"CN") + số ngày nằm
@@ -158,8 +139,7 @@
     // 2 cho cùng 1 lần tương tác); long-press được ThemeQuickPicker tự
     // phát hiện qua pointerdown giữ đủ lâu không nhấc tay, nên không
     // bao giờ đồng thời sinh ra click. ----
-    ThemeQuickPicker.bind(navToday);
-    navToday.addEventListener('dblclick', () => ThemeEditorModal.open());
+    // Theme is intentionally system-led; navigation buttons perform one action only.
 
     // "Làm tươi" — vừa dọn trạng thái JS tạm thời (reload trang) VỪA
     // tự dò-sửa lỗi CẤU TRÚC DỮ LIỆU thật đã biết (vd vòng lặp cha-con
@@ -501,7 +481,7 @@
       }
     }
 
-    SwipeNav.bind(document.body, {
+    if (false) SwipeNav.bind(document.body, {
       shouldIgnore: (target) => !!target.closest('.cal-switcher, .cal-pane'),
       onDrag: dragMove,
       onCommit: (dir) => {

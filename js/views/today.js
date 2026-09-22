@@ -70,6 +70,7 @@ const TodayView = (() => {
     const today = new Date();
     const todayKey = DateUtils.dateKey(today);
     const label = `${DateUtils.DAYS_VN[today.getDay()]}, ${today.getDate()} tháng ${today.getMonth() + 1}, ${today.getFullYear()}`;
+    const lunar = (() => { try { return LunarCalendar.fromSolar(today); } catch (e) { return null; } })();
 
     container.innerHTML = `
       <div class="today-header">
@@ -78,6 +79,7 @@ const TodayView = (() => {
             <h3 class="today-title">Hôm nay</h3>
             <p class="today-date">${label}</p>
           </div>
+          ${lunar ? `<p class="today-lunar">Âm lịch: ${lunar.fullLabel} · năm ${lunar.canChiYear}</p>` : ''}
         </div>
         <button class="icon-btn-round" id="add-habit-btn" aria-label="Thêm việc mới">
           <i class="ti ti-plus" style="font-size:15px;" aria-hidden="true"></i>
@@ -105,7 +107,7 @@ const TodayView = (() => {
       const { checks } = Sync.getData();
       const checked = !!(checks[h.id] && checks[h.id][todayKey]);
       const state = TreeIcons.growthState(checks[h.id], today);
-      const treeHtml = '';
+      const treeHtml = TreeIcons.render(state);
       const noteActive = HabitNotePanel.hasAnyNote(h.id, todayKey);
 
       return `
@@ -204,15 +206,13 @@ const TodayView = (() => {
       });
 
       listEl.querySelectorAll('[data-remove]').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', () => {
           const habit = habits.find(h => h.id === btn.dataset.remove);
           if (!habit) return;
-          const ok = await ConfirmModal.show({
-            title: `Chuyển "${habit.name}" vào thùng rác?`,
-            body: 'Bạn có thể khôi phục việc này trong thùng rác trong 30 ngày.',
-            confirmLabel: 'Chuyển vào thùng rác'
-          });
-          if (ok) Sync.removeHabit(habit.id);
+          // Xoá "thông minh": cho chọn "Từ hôm nay" (mặc định, không
+          // đụng lịch sử) hoặc "Cả quá khứ" (lùi mốc ngừng về 1 ngày đã
+          // qua) — xem js/habit-range-modal.js: confirmDelete().
+          HabitRangeModal.confirmDelete(habit);
         });
       });
 

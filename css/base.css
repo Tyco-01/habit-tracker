@@ -35,15 +35,15 @@
    ============================================================ */
 
 :root {
-  --ink: #2B2622;
-  --ink-rgb: 43, 38, 34;
-  --mute: #8B8171;
-  --paper: #F5F1E8;
-  --card: #FBF9F3;
-  --line: #E6DFD0;
-  --full-bg: #3B3226;
-  --partial-bg: #EDE6D5;
-  --danger: #B5432B;
+  --ink: #252A31;
+  --ink-rgb: 37, 42, 49;
+  --mute: #77818C;
+  --paper: #F3F3F1;
+  --card: #FCFCFB;
+  --line: #E1E2E0;
+  --full-bg: #35434F;
+  --partial-bg: #E3EBE9;
+  --danger: #B65A4C;
   --radius: 12px;
 }
 
@@ -51,20 +51,20 @@
   /* :not([data-theme="light"]) — nếu người dùng đã ép "Sáng" thủ công,
      giữ nguyên bảng sáng ở :root dù hệ thống đang tối. */
   :root:not([data-theme="light"]) {
-    --ink: #EDE6D8;
-    --ink-rgb: 237, 230, 216;
-    --mute: #9C9282;
-    --paper: #1C1917;
-    --card: #262220;
-    --line: #3A342E;
+    --ink: #E8E8E5;
+    --ink-rgb: 232, 232, 229;
+    --mute: #A9AFB5;
+    --paper: #202225;
+    --card: #292C30;
+    --line: #3A3D41;
     /* "full/đã hoàn thành" đổi thành điểm nhấn SÁNG (vàng kem ấm) thay
        vì tối như bản sáng — trong nền tối, ô "đầy" cần NỔI BẬT LÊN chứ
        không phải chìm đậm hơn nữa. .day-cell.full dùng var(--card) làm
        màu chữ (xem css/views/year.css) — --card tối (#262220) đủ tương
        phản đọc được trên nền vàng kem này, không cần thêm biến riêng. */
-    --full-bg: #E8D9A8;
-    --partial-bg: #322C22;
-    --danger: #E2795F;
+    --full-bg: #AABDC6;
+    --partial-bg: #303A3D;
+    --danger: #DD8A7B;
   }
 }
 
@@ -73,15 +73,15 @@
    TRÙNG HỆT khối @media ở trên — xem giải thích "vì sao lặp lại" trong
    comment lớn phía trên :root. */
 :root[data-theme="dark"] {
-  --ink: #EDE6D8;
-  --ink-rgb: 237, 230, 216;
-  --mute: #9C9282;
-  --paper: #1C1917;
-  --card: #262220;
-  --line: #3A342E;
-  --full-bg: #E8D9A8;
-  --partial-bg: #322C22;
-  --danger: #E2795F;
+  --ink: #E8E8E5;
+  --ink-rgb: 232, 232, 229;
+  --mute: #A9AFB5;
+  --paper: #202225;
+  --card: #292C30;
+  --line: #3A3D41;
+  --full-bg: #AABDC6;
+  --partial-bg: #303A3D;
+  --danger: #DD8A7B;
 }
 
 * { box-sizing: border-box; }

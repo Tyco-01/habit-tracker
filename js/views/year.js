@@ -21,7 +21,7 @@
 
 const YearView = (() => {
 
-  const MODES = ['year'];
+  const MODES = ['day', 'week', 'month', 'year'];
   const MODE_LABEL = { day: 'Ngày', week: 'Tuần', month: 'Tháng', year: 'Năm' };
 
   let mode = 'year';
@@ -171,7 +171,7 @@ const YearView = (() => {
     // Bản thân việc đổi mode ĐÃ có animation mượt riêng qua pill trượt
     // (syncPillPosition, dùng transition CSS) — không cần thêm hiệu
     // ứng kéo-theo-tay ở switcher nữa, chỉ cần commit đúng lúc thả tay.
-    if (false) SwipeNav.bind(switcher, {
+    SwipeNav.bind(switcher, {
       onLockHorizontal: () => {
         const idx = MODES.indexOf(mode);
         if (idx < MODES.length - 1) SwipeHint.show(MODE_LABEL[MODES[idx + 1]]);
@@ -329,7 +329,6 @@ const YearView = (() => {
     // chèn được âm lịch vào bên trong). Popup tự có sẵn nút "Hôm nay"
     // nên không cần thêm nút riêng ở ngoài.
     function bindDateJump() {
-      return;
       const titleBtn = content.querySelector('#cal-title-jump');
       if (!titleBtn) return;
       titleBtn.addEventListener('click', () => {

@@ -1,0 +1,15 @@
+/* Clear hierarchy: ordinary navigation, one calendar view, and restrained motion. */
+.sticky-tabs { padding: 10px max(1.25rem, calc((100vw - 760px) / 2)); }
+.tab-pill-group-main { max-width: 720px; }
+.tab-btn-home { width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 10px; }
+.tab-btn-home:not(.active) { background: transparent; color: var(--mute); }
+.tab-btn-home i { font-size: 17px; }
+.tab-pill-side { flex: 0 1 auto; gap: 2px; }
+.tab-pill-side-left { order: 0; }
+.tab-pill-side-right { margin-left: auto; order: 1; }
+.tab-btn-calendar-icon { padding: 6px 10px; }
+.cal-switcher { display: none; }
+.cal-pane { padding: 14px 0 0; border: 0; box-shadow: none; background: transparent; }
+.today-lunar, .day-lunar { display: none !important; }
+.view-fade-in, .cal-pane, .cal-pane-in-next, .cal-pane-in-prev { animation-duration: .14s; }
+@media (max-width: 560px) { .tab-pill-side-right button#nav-refresh, .tab-pill-side-right button#nav-export { display: none; } }
