@@ -1,0 +1,17 @@
+/* Minimal interaction layer: one obvious navigation row and one calm calendar. */
+:root { --ink:#2b2622 !important; --mute:#8b8171 !important; --paper:#f5f1e8 !important; --card:#fbf9f3 !important; --line:#e6dfd0 !important; --full-bg:#3b3226 !important; --partial-bg:#ede6d5 !important; }
+@media (prefers-color-scheme: dark) { :root { --ink:#ede6d8 !important; --mute:#a99f91 !important; --paper:#1c1917 !important; --card:#262220 !important; --line:#3a342e !important; --full-bg:#e8d9a8 !important; --partial-bg:#322c22 !important; } }
+.sticky-tabs { position:sticky; top:0; z-index:20; margin:-1.5rem 0 20px; padding:12px 1.25rem; background:var(--paper); border-bottom:1px solid var(--line); }
+.tab-pill-group-main { display:flex; gap:6px; max-width:620px; margin:0 auto; }
+.tab-pill-side { display:contents; }
+.tab-pill-group-main button, .tab-btn-home { width:auto; min-width:38px; height:38px; min-height:38px; padding:0 10px; border-radius:10px; border:0; background:transparent; color:var(--mute); }
+.tab-pill-group-main .tab-btn.active { background:var(--ink); color:var(--paper); }
+.tab-pill-group-main button:not(.tab-btn) { margin-left:auto; }
+.tab-pill-group-main button:not(.tab-btn) ~ button:not(.tab-btn) { margin-left:0; }
+.cal-switcher { display:none; }
+.cal-pane { padding:0; background:transparent; border:0; box-shadow:none; animation:none; }
+.today-lunar, .day-lunar { display:none !important; }
+.habit-streak svg { display:none; }
+.habit-row { padding:11px 6px; }
+.habit-row:hover { background:transparent; }
+@media (max-width:520px) { .tab-pill-group-main { justify-content:space-between; } .tab-pill-group-main button { min-width:36px; padding:0 8px; } }

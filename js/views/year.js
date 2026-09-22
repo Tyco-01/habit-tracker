@@ -21,10 +21,10 @@
 
 const YearView = (() => {
 
-  const MODES = ['day', 'week', 'month', 'year'];
+  const MODES = ['year'];
   const MODE_LABEL = { day: 'Ngày', week: 'Tuần', month: 'Tháng', year: 'Năm' };
 
-  let mode = 'month';
+  let mode = 'year';
   let anchor = new Date(); // mốc ngày đang neo cho mode day/week/month
   let viewYear = new Date().getFullYear(); // mốc năm riêng cho mode year (giữ hành vi cũ: chỉ đi lùi tới năm có dữ liệu, không đi tới tương lai)
   let onDayClick = null;
@@ -65,11 +65,7 @@ const YearView = (() => {
   // Nhãn âm lịch gọn cho 1 ô ngày trong lưới — trả về chuỗi rỗng nếu
   // vì lý do nào đó tính toán lỗi (không để crash cả lưới vì 1 ngày lỗi).
   function lunarShort(dateObj) {
-    try {
-      return LunarCalendar.fromSolar(dateObj).shortLabel;
-    } catch (e) {
-      return '';
-    }
+    return '';
   }
 
   // Chủ nhật của tuần chứa dateObj (không sửa dateObj gốc).
@@ -175,7 +171,7 @@ const YearView = (() => {
     // Bản thân việc đổi mode ĐÃ có animation mượt riêng qua pill trượt
     // (syncPillPosition, dùng transition CSS) — không cần thêm hiệu
     // ứng kéo-theo-tay ở switcher nữa, chỉ cần commit đúng lúc thả tay.
-    SwipeNav.bind(switcher, {
+    if (false) SwipeNav.bind(switcher, {
       onLockHorizontal: () => {
         const idx = MODES.indexOf(mode);
         if (idx < MODES.length - 1) SwipeHint.show(MODE_LABEL[MODES[idx + 1]]);
@@ -253,7 +249,7 @@ const YearView = (() => {
       // thay bằng phần tử mới đã tự có animation trượt vào đúng
       // hướng). onCancel animate paneEl trôi VỀ lại vị trí gốc khi
       // chưa đủ ngưỡng.
-      SwipeNav.bind(paneEl, {
+      if (false) SwipeNav.bind(paneEl, {
         onDrag: (dx) => {
           paneEl.style.transform = `translateX(${dx}px)`;
           // Đọc TRỰC TIẾP aria-label có sẵn của #cal-prev/#cal-next
@@ -292,7 +288,7 @@ const YearView = (() => {
         cell.addEventListener('click', () => {
           if (onDayClick) onDayClick(cell.dataset.date);
         });
-        LongPress.bind(cell, (el) => {
+        if (false) LongPress.bind(cell, (el) => {
           DayPreviewSheet.open(el.dataset.date, onDayClick);
         });
       });
@@ -333,6 +329,7 @@ const YearView = (() => {
     // chèn được âm lịch vào bên trong). Popup tự có sẵn nút "Hôm nay"
     // nên không cần thêm nút riêng ở ngoài.
     function bindDateJump() {
+      return;
       const titleBtn = content.querySelector('#cal-title-jump');
       if (!titleBtn) return;
       titleBtn.addEventListener('click', () => {

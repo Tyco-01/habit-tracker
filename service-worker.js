@@ -8,7 +8,7 @@
 // có thể bị "kẹt" lại rất lâu dù đã tải code mới lên server.
 // ============================================================
 
-const CACHE_NAME = 'habit-tracker-v57';
+const CACHE_NAME = 'habit-tracker-v58';
 
 const CORE_ASSETS = [
   './',
@@ -17,6 +17,7 @@ const CORE_ASSETS = [
   './css/base.css',
   './css/layout.css',
   './css/components.css',
+  './css/simplify.css',
   './css/event-timeline.css',
   './css/views/lock.css',
   './css/views/today.css',
